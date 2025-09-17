@@ -477,3 +477,4 @@ public class Game extends Canvas
 
     }
 }
+
