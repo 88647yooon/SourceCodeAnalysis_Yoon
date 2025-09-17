@@ -474,3 +474,4 @@ public class Game extends Canvas
 		g.gameLoop();
 	}
 }
+
