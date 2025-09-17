@@ -473,5 +473,7 @@ public class Game extends Canvas
 		// using the actual main thread to run the game.
 		g.gameLoop();
 	}
+    public void print(){
+        System.out.print("윤동규가 바꾼 게임.자바");
+    }
 }
-
