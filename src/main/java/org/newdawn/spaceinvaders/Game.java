@@ -473,4 +473,7 @@ public class Game extends Canvas
 		// using the actual main thread to run the game.
 		g.gameLoop();
 	}
+    public void test(){
+
+    }
 }
