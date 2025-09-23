@@ -9,6 +9,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferStrategy;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 
 import javax.swing.JFrame;
@@ -18,6 +19,11 @@ import org.newdawn.spaceinvaders.entity.AlienEntity;
 import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.ShipEntity;
 import org.newdawn.spaceinvaders.entity.ShotEntity;
+
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.database.FirebaseDatabase;
 
 /**
  * The main hook of our game. This class with both act as a manager
@@ -79,6 +85,7 @@ public class Game extends Canvas
 	/**
 	 * Construct our game and set it running.
 	 */
+
 	public Game() {
 		// create a frame to contain our game
 		container = new JFrame("Space Invaders 102");
@@ -466,12 +473,37 @@ public class Game extends Canvas
 	 * @param argv The arguments that are passed into our game
 	 */
 	public static void main(String argv[]) {
-		Game g = new Game();
+        try {
+            // serviceAccountKey.json 불러오기
+            FileInputStream serviceAccount = new FileInputStream("src/main/resources/serviceAccountKey.json");
 
-		// Start the main game loop, note: this method will not
-		// return until the game has finished running. Hence we are
-		// using the actual main thread to run the game.
-		g.gameLoop();
+            // Firebase 옵션 설정
+            FirebaseOptions options = new FirebaseOptions.Builder()
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                    .setDatabaseUrl("https://<your-project-id>.firebaseio.com")
+                    .build();
+
+            // Firebase 초기화 (앱 실행 시 딱 1번만!)
+            FirebaseApp.initializeApp(options);
+
+            System.out.println("Firebase 초기화");
+
+            Game g = new Game();
+
+            // Start the main game loop, note: this method will not
+            // return until the game has finished running. Hence we are
+            // using the actual main thread to run the game.
+            g.gameLoop();
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+
+
+
 	}
 }
 
