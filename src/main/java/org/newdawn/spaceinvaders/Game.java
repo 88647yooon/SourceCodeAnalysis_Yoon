@@ -12,6 +12,12 @@ import java.awt.image.BufferStrategy;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
@@ -23,6 +29,7 @@ import org.newdawn.spaceinvaders.entity.ShotEntity;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 /**
@@ -464,7 +471,21 @@ public class Game extends Canvas
 			}
 		}
 	}
-	
+
+    private static void writeLog(String eventType) {
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("logs");
+
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+
+        Map<String, Object> logEntry = new HashMap<>();
+        logEntry.put("event", eventType);
+        logEntry.put("timestamp", timestamp);
+
+        ref.push().setValueAsync(logEntry);
+
+        System.out.println("✅ 로그 저장: " + eventType + " at " + timestamp);
+    }
+
 	/**
 	 * The entry point into the game. We'll simply create an
 	 * instance of class which will start the display and game
@@ -480,20 +501,21 @@ public class Game extends Canvas
             // Firebase 옵션 설정
             FirebaseOptions options = new FirebaseOptions.Builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .setDatabaseUrl("https://<your-project-id>.firebaseio.com")
+                    .setDatabaseUrl("https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app/")
                     .build();
 
             // Firebase 초기화 (앱 실행 시 딱 1번만!)
             FirebaseApp.initializeApp(options);
 
             System.out.println("Firebase 초기화");
-
+            writeLog("gamestart");
             Game g = new Game();
 
             // Start the main game loop, note: this method will not
             // return until the game has finished running. Hence we are
             // using the actual main thread to run the game.
             g.gameLoop();
+            writeLog("game over");
 
 
         } catch (Exception e) {
