@@ -11,15 +11,15 @@ import org.newdawn.spaceinvaders.SpriteStore;
  */
 public class AlienEntity extends Entity {
 	/** The speed at which the alient moves horizontally */
-	private double moveSpeed = 75;
+	private final double moveSpeed = 75;
 	/** The game in which the entity exists */
-	private Game game;
+	private final Game game;
 	/** The animation frames */
-	private Sprite[] frames = new Sprite[4];
+	private final Sprite[] frames = new Sprite[4];
 	/** The time since the last frame change took place */
 	private long lastFrameChange;
 	/** The frame duration in milliseconds, i.e. how long any given frame of animation lasts */
-	private long frameDuration = 250;
+	private final long frameDuration = 250;
 	/** The current frame of animation being displayed */
 	private int frameNumber;
 	

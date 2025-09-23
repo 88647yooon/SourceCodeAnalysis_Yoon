@@ -31,10 +31,11 @@ public abstract class Entity {
 	/** The current speed of this entity vertically (pixels/sec) */
 	protected double dy;
 	/** The rectangle used for this entity during collisions  resolution */
-	private Rectangle me = new Rectangle();
+	private final Rectangle me = new Rectangle();
 	/** The rectangle used for other entities during collision resolution */
-	private Rectangle him = new Rectangle();
-	
+	private final Rectangle him = new Rectangle();
+
+
 	/**
 	 * Construct a entity based on a sprite image and a location.
 	 * 

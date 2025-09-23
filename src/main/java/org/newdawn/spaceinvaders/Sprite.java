@@ -42,7 +42,11 @@ public class Sprite {
 	public int getHeight() {
 		return image.getHeight(null);
 	}
-	
+
+    //이미지 게터
+    public Image getImage() {
+        return image;
+    }
 	/**
 	 * Draw the sprite onto the graphics context provided
 	 * 

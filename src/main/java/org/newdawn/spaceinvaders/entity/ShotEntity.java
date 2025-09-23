@@ -9,9 +9,9 @@ import org.newdawn.spaceinvaders.Game;
  */
 public class ShotEntity extends Entity {
 	/** The vertical speed at which the players shot moves */
-	private double moveSpeed = -300;
+	private final double moveSpeed = -300;
 	/** The game in which this entity exists */
-	private Game game;
+	private final Game game;
 	/** True if this shot has been "used", i.e. its hit something */
 	private boolean used = false;
 	

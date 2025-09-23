@@ -100,6 +100,9 @@ public class Game extends Canvas
     //무한 모드 관련 필드 추가
     private boolean infiniteMode = false;// 메뉴 선택 결과를 저장할 예시 플래그
 	private int waveCount =1;// 현재 웨이브 번호
+
+    //보스 관련 필드 추가
+    private boolean bossActive = false;
     /**
 	 * Construct our game and set it running.
 	 */
@@ -213,7 +216,30 @@ public class Game extends Canvas
         }
         waveCount++;
     }
-	
+
+    //보스 소환 메소드
+    private void spawnBoss() {
+
+        int bossW = 120;   // BossEntity.draw()에서 쓰는 축소 크기와 일치
+        int bossH = 120;
+        int startX = (800 - bossW) / 2;  // 화면 가로 800px 기준 중앙
+        int startY = 50;                 // 상단에서 50px 아래
+
+        Entity boss = new org.newdawn.spaceinvaders.entity.BossEntity(this, 360, 60);
+        entities.add(boss);
+        bossActive = true;
+    }
+    // 보스 처치시 콜백
+    public void onBossKilled() {
+        bossActive = false;
+        if (infiniteMode) {
+            // 무한모드라면 다음 웨이브 이어가기
+            spawnAliens();
+        } else {
+            // 스테이지 모드라면 승리 처리
+            notifyWin();
+        }
+    }
 	/**
 	 * Notification from a game entity that the logic of the game
 	 * should be run at the next opportunity (normally as a result of some
@@ -259,8 +285,16 @@ public class Game extends Canvas
 		
 		if (alienCount == 0) {
             if (infiniteMode) {
-                spawnAliens(); // 무한모드일 경우 새로운 웨이브
+                if (!bossActive && (waveCount % 1 == 0)){
+                    spawnBoss(); //무한모드에서 매 웨이브마다 보스가 생성
+                }else{
+                    spawnAliens(); // 무한모드일 경우 새로운 웨이브
+                }
             } else {
+                //스테이지 모드 : 전멸후 보스 라운드였따면 보스 소호나
+                if (!bossActive) {
+                    spawnBoss(); // 마지막 스테이지라면 호출
+                }
                 notifyWin();   // 원래 로직
             }
 		}
