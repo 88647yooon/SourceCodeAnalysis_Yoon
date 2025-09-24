@@ -66,6 +66,7 @@ public class Game extends Canvas
 {  /// 아래 5개는 회원가입, 로그인과 관련된 필드
     private static final String API_KEY = "AIzaSyCdY9-wpF3Ad2DXkPTXGcqZEKWBD1qRYKE";
     private static final String DB_URL  = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app";
+    private static final String DB_KEYFILE = "src/main/resources/serviceAccountKey.json";
     private static String SESSION_UID   = null;
     private static String SESSION_EMAIL = null;
     private static String SESSION_ID_TOKEN = null;
@@ -802,12 +803,12 @@ public class Game extends Canvas
 	public static void main(String argv[]) {
         try {
             // serviceAccountKey.json 불러오기
-            FileInputStream serviceAccount = new FileInputStream("src/main/resources/serviceAccountKey.json");
+            FileInputStream serviceAccount = new FileInputStream(DB_KEYFILE);
 
             // Firebase 옵션 설정
-            FirebaseOptions options = new FirebaseOptions.Builder()
+            FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .setDatabaseUrl("https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app/")
+                    .setDatabaseUrl("DB_URL")
                     .build();
 
             // Firebase 초기화 (앱 실행 시 딱 1번만!)
