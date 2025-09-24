@@ -7,7 +7,6 @@ import java.util.Objects;
 
 
 class BackgroundRenderer {
-
     private BufferedImage[] backgrounds;
 
     public BackgroundRenderer() {

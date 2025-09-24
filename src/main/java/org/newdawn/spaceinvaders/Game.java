@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Iterator;
+import java.util.List;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -43,6 +45,9 @@ import org.newdawn.spaceinvaders.entity.AlienEntity;
 import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.ShipEntity;
 import org.newdawn.spaceinvaders.entity.ShotEntity;
+import org.newdawn.spaceinvaders.entity.EnemyShotEntity;
+import org.newdawn.spaceinvaders.entity.RangedAlienEntity;
+import org.newdawn.spaceinvaders.entity.HostageEntity;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
@@ -133,6 +138,7 @@ public class Game extends Canvas
     private boolean infiniteMode = false;// 메뉴 선택 결과를 저장할 예시 플래그
 	int waveCount =1;// 현재 웨이브 번호
 
+    private static final double RANGED_ALIEN_RATIO = 0.25; // 25% 확률로 원거리
     //보스 관련 필드 추가
     private boolean bossActive = false;
     /**
@@ -144,6 +150,7 @@ public class Game extends Canvas
 		container = new JFrame("Space Invaders 102");
 		// backgroundRenderer 생성자
         backgroundRenderer = new BackgroundRenderer();
+
         setScreen(new MenuScreen(this)); //시작화면 = 메뉴
 		// get hold the content of the frame and set up the resolution of the game
 		JPanel panel = (JPanel) container.getContentPane();
@@ -233,19 +240,71 @@ public class Game extends Canvas
             }
         }
 	}
+    public ShipEntity getPlayerShip() { return (ShipEntity) ship; }
+
+    public void addEntity(Entity e) { entities.add(e); }
+
+    public void spawnEnemyShot(double x, double y, double vx, double vy) {
+        // vx, vy는 px/s 절대속도라고 가정 → EnemyShotEntity의 (dir, speed)로 변환
+        double speed = Math.sqrt(vx*vx + vy*vy);
+        double dirX = (speed == 0) ? 0 : vx / speed;
+        double dirY = (speed == 0) ? 1 : vy / speed;
+
+        EnemyShotEntity s = new EnemyShotEntity(
+                this,
+                "sprites/enemy_bullet.png",
+                x, y,
+                dirX, dirY,
+                speed
+        );
+        entities.add(s);
+    }
+    public int getWaveCount() { return waveCount; }   // BackgroundRenderer에서 필요
+    public void notifyPlayerHit() {
+        // TODO: HP 감소/이펙트/사운드 등
+        // 일단 컴파일만 되게 스텁
+    }
 
     //무한모드 메소드
-    private void spawnAliens(){
+    private void spawnAliens() {
         // 난이도 조절용: waveCount 증가
-        int rows = 3 + (waveCount % 3);  // 점점 늘어나도록
-        int cols = 6 + (waveCount % 6);
+        int rows = 3 + (waveCount % 3);   // 3~5
+        int cols = 6 + (waveCount % 6);   // 6~11
         alienCount = 0;
 
-        for (int row=0;row<rows;row++) {
-            for (int x=0;x<cols;x++) {
-                Entity alien = new AlienEntity(this,100+(x*50),(50)+row*30);
+        int startX = 100;
+        int startY = 50;
+        int gapX = 50;
+        int gapY = 30;
+
+        for (int row = 0; row < rows; row++) {
+            for (int c = 0; c < cols; c++) {
+                int x = startX + (c * gapX);
+                int y = startY + (row * gapY);
+
+                Entity alien;
+                // 일정 비율로 원거리 적 섞기
+                if (Math.random() < RANGED_ALIEN_RATIO) {
+                    // 플레이어 참조가 필요: Game에 playerShip 필드가 있으면 그대로 넘겨
+                    alien = new RangedAlienEntity(this, x, y, getPlayerShip());
+                } else {
+                    alien = new AlienEntity(this, x, y);
+                }
+
                 entities.add(alien);
                 alienCount++;
+            }
+        }
+        // ✅ 무한모드일 때 일정 확률로 인질 추가
+        if (infiniteMode) {
+            int hostageNum = 1 + (int)(Math.random() * 3); // 1~3명
+            for (int i = 0; i < hostageNum; i++) {
+                // 열 랜덤 선택
+                int c = (int)(Math.random() * cols);
+                int x = startX + (c * gapX);
+                int y = startY - 40; // 👈 맨윗줄보다 살짝 위에 배치
+                Entity hostage = new HostageEntity(this, x, y);
+                entities.add(hostage);
             }
         }
         waveCount++;
@@ -364,29 +423,27 @@ public class Game extends Canvas
 	 * Notification that an alien has been killed
 	 */
 	public void notifyAlienKilled() {
-		// reduce the alient count, if there are none left, the player has won!
-		alienCount--;
-        if (alienCount < 10) {
-            dangerMode = true;
-        } else {
-            dangerMode = false;
-        }
-		if (alienCount == 0) {
+        // 1) 안전하게 카운트
+        alienCount--;
+        if (alienCount < 0) alienCount = 0;
+
+        // 2) 위험 모드 갱신
+        dangerMode = (alienCount < 10);
+
+        // 3) 전멸했을 때만 분기
+        if (alienCount == 0) {
             if (infiniteMode) {
-                if (!bossActive && (waveCount % 1 == 0)){
-                    spawnBoss(); //무한모드에서 매 웨이브마다 보스가 생성
-                }else{
-                    spawnAliens(); // 무한모드일 경우 새로운 웨이브
+                // 매 웨이브마다 보스
+                if (!bossActive) {
+                    spawnBoss();
                 }
             } else {
-                //스테이지 모드 : 전멸후 보스 라운드였따면 보스 소호나
                 if (!bossActive) {
-                    spawnBoss(); // 마지막 스테이지라면 호출
+                    spawnBoss();
                 }
-                notifyWin();   // 원래 로직
+                notifyWin();
             }
-		}
-		
+        }
 		// if there are still some aliens left then they all need to get faster, so
 		// speed up all the existing aliens
 		for (int i=0;i<entities.size();i++) {
@@ -415,6 +472,10 @@ public class Game extends Canvas
 		ShotEntity shot = new ShotEntity(this,"sprites/shot.gif",ship.getX()+10,ship.getY()-30);
 		entities.add(shot);
 	}
+    //플레이어 피격시
+    public void onPlayerHit() {
+        System.out.println("Player hit!");
+    }
 	
 	/**
 	 * The main game loop. This loop is running during all game
@@ -563,7 +624,7 @@ public class Game extends Canvas
         String help = "↑/↓: 이동, ENTER: 선택, ESC: 종료";
         g.drawString(help, (800 - g.getFontMetrics().stringWidth(help))/2, 420);
     }
-	/**
+
 
 
     public boolean isDangerMode(){

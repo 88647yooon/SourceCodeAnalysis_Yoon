@@ -10,7 +10,7 @@ import org.newdawn.spaceinvaders.Game;
 public class ShipEntity extends Entity {
 	/** The game in which the ship exists */
 	private final Game game;
-	
+    private int hp = 3;
 	/**
 	 * Create a new entity to represent the players ship
 	 *  
@@ -24,8 +24,20 @@ public class ShipEntity extends Entity {
 		
 		this.game = game;
 	}
-	
-	/**
+
+    public void damage(int d) {
+        hp -= d;
+        game.onPlayerHit(); // UI/이펙트/무적시간 등
+        if (hp <= 0) {
+            game.notifyDeath();
+        }
+    }
+
+    public boolean isAlive() {
+        return hp > 0;
+    }
+
+    /**
 	 * Request that the ship move itself based on an elapsed ammount of
 	 * time
 	 * 
@@ -57,5 +69,10 @@ public class ShipEntity extends Entity {
 		if (other instanceof AlienEntity) {
 			game.notifyDeath();
 		}
+
+        if (other instanceof EnemyShotEntity) {
+            damage(1);
+            game.removeEntity(other);
+        }
 	}
 }

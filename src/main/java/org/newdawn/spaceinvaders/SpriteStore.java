@@ -24,12 +24,12 @@ import javax.imageio.ImageIO;
 public class SpriteStore {
 	/** The single instance of this class */
 	private static SpriteStore single = new SpriteStore();
-	
-	/**
-	 * Get the single instance of this class 
-	 * 
-	 * @return The single instance of this class
-	 */
+    /**
+     * Get the single instance of this class
+     *
+     * @return The single instance of this class
+     */
+
 	public static SpriteStore get() {
 		return single;
 	}
