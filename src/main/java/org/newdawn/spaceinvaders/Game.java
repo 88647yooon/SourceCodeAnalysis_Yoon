@@ -110,6 +110,10 @@ public class Game extends Canvas
 	private boolean leftPressed = false;
 	/** True if the right cursor key is currently pressed */
 	private boolean rightPressed = false;
+    /** True if the upper cursor key is currently pressed */
+    private boolean UpPressed = false;
+    /** True if the lower cursor key is currently pressed */
+    private boolean DownPressed = false;
 	/** True if we are firing */
 	private boolean firePressed = false;
 	/** True if game logic needs to be applied this loop, normally as a result of a game event */
@@ -407,7 +411,8 @@ public class Game extends Canvas
     public void setLeftPressed(boolean value) { leftPressed = value; }
     public void setRightPressed(boolean value) { rightPressed = value; }
     public void setFirePressed(boolean value) { firePressed = value; }
-
+    public void setUpPressed(boolean value) { UpPressed = value;}
+    public void setDownPressed(boolean value) { DownPressed = value;}
     // 엔티티 업데이트 로직 호출
     public void updateEntities(long delta) {
         if (!waitingForKeyPress) {
@@ -582,7 +587,17 @@ public class Game extends Canvas
 			// isn't moving. If either cursor key is pressed then
 			// update the movement appropraitely
 			ship.setHorizontalMovement(0);
-			
+            ship.setVerticalMovement(0);
+
+
+            //상하 이동
+			if((UpPressed) && (!DownPressed)){
+                ship.setVerticalMovement(-moveSpeed);
+            } else if((DownPressed) && (!UpPressed)){
+                ship.setVerticalMovement(moveSpeed);
+            }
+
+            //좌우 이동
 			if ((leftPressed) && (!rightPressed)) {
 				ship.setHorizontalMovement(-moveSpeed);
 			} else if ((rightPressed) && (!leftPressed)) {

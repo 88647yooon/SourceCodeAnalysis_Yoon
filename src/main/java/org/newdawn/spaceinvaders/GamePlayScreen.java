@@ -45,6 +45,12 @@ public class GamePlayScreen implements Screen{
         if (keyCode == KeyEvent.VK_RIGHT) {
             game.setRightPressed(true);
         }
+        if(keyCode == KeyEvent.VK_UP) {
+            game.setUpPressed(true);
+        }
+        if(keyCode == KeyEvent.VK_DOWN) {
+            game.setDownPressed(true);
+        }
         if (keyCode == KeyEvent.VK_SPACE) {
             game.setFirePressed(true);
         }
@@ -57,6 +63,12 @@ public class GamePlayScreen implements Screen{
         }
         if (keyCode == KeyEvent.VK_RIGHT) {
             game.setRightPressed(false);
+        }
+        if(keyCode == KeyEvent.VK_UP) {
+            game.setUpPressed(false);
+        }
+        if (keyCode == KeyEvent.VK_DOWN) {
+            game.setDownPressed(false);
         }
         if (keyCode == KeyEvent.VK_SPACE) {
             game.setFirePressed(false);

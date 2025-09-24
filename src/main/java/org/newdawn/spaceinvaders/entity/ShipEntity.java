@@ -54,7 +54,16 @@ public class ShipEntity extends Entity {
 		if ((dx > 0) && (x > 750)) {
 			return;
 		}
-		
+
+        //화면의 아래에 닿았을때 움직이지 마라
+		if((dy < 0)&&(y<10)){
+            return;
+        }
+        //화면의 위에 닿았을때 움직이지 마라
+        //배가 32픽셀이라 800바이 600으로 설정했을때 600-32 = 568이 되어 안정적으로 아래쪽을 뚫지 않게 됨
+        if ((dy > 0) && (y > 568)) {
+            return;
+        }
 		super.move(delta);
 	}
 	
