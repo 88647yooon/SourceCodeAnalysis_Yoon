@@ -81,11 +81,11 @@ public class Game extends Canvas
 	private BufferStrategy strategy;
 	/** True if the game is currently "running", i.e. the game loop is looping */
 	private boolean gameRunning = true;
-	/** The list of all the entities that exist in our game */
-	private ArrayList entities = new ArrayList();
-	/** The list of entities that need to be removed from the game this loop */
-	private ArrayList removeList = new ArrayList();
-	/** The entity representing the player */
+    /** The list of all the entities that exist in our game */
+    private ArrayList<Entity> entities = new ArrayList<>();
+    /** The list of entities that need to be removed from the game this loop */
+    private ArrayList<Entity> removeList = new ArrayList<>();
+    /** The entity representing the player */
 	private Entity ship;
 	/** The speed at which the player's ship should move (pixels/sec) */
 	private double moveSpeed = 300;
@@ -117,7 +117,10 @@ public class Game extends Canvas
 	private String windowTitle = "Space Invaders 102";
 	/** The game window that we'll update with the frame count */
 	private JFrame container;
-
+    /** 백그라운드렌더러 선언**/
+    private BackgroundRenderer backgroundRenderer;
+    /**스크린**/
+    private Screen currentScreen;
 
     // Game.java (필드)
     private enum GameState { MENU, PLAYING, SCOREBOARD, EXIT }
@@ -128,7 +131,7 @@ public class Game extends Canvas
 
     //무한 모드 관련 필드 추가
     private boolean infiniteMode = false;// 메뉴 선택 결과를 저장할 예시 플래그
-	private int waveCount =1;// 현재 웨이브 번호
+	int waveCount =1;// 현재 웨이브 번호
 
     //보스 관련 필드 추가
     private boolean bossActive = false;
@@ -139,7 +142,9 @@ public class Game extends Canvas
 	public Game() {
 		// create a frame to contain our game
 		container = new JFrame("Space Invaders 102");
-		
+		// backgroundRenderer 생성자
+        backgroundRenderer = new BackgroundRenderer();
+        setScreen(new MenuScreen(this)); //시작화면 = 메뉴
 		// get hold the content of the frame and set up the resolution of the game
 		JPanel panel = (JPanel) container.getContentPane();
 		panel.setPreferredSize(new Dimension(800,600));
@@ -274,6 +279,28 @@ public class Game extends Canvas
 	 * should be run at the next opportunity (normally as a result of some
 	 * game event)
 	 */
+    //스테이지모드
+    public void startStageMode(){
+        infiniteMode = false;   // 스테이지 모드
+        waveCount = 1;          // 웨이브 초기화
+        startGame();            // 기존 startGame() 호출
+        setScreen(new GamePlayScreen(this)); // 게임 화면 전환
+    }
+    //무한모드
+    public void startInfiniteMode(){
+        infiniteMode = true; // 무한모드
+        waveCount = 1; // 웨이브 초기화
+        startGame(); //기존 startGame() 호출하기
+        setScreen(new GamePlayScreen(this)); // 게임 화면 전환
+    }
+    /* 나중에 firebase 연동해서 구현예정
+    public void showScoreboard(){
+        setScreen(new ScoreboardScreen(this)); //점수판 화면으로 전환
+    }
+    */
+
+
+
 	public void updateLogic() {
 		logicRequiredThisLoop = true;
 	}
@@ -304,7 +331,35 @@ public class Game extends Canvas
 		message = "Well done! You Win!";
 		waitingForKeyPress = true;
 	}
-	
+
+
+
+    // 엔티티 리스트 접근
+    public java.util.List<Entity> getEntities() {
+        return entities;
+    }
+
+    // waitingForKeyPress 상태 확인
+    public boolean isWaitingForKeyPress() {
+        return waitingForKeyPress;
+    }
+
+    // 키 입력 상태 설정
+    public void setLeftPressed(boolean value) { leftPressed = value; }
+    public void setRightPressed(boolean value) { rightPressed = value; }
+    public void setFirePressed(boolean value) { firePressed = value; }
+
+    // 엔티티 업데이트 로직 호출
+    public void updateEntities(long delta) {
+        if (!waitingForKeyPress) {
+            for (Entity entity : new java.util.ArrayList<>(entities)) {
+                entity.move(delta);
+            }
+        }
+
+
+    }
+
 	/**
 	 * Notification that an alien has been killed
 	 */
@@ -398,19 +453,16 @@ public class Game extends Canvas
 			// Get hold of a graphics context for the accelerated 
 			// surface and blank it out
 			Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
-			g.setColor(Color.black);
-			g.fillRect(0,0,800,600);
+
+            // 배경 + 엔티티를 통합 렌더링
+            render(g);
 
             if (state == GameState.MENU) {
-                drawMenu(g);
                 g.dispose();
                 strategy.show();
                 SystemTimer.sleep(lastLoopTime+10-SystemTimer.getTime());
                 continue; // 메뉴일 땐 이하(엔티티 이동/충돌) 스킵
             }
-
-            //배경 그리기
-            BackgroundRenderer.draw(g, this);
 
 			// cycle round asking each entity to move itself
 			if (!waitingForKeyPress) {
@@ -419,13 +471,6 @@ public class Game extends Canvas
 					
 					entity.move(delta);
 				}
-			}
-			
-			// cycle round drawing all the entities we have in the game
-			for (int i=0;i<entities.size();i++) {
-				Entity entity = (Entity) entities.get(i);
-				
-				entity.draw(g);
 			}
 			
 			// brute force collisions, compare every entity against
@@ -495,6 +540,16 @@ public class Game extends Canvas
 			SystemTimer.sleep(lastLoopTime+10-SystemTimer.getTime());
 		}
 	}
+    public void setScreen(Screen screen) {
+        this.currentScreen = screen;
+    }
+
+    public void render(Graphics2D g) {
+       if(currentScreen != null) {
+           currentScreen.render(g);
+       }
+    }
+
 
     private void drawMenu(Graphics2D g) {
         g.setColor(Color.white);
@@ -542,27 +597,11 @@ public class Game extends Canvas
 		 *
 		 * @param e The details of the key that was pressed 
 		 */
+        @Override
 		public void keyPressed(KeyEvent e) {
-            if (state == GameState.MENU) {
-                if (e.getKeyCode()==KeyEvent.VK_UP)    menuIndex = (menuIndex-1+menuItems.length)%menuItems.length;
-                if (e.getKeyCode()==KeyEvent.VK_DOWN)  menuIndex = (menuIndex+1)%menuItems.length;
-                return;
+            if (currentScreen != null) {
+                currentScreen.handleKeyPress(e.getKeyCode());
             }
-            // ===Playing === 기존처리
-			if (waitingForKeyPress) {
-				return;
-			}
-			
-			
-			if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-				leftPressed = true;
-			}
-			if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-				rightPressed = true;
-			}
-			if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-				firePressed = true;
-			}
 		} 
 		
 		/**
@@ -570,22 +609,11 @@ public class Game extends Canvas
 		 *
 		 * @param e The details of the key that was released 
 		 */
+        @Override
 		public void keyReleased(KeyEvent e) {
-			// if we're waiting for an "any key" typed then we don't 
-			// want to do anything with just a "released"
-			if (waitingForKeyPress) {
-				return;
-			}
-			
-			if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-				leftPressed = false;
-			}
-			if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-				rightPressed = false;
-			}
-			if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-				firePressed = false;
-			}
+			if (currentScreen != null) {
+                currentScreen.handleKeyRelease(e.getKeyCode());
+            }
 		}
 
 		/**
