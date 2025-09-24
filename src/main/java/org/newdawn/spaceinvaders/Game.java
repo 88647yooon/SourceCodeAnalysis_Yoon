@@ -48,6 +48,7 @@ import org.newdawn.spaceinvaders.entity.ShotEntity;
 import org.newdawn.spaceinvaders.entity.EnemyShotEntity;
 import org.newdawn.spaceinvaders.entity.RangedAlienEntity;
 import org.newdawn.spaceinvaders.entity.HostageEntity;
+import org.newdawn.spaceinvaders.entity.DiagonalShooterAlienEntity;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
@@ -128,7 +129,7 @@ public class Game extends Canvas
     private Screen currentScreen;
 
     // Game.java (필드)
-    private enum GameState { MENU, PLAYING, SCOREBOARD, EXIT }
+    private enum GameState { MENU, PLAYING,GAMEOVER, SCOREBOARD, EXIT }
     private GameState state = GameState.MENU;
 
     private String[] menuItems = {"스테이지 모드", "무한 모드", "스코어보드", "게임 종료"};
@@ -202,7 +203,10 @@ public class Game extends Canvas
 	private void startGame() {
 		// clear out any existing entities and intialise a new set
 		entities.clear();
-		initEntities();
+        removeList.clear();
+        alienCount = 0;
+
+        initEntities();
 
 		// blank out any keyboard settings we might currently have
         leftPressed = rightPressed = firePressed = false;
@@ -282,10 +286,15 @@ public class Game extends Canvas
                 int x = startX + (c * gapX);
                 int y = startY + (row * gapY);
 
+                // 확률 설정: 초반 웨이브는 낮고, 점점 증가(최대 25%)
+                double diagonalProb = Math.min(0.05 + (waveCount - 1) * 0.02, 0.25); // 5% → 25%
+                double rangedProb   = RANGED_ALIEN_RATIO; // 기존 원거리 확률(25%)
+
+                double r = Math.random();
                 Entity alien;
-                // 일정 비율로 원거리 적 섞기
-                if (Math.random() < RANGED_ALIEN_RATIO) {
-                    // 플레이어 참조가 필요: Game에 playerShip 필드가 있으면 그대로 넘겨
+                if (r < diagonalProb) {
+                    alien = new DiagonalShooterAlienEntity(this, x, y);
+                } else if (r < diagonalProb + rangedProb) {
                     alien = new RangedAlienEntity(this, x, y, getPlayerShip());
                 } else {
                     alien = new AlienEntity(this, x, y);
@@ -378,10 +387,18 @@ public class Game extends Canvas
 	 * Notification that the player has died. 
 	 */
 	public void notifyDeath() {
-		message = "Oh no! They got you, try again?";
-		waitingForKeyPress = true;
+		state = GameState.GAMEOVER;
+        waitingForKeyPress = false;
+        message = "";
+		menuIndex =0;
+
+        setScreen(new GameOverScreen(this));
 	}
-	
+
+    public boolean isInfiniteMode() {
+        return infiniteMode;
+    }
+
 	/**
 	 * Notification that the player has won since all the aliens
 	 * are dead.
@@ -567,7 +584,7 @@ public class Game extends Canvas
 			
 			// if we're waiting for an "any key" press then draw the 
 			// current message 
-			if (waitingForKeyPress) {
+			if (state == GameState.PLAYING && waitingForKeyPress) {
 				g.setColor(Color.white);
 				g.drawString(message,(800-g.getFontMetrics().stringWidth(message))/2,250);
 				g.drawString("Press any key",(800-g.getFontMetrics().stringWidth("Press any key"))/2,300);
@@ -606,27 +623,25 @@ public class Game extends Canvas
     }
 
     public void render(Graphics2D g) {
-       if(currentScreen != null) {
-           currentScreen.render(g);
-       }
-    }
+        // 1) 항상 배경 먼저
+        if (backgroundRenderer != null) {
+            int w = getWidth()  > 0 ? getWidth()  : 800;
+            int h = getHeight() > 0 ? getHeight() : 600;
 
-
-    private void drawMenu(Graphics2D g) {
-        g.setColor(Color.white);
-        String title = "Space Invaders - Main Menu";
-        g.drawString(title, (800 - g.getFontMetrics().stringWidth(title))/2, 200);
-
-        for (int i=0;i<menuItems.length;i++) {
-            String item = (i==menuIndex ? "> " : "  ") + menuItems[i];
-            g.drawString(item, (800 - g.getFontMetrics().stringWidth(item))/2, 260 + i*30);
+            // 메뉴에서도 깔 배경이 필요하니 waveCount가 1 미만이면 1로 고정
+            int wcForBg = Math.max(1, getWaveCount());
+            backgroundRenderer.render(g, wcForBg, w, h);
+        } else {
+            g.setColor(Color.black);
+            g.fillRect(0, 0, 800, 600);
         }
-        String help = "↑/↓: 이동, ENTER: 선택, ESC: 종료";
-        g.drawString(help, (800 - g.getFontMetrics().stringWidth(help))/2, 420);
+
+        // 2) 그 위에 상태별 UI 오버레이
+        if (currentScreen != null) {
+            currentScreen.render(g);
+        }
+
     }
-
-
-
     public boolean isDangerMode(){
         return dangerMode;
     }
@@ -660,6 +675,7 @@ public class Game extends Canvas
 		 */
         @Override
 		public void keyPressed(KeyEvent e) {
+            // 상태 상관없이 Screen에게 위임
             if (currentScreen != null) {
                 currentScreen.handleKeyPress(e.getKeyCode());
             }
@@ -672,7 +688,7 @@ public class Game extends Canvas
 		 */
         @Override
 		public void keyReleased(KeyEvent e) {
-			if (currentScreen != null) {
+            if (currentScreen != null) {
                 currentScreen.handleKeyRelease(e.getKeyCode());
             }
 		}
@@ -684,31 +700,13 @@ public class Game extends Canvas
 		 * @param e The details of the key that was typed. 
 		 */
 		public void keyTyped(KeyEvent e) {
-			// if we're waiting for a "any key" type then
-			// check if we've recieved any recently. We may
-			// have had a keyType() event from the user releasing
-			// the shoot or move keys, hence the use of the "pressCount"
-			// counter.
-            if (e.getKeyChar() == 27) {  // ESC
-                if (state == GameState.MENU) System.exit(0);
-                else state = GameState.MENU; // 게임 중 ESC로 메뉴로
+            if (e.getKeyChar() == 27) { // ESC
+                // ESC만 상태 전환(타이틀 복귀 등) 처리하고,
+                // 선택/방향은 Screen이 처리
+                state = GameState.MENU;
+                setScreen(new MenuScreen(Game.this));
                 return;
             }
-            if (state == GameState.MENU && e.getKeyChar()=='\n') {
-                // ENTER 선택
-                switch (menuIndex) {
-                    case 0: infiniteMode = false; startGame(); break; // 스테이지 모드
-                    case 1: infiniteMode = true;  startGame(); break; // 무한 모드
-                    case 2: state = GameState.SCOREBOARD; break;      // 점수판(화면만 우선)
-                    case 3: System.exit(0);
-                }
-                return;
-			}
-			
-			// if we hit escape, then quit the game
-			if (e.getKeyChar() == 27) {
-				System.exit(0);
-			}
 		}
 	}
 
