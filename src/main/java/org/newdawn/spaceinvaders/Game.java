@@ -132,6 +132,8 @@ public class Game extends Canvas
     /**스크린**/
     private Screen currentScreen;
 
+
+
     // Game.java (필드)
     private enum GameState { MENU, PLAYING,GAMEOVER, SCOREBOARD, EXIT }
     private GameState state = GameState.MENU;
@@ -351,6 +353,9 @@ public class Game extends Canvas
 	 * should be run at the next opportunity (normally as a result of some
 	 * game event)
 	 */
+
+
+
     //스테이지모드
     public void startStageMode(){
         infiniteMode = false;   // 스테이지 모드
@@ -539,7 +544,7 @@ public class Game extends Canvas
 
             // 배경 + 엔티티를 통합 렌더링
             render(g);
-
+            
             if (state == GameState.MENU) {
                 g.dispose();
                 strategy.show();
@@ -655,6 +660,7 @@ public class Game extends Canvas
         if (currentScreen != null) {
             currentScreen.render(g);
         }
+
 
     }
     public boolean isDangerMode(){

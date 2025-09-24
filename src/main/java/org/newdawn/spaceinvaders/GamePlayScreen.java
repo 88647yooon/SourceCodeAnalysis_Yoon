@@ -1,17 +1,22 @@
 package org.newdawn.spaceinvaders;
 
 import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.ShipEntity;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 
 public class GamePlayScreen implements Screen{
     private Game game;
     private BackgroundRenderer backgroundRenderer;
+    /**HUDRenderer필드 추가**/
+    private HUDRenderer hudRenderer;
 
     public GamePlayScreen(Game game) {
         this.game = game;
         this.backgroundRenderer = new BackgroundRenderer();
+        this.hudRenderer = new HUDRenderer(game);
     }
 
     @Override
@@ -24,6 +29,9 @@ public class GamePlayScreen implements Screen{
             e.draw(g);
         }
 
+        //HUD는 플레이 화면에서만 표시
+        hudRenderer.render(g);
+
         // "Press any key" 상태 표시
         if (game.isWaitingForKeyPress()) {
             g.setColor(Color.white);
@@ -31,6 +39,8 @@ public class GamePlayScreen implements Screen{
             g.drawString(msg, (800 - g.getFontMetrics().stringWidth(msg)) / 2, 300);
         }
     }
+    //화면 제일 위에 나오는 스코어, 하트 ,스테이지 등입니다.
+
 
     @Override
     public void update(long delta) {

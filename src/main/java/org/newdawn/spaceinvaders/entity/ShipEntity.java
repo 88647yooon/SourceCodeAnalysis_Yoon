@@ -10,7 +10,8 @@ import org.newdawn.spaceinvaders.Game;
 public class ShipEntity extends Entity {
 	/** The game in which the ship exists */
 	private final Game game;
-    private int hp = 3;
+    private int maxHP = 3; // 최대 체력
+    private int currentHP = 3; // 현재 체력
 	/**
 	 * Create a new entity to represent the players ship
 	 *  
@@ -24,19 +25,33 @@ public class ShipEntity extends Entity {
 		
 		this.game = game;
 	}
+    public int getMaxHP(){
+        return maxHP;
+    }
+    public int getCurrentHP(){
+        return currentHP;
+    }
 
     public void damage(int d) {
-        hp -= d;
+        currentHP -= d;
         game.onPlayerHit(); // UI/이펙트/무적시간 등
-        if (hp <= 0) {
+        if (currentHP <= 0) {
             game.notifyDeath();
+        }
+    }
+    public void heal(int d) {
+        currentHP += d;
+        if(currentHP > maxHP){
+            currentHP = maxHP;
         }
     }
 
     public boolean isAlive() {
-        return hp > 0;
+        return currentHP > 0;
     }
-
+    public boolean isDead() {
+        return currentHP <= 0;
+    }
     /**
 	 * Request that the ship move itself based on an elapsed ammount of
 	 * time
