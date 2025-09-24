@@ -9,8 +9,12 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferStrategy;
-import java.io.FileInputStream;
+
+
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -19,7 +23,21 @@ import java.util.Map;
 
 
 import javax.swing.JFrame;
+
+/***
+ import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JLabel;
+import javax.swing.JDialog;
+***/
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+
+import javax.swing.*;
+
+import java.text.SimpleDateFormat;
 
 import org.newdawn.spaceinvaders.entity.AlienEntity;
 import org.newdawn.spaceinvaders.entity.Entity;
@@ -31,6 +49,10 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 /**
  * The main hook of our game. This class with both act as a manager
@@ -48,7 +70,13 @@ import com.google.firebase.database.FirebaseDatabase;
  * @author Kevin Glass
  */
 public class Game extends Canvas 
-{
+{  /// 아래 5개는 회원가입, 로그인과 관련된 필드
+    private static final String API_KEY = "AIzaSyCdY9-wpF3Ad2DXkPTXGcqZEKWBD1qRYKE";
+    private static final String DB_URL  = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app/";
+    private static final String DB_KEYFILE = "src/main/resources/serviceAccountKey.json";
+    private static String SESSION_UID   = null;
+    private static String SESSION_EMAIL = null;
+    private static String SESSION_ID_TOKEN = null;
 	/** The stragey that allows us to use accelerate page flipping */
 	private BufferStrategy strategy;
 	/** True if the game is currently "running", i.e. the game loop is looping */
@@ -67,7 +95,8 @@ public class Game extends Canvas
 	private long firingInterval = 500;
 	/** The number of aliens left on the screen */
 	private int alienCount;
-	
+	/** 위험한 상황이 발생했을 시**/
+    private boolean dangerMode = false;
 	/** The message to display which waiting for a key press */
 	private String message = "";
 	/** True if we're holding up game play until a key has been pressed */
@@ -282,7 +311,11 @@ public class Game extends Canvas
 	public void notifyAlienKilled() {
 		// reduce the alient count, if there are none left, the player has won!
 		alienCount--;
-		
+        if (alienCount < 10) {
+            dangerMode = true;
+        } else {
+            dangerMode = false;
+        }
 		if (alienCount == 0) {
             if (infiniteMode) {
                 if (!bossActive && (waveCount % 1 == 0)){
@@ -375,7 +408,10 @@ public class Game extends Canvas
                 SystemTimer.sleep(lastLoopTime+10-SystemTimer.getTime());
                 continue; // 메뉴일 땐 이하(엔티티 이동/충돌) 스킵
             }
-			
+
+            //배경 그리기
+            BackgroundRenderer.draw(g, this);
+
 			// cycle round asking each entity to move itself
 			if (!waitingForKeyPress) {
 				for (int i=0;i<entities.size();i++) {
@@ -473,6 +509,17 @@ public class Game extends Canvas
         g.drawString(help, (800 - g.getFontMetrics().stringWidth(help))/2, 420);
     }
 	/**
+
+
+    public boolean isDangerMode(){
+        return dangerMode;
+    }
+
+    public int getAlienCount() {
+        return alienCount;
+    }
+
+    /**
 	 * A class to handle keyboard input from the user. The class
 	 * handles both dynamic input during game play, i.e. left/right 
 	 * and shoot, and more static type input (i.e. press any key to
@@ -526,9 +573,6 @@ public class Game extends Canvas
 		public void keyReleased(KeyEvent e) {
 			// if we're waiting for an "any key" typed then we don't 
 			// want to do anything with just a "released"
-
-            if (state == GameState.MENU) return;
-
 			if (waitingForKeyPress) {
 				return;
 			}
@@ -592,8 +636,276 @@ public class Game extends Canvas
 
         System.out.println("✅ 로그 저장: " + eventType + " at " + timestamp);
     }
+    /// 로그인 화면
+    private static void showAuthDialogAndLogin() {
+        final JDialog dlg = new JDialog((JFrame)null, "로그인 / 회원가입", true);
+        JTabbedPane tabs = new JTabbedPane();
 
-	/**
+        // 로그인 탭
+        JPanel login = new JPanel(new java.awt.GridBagLayout());
+        JTextField loginEmail = new JTextField(20);
+        JPasswordField loginPw = new JPasswordField(20);
+        JButton btnLogin = new JButton("로그인");
+        java.awt.GridBagConstraints c = gbc();
+        login.add(new JLabel("이메일"), c); c.gridx=1; login.add(loginEmail, c);
+        c = gbc(0,1); login.add(new JLabel("비밀번호"), c); c.gridx=1; login.add(loginPw, c);
+        c = gbc(0,2); c.gridwidth=2;
+        btnLogin.addActionListener(ev -> {
+            try {
+                AuthResult ar = restSignIn(loginEmail.getText().trim(), new String(loginPw.getPassword()));
+                SESSION_UID = ar.localId; SESSION_EMAIL = ar.email; SESSION_ID_TOKEN = ar.idToken;
+                JOptionPane.showMessageDialog(dlg, "로그인 성공: " + ar.email);
+                dlg.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dlg, "로그인 실패\n" + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        login.add(btnLogin, c);
+
+        // 회원가입 탭
+        JPanel signup = new JPanel(new java.awt.GridBagLayout());
+        JTextField signEmail = new JTextField(20);
+        JPasswordField signPw = new JPasswordField(20);
+        JPasswordField signPw2 = new JPasswordField(20);
+        JButton btnSign = new JButton("회원가입");
+        c = gbc();
+        signup.add(new JLabel("이메일"), c); c.gridx=1; signup.add(signEmail, c);
+        c = gbc(0,1); signup.add(new JLabel("비밀번호"), c); c.gridx=1; signup.add(signPw, c);
+        c = gbc(0,2); signup.add(new JLabel("비밀번호 확인"), c); c.gridx=1; signup.add(signPw2, c);
+        c = gbc(0,3); c.gridwidth=2;
+        btnSign.addActionListener(ev -> {
+            String pw1 = new String(signPw.getPassword());
+            String pw2 = new String(signPw2.getPassword());
+            if (!pw1.equals(pw2)) {
+                JOptionPane.showMessageDialog(dlg, "비밀번호가 일치하지 않습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            try {
+                AuthResult ar = restSignUp(signEmail.getText().trim(), pw1);
+                SESSION_UID = ar.localId; SESSION_EMAIL = ar.email; SESSION_ID_TOKEN = ar.idToken;
+                JOptionPane.showMessageDialog(dlg, "회원가입 성공: " + ar.email);
+                // 기본 프로필 저장(선택)
+                restSetJson("users/"+SESSION_UID+"/profile", SESSION_ID_TOKEN,
+                        "{\"email\":"+quote(SESSION_EMAIL)+",\"createdAt\":"+quote(now())+"}");
+                dlg.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dlg, "회원가입 실패\n" + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        signup.add(btnSign, c);
+
+        tabs.add("로그인", login);
+        tabs.add("회원가입", signup);
+
+        dlg.setContentPane(tabs);
+        dlg.pack();
+        dlg.setLocationRelativeTo(null);
+        dlg.setVisible(true);
+
+        if (SESSION_ID_TOKEN == null) System.exit(0); // 취소 시 종료(원하면 다르게 처리)
+    }
+
+    private static java.awt.GridBagConstraints gbc() { return gbc(0,0); }
+    private static java.awt.GridBagConstraints gbc(int x, int y) {
+        java.awt.GridBagConstraints c = new java.awt.GridBagConstraints();
+        c.gridx = x; c.gridy = y; c.insets = new java.awt.Insets(5,5,5,5);
+        c.anchor = java.awt.GridBagConstraints.WEST; c.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        return c;
+    }
+
+    // =========================
+    // 🌐 Firebase Auth (REST)
+    // =========================
+    private static class AuthResult {
+        final String idToken, refreshToken, localId, email;
+        AuthResult(String idToken, String refreshToken, String localId, String email) {
+            this.idToken=idToken; this.refreshToken=refreshToken; this.localId=localId; this.email=email;
+        }
+    }
+
+    private static AuthResult restSignUp(String email, String password) throws Exception {
+        String endpoint = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" + API_KEY;
+        String body = "{"
+                + "\"email\":"+quote(email)+","
+                + "\"password\":"+quote(password)+","
+                + "\"returnSecureToken\":true"
+                + "}";
+        String res = httpPostJson(endpoint, body);
+        String idToken = jget(res, "idToken");
+        String refreshToken = jget(res, "refreshToken");
+        String localId = jget(res, "localId");
+        String emailOut = jget(res, "email");
+        if (idToken==null || localId==null) throw new RuntimeException("SignUp parse failed: " + res);
+        return new AuthResult(idToken, refreshToken, localId, emailOut);
+    }
+
+    private static AuthResult restSignIn(String email, String password) throws Exception {
+        String endpoint = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + API_KEY;
+        String body = "{"
+                + "\"email\":"+quote(email)+","
+                + "\"password\":"+quote(password)+","
+                + "\"returnSecureToken\":true"
+                + "}";
+        String res = httpPostJson(endpoint, body);
+        String idToken = jget(res, "idToken");
+        String refreshToken = jget(res, "refreshToken");
+        String localId = jget(res, "localId");
+        String emailOut = jget(res, "email");
+        if (idToken==null || localId==null) throw new RuntimeException("SignIn parse failed: " + res);
+        return new AuthResult(idToken, refreshToken, localId, emailOut);
+    }
+
+    // =========================
+    // 🗄️ Realtime Database (REST)
+    // =========================
+    private static void restLogEvent(String type) {
+        if (SESSION_ID_TOKEN == null || SESSION_UID == null) return;
+        String ts = now();
+        String json = "{"
+                + "\"event\":"+quote(type)+","
+                + "\"timestamp\":"+quote(ts)+"}";
+        try {
+            restPushJson("users/"+SESSION_UID+"/logs", SESSION_ID_TOKEN, json);
+        } catch (Exception e) {
+            System.err.println("⚠️ 로그 저장 실패: " + e.getMessage());
+        }
+    }
+
+    private static String restPushJson(String path, String idToken, String json) throws Exception {
+        String endpoint = DB_URL + "/" + path + ".json?auth=" + urlEnc(idToken);
+        return httpPostJson(endpoint, json);
+    }
+
+    private static String restSetJson(String path, String idToken, String json) throws Exception {
+        String endpoint = DB_URL + "/" + path + ".json?auth=" + urlEnc(idToken);
+        return httpPutJson(endpoint, json);
+    }
+
+    // =========================
+    // 🔧 HTTP & 미니 JSON 유틸 (의존성 없음)
+    // =========================
+    private static String httpPostJson(String endpoint, String body) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
+        conn.setRequestMethod("POST");
+        conn.setDoOutput(true);
+        conn.setRequestProperty("Content-Type","application/json; charset=UTF-8");
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(body.getBytes(StandardCharsets.UTF_8));
+        }
+        return readResp(conn);
+    }
+
+    private static String httpPutJson(String endpoint, String body) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
+        conn.setRequestMethod("PUT");
+        conn.setDoOutput(true);
+        conn.setRequestProperty("Content-Type","application/json; charset=UTF-8");
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(body.getBytes(StandardCharsets.UTF_8));
+        }
+        return readResp(conn);
+    }
+
+    private static String readResp(HttpURLConnection conn) throws Exception {
+        int code = conn.getResponseCode();
+        try (InputStream is = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream()) {
+            String txt = readFully(is, "UTF-8");
+            if (code >= 200 && code < 300) return txt;
+            throw new RuntimeException("HTTP " + code + ": " + txt);
+        }
+    }
+    private static String readFully(InputStream is, String charset) throws Exception {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            byte[] buf = new byte[4096];
+            int len;
+            while ((len = is.read(buf)) != -1) {
+                baos.write(buf, 0, len);
+            }
+            return baos.toString(charset);
+        } finally {
+            if (is != null) try { is.close(); } catch (Exception ignore) {}
+        }
+    }
+
+    private static String jget(String json, String key) {
+        // 매우 단순한 "키:문자열" 추출. (필요한 필드만)
+        // "key" : "value"
+        String k = "\"" + key.replace("\"","\\\"") + "\"";
+        int i = json.indexOf(k);
+        if (i < 0) return null;
+        i = json.indexOf(':', i);
+        if (i < 0) return null;
+        i++;
+        // skip spaces
+        while (i < json.length() && Character.isWhitespace(json.charAt(i))) i++;
+        if (i >= json.length() || json.charAt(i) != '"') return null;
+        i++; // skip opening "
+        StringBuilder sb = new StringBuilder();
+        while (i < json.length()) {
+            char c = json.charAt(i++);
+            if (c == '\\') {
+                if (i >= json.length()) break;
+                char n = json.charAt(i++);
+                switch (n) {
+                    case '\\': sb.append('\\'); break;
+                    case '"':  sb.append('"');  break;
+                    case 'n':  sb.append('\n'); break;
+                    case 'r':  sb.append('\r'); break;
+                    case 't':  sb.append('\t'); break;
+                    case 'b':  sb.append('\b'); break;
+                    case 'f':  sb.append('\f'); break;
+                    case 'u':
+                        if (i+3 < json.length()) {
+                            String hex = json.substring(i, i+4);
+                            try { sb.append((char)Integer.parseInt(hex,16)); } catch (Exception ignore) {}
+                            i += 4;
+                        }
+                        break;
+                    default: sb.append(n); break;
+                }
+            } else if (c == '"') {
+                break;
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
+    private static String quote(String s) {
+        if (s == null) return "null";
+        StringBuilder sb = new StringBuilder("\"");
+        for (int i=0;i<s.length();i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '\\': sb.append("\\\\"); break;
+                case '"': sb.append("\\\""); break;
+                case '\b': sb.append("\\b"); break;
+                case '\f': sb.append("\\f"); break;
+                case '\n': sb.append("\\n"); break;
+                case '\r': sb.append("\\r"); break;
+                case '\t': sb.append("\\t"); break;
+                default:
+                    if (c < 0x20) sb.append(String.format("\\u%04x",(int)c));
+                    else sb.append(c);
+            }
+        }
+        sb.append("\"");
+        return sb.toString();
+    }
+
+    private static String urlEnc(String s) {
+        try { return java.net.URLEncoder.encode(s, "UTF-8"); }
+        catch (Exception e) { return s; }
+    }
+
+    private static String now() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+    }
+
+
+    /**
 	 * The entry point into the game. We'll simply create an
 	 * instance of class which will start the display and game
 	 * loop.
@@ -603,12 +915,12 @@ public class Game extends Canvas
 	public static void main(String argv[]) {
         try {
             // serviceAccountKey.json 불러오기
-            FileInputStream serviceAccount = new FileInputStream("src/main/resources/serviceAccountKey.json");
+              FileInputStream serviceAccount = new FileInputStream(DB_KEYFILE);
 
             // Firebase 옵션 설정
-            FirebaseOptions options = new FirebaseOptions.Builder()
+              FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .setDatabaseUrl("https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app/")
+                    .setDatabaseUrl(DB_URL)
                     .build();
 
             // Firebase 초기화 (앱 실행 시 딱 1번만!)
@@ -616,6 +928,15 @@ public class Game extends Canvas
 
             System.out.println("Firebase 초기화");
             writeLog("gamestart");
+
+            // 1) 로그인/회원가입 먼저
+            SwingUtilities.invokeLater(() -> showAuthDialogAndLogin());
+            // 로그인 다이얼로그가 modal이므로 여기서 잠시 대기
+            try {
+                // modal dialog가 닫히는 동안 메인 스레드가 바로 진행되지 않게 약간 대기
+                while (SESSION_ID_TOKEN == null) Thread.sleep(100);
+            } catch (InterruptedException ignored) {}
+
             Game g = new Game();
 
             // Start the main game loop, note: this method will not
@@ -628,11 +949,6 @@ public class Game extends Canvas
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
-
-
-
-	}
+    }
 }
 
