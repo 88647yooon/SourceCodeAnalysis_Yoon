@@ -87,7 +87,8 @@ public class Game extends Canvas
 	private long firingInterval = 500;
 	/** The number of aliens left on the screen */
 	private int alienCount;
-	
+	/** 위험한 상황이 발생했을 시**/
+    private boolean dangerMode = false;
 	/** The message to display which waiting for a key press */
 	private String message = "";
 	/** True if we're holding up game play until a key has been pressed */
@@ -237,8 +238,15 @@ public class Game extends Canvas
 	public void notifyAlienKilled() {
 		// reduce the alient count, if there are none left, the player has won!
 		alienCount--;
-		
-		if (alienCount == 0) {
+
+         if (alienCount < 10) {
+            dangerMode = true;
+        } else {
+            dangerMode = false;
+        }
+
+
+        if (alienCount == 0) {
 			notifyWin();
 		}
 		
@@ -308,8 +316,9 @@ public class Game extends Canvas
 			// Get hold of a graphics context for the accelerated 
 			// surface and blank it out
 			Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
-			g.setColor(Color.black);
-			g.fillRect(0,0,800,600);
+
+            //배경 그리기
+            BackgroundRenderer.draw(g, this);
 			
 			// cycle round asking each entity to move itself
 			if (!waitingForKeyPress) {
@@ -394,8 +403,17 @@ public class Game extends Canvas
 			SystemTimer.sleep(lastLoopTime+10-SystemTimer.getTime());
 		}
 	}
-	
-	/**
+
+
+    public boolean isDangerMode(){
+        return dangerMode;
+    }
+
+    public int getAlienCount() {
+        return alienCount;
+    }
+
+    /**
 	 * A class to handle keyboard input from the user. The class
 	 * handles both dynamic input during game play, i.e. left/right 
 	 * and shoot, and more static type input (i.e. press any key to
