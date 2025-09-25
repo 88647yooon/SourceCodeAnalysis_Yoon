@@ -17,7 +17,7 @@ public class HUDRenderer {
         //하트로 표시
         Image heart = SpriteStore.get().getSprite("sprites/heart.png").getImage();
         Image emptyheart = SpriteStore.get().getSprite("sprites/emptyheart.png").getImage();
-        for(int i=0;i<player.getCurrentHP(); i++){
+        for(int i=0;i<player.getMaxHP(); i++){
             if(i < player.getCurrentHP()){
                 //현재 HP 보다 작으면 ->빨간 하트
                 g.drawImage(heart,x + (i*(HeartSize+10)),y,HeartSize,HeartSize,null);

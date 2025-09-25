@@ -10,7 +10,7 @@ import org.newdawn.spaceinvaders.Game;
 public class ShipEntity extends Entity {
 	/** The game in which the ship exists */
 	private final Game game;
-    private int maxHP = 4; // 최대 체력
+    private int maxHP = 3; // 최대 체력
     private int currentHP = 3; // 현재 체력
     private long lastDamageTime = 0;
     private long invincible = 500; //500ms 무적
