@@ -10,8 +10,10 @@ import org.newdawn.spaceinvaders.Game;
 public class ShipEntity extends Entity {
 	/** The game in which the ship exists */
 	private final Game game;
-    private int maxHP = 3; // 최대 체력
+    private int maxHP = 4; // 최대 체력
     private int currentHP = 3; // 현재 체력
+    private long lastDamageTime = 0;
+    private long invincible = 500; //500ms 무적
 	/**
 	 * Create a new entity to represent the players ship
 	 *  
@@ -33,11 +35,21 @@ public class ShipEntity extends Entity {
     }
 
     public void damage(int d) {
+        long now = System.currentTimeMillis();
+
+        if(now - lastDamageTime < invincible){
+            return;//아직 무적 상태라면 무시
+        }
+
         currentHP -= d;
         game.onPlayerHit(); // UI/이펙트/무적시간 등
+
         if (currentHP <= 0) {
             game.notifyDeath();
         }
+
+        lastDamageTime = now;// 마지막 피격 시간 갱신
+
     }
     public void heal(int d) {
         currentHP += d;
@@ -91,7 +103,7 @@ public class ShipEntity extends Entity {
 		// if its an alien, notify the game that the player
 		// is dead
 		if (other instanceof AlienEntity) {
-			game.notifyDeath();
+            damage(1);//즉사였는데 HP -1 로 바꿈
 		}
 
         if (other instanceof EnemyShotEntity) {

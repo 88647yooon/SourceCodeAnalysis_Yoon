@@ -455,7 +455,7 @@ public class Game extends Canvas
         if (alienCount < 0) alienCount = 0;
 
         // 2) 위험 모드 갱신
-        dangerMode = (alienCount < 10);
+        dangerMode = (getPlayerShip().getCurrentHP() < 2);
 
         // 3) 전멸했을 때만 분기
         if (alienCount == 0) {
