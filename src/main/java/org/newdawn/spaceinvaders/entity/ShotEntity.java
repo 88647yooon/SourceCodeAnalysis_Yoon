@@ -53,13 +53,24 @@ public class ShotEntity extends Entity {
 	 * @parma other The other entity with which we've collided
 	 */
 	public void collidedWith(Entity other) {
-        if (other instanceof AlienEntity) {
-            // 중복 방지: 이미 제거 예정이면 리턴
-            if (!game.getEntities().contains(other)) return;
+        if (used) return;
 
-            game.removeEntity(other);   // 외계인 제거
-            game.removeEntity(this);    // 탄 제거
-            game.notifyAlienKilled();   // ★ 카운트는 여기서만
+        if (other instanceof AlienEntity) {
+            AlienEntity alien = (AlienEntity) other;
+
+            // 탄은 일단 소모
+            used = true;
+            game.removeEntity(this);
+
+            boolean dead = alien.takeDamage(1);
+            if (dead) {
+                // 중복 제거 방지: 리스트에 여전히 존재할 때만 제거/카운트
+                if (game.getEntities().contains(other)) {
+                    game.removeEntity(other);
+                    game.notifyAlienKilled();
+                }
+            }
+            return;
         }
 	}
 }

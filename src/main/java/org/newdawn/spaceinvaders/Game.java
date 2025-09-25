@@ -144,6 +144,8 @@ public class Game extends Canvas
     //무한 모드 관련 필드 추가
     private boolean infiniteMode = false;// 메뉴 선택 결과를 저장할 예시 플래그
 	int waveCount =1;// 현재 웨이브 번호
+    //무한 모드 보스 사이클
+    private int normalsClearedInCycle = 0;
 
     private static final double RANGED_ALIEN_RATIO = 0.25; // 25% 확률로 원거리
     //보스 관련 필드 추가
@@ -277,6 +279,8 @@ public class Game extends Canvas
 
     //무한모드 메소드
     private void spawnAliens() {
+        //난이도 조절
+        Difficulty diff = computeDifficultyForWave(waveCount);
         // 난이도 조절용: waveCount 증가
         int rows = 3 + (waveCount % 3);   // 3~5
         int cols = 6 + (waveCount % 6);   // 6~11
@@ -305,6 +309,8 @@ public class Game extends Canvas
                 } else {
                     alien = new AlienEntity(this, x, y);
                 }
+                //생성직후 난이도 조정
+                applyDifficultyToAlien(alien, diff);
 
                 entities.add(alien);
                 alienCount++;
@@ -353,13 +359,55 @@ public class Game extends Canvas
 	 * should be run at the next opportunity (normally as a result of some
 	 * game event)
 	 */
+    //추가 난이도 구조
+    private static class Difficulty {
+        int alienHP;
+        double alienSpeedMul;     // 좌우 이동 속도 배수(→ 드랍 빈도도 체감상 증가)
+        double fireRateMul;       // 높을수록 더 자주 발사(쿨타임 나눔)
+        double bulletSpeedMul;    // 적 탄속 배수
+    }
+    //웨이브당 난이도 구조
+    private Difficulty computeDifficultyForWave(int wave) {
+        Difficulty d = new Difficulty();
+        // HP: 2웨이브마다 +1 (1,1,2,2,3,3, ...)
+        d.alienHP = 1 + Math.max(0, (wave - 1) / 2);
 
+        // 수평 이동 속도: 웨이브마다 +8% (최대 2.5배)
+        d.alienSpeedMul   = Math.min(2.5, 1.0 + 0.08 * (wave - 1));
+
+        // 연사 속도: 웨이브마다 +10% (최대 3배) → 쿨타임을 나눠 적용
+        d.fireRateMul     = Math.min(3.0, 1.0 + 0.10 * (wave - 1));
+
+        // 탄속: 웨이브마다 +5% (최대 2배)
+        d.bulletSpeedMul  = Math.min(2.0, 1.0 + 0.05 * (wave - 1));
+        return d;
+    }
+
+    //개별 적에게 난이도 적용하는 헬퍼
+    private void applyDifficultyToAlien(Entity e, Difficulty d) {
+        if (e instanceof org.newdawn.spaceinvaders.entity.AlienEntity) {
+            org.newdawn.spaceinvaders.entity.AlienEntity a = (org.newdawn.spaceinvaders.entity.AlienEntity) e;
+            a.setMaxHP(d.alienHP);
+            a.applySpeedMultiplier(d.alienSpeedMul);
+        }
+        if (e instanceof org.newdawn.spaceinvaders.entity.RangedAlienEntity) {
+            org.newdawn.spaceinvaders.entity.RangedAlienEntity r = (org.newdawn.spaceinvaders.entity.RangedAlienEntity) e;
+            r.setFireRateMultiplier(d.fireRateMul);
+            r.setBulletSpeedMultiplier(d.bulletSpeedMul);
+        }
+        if (e instanceof org.newdawn.spaceinvaders.entity.DiagonalShooterAlienEntity) {
+            org.newdawn.spaceinvaders.entity.DiagonalShooterAlienEntity ds = (org.newdawn.spaceinvaders.entity.DiagonalShooterAlienEntity) e;
+            ds.setFireRateMultiplier(d.fireRateMul);
+            ds.setBulletSpeedMultiplier(d.bulletSpeedMul);
+        }
+    }
 
 
     //스테이지모드
     public void startStageMode(){
         infiniteMode = false;   // 스테이지 모드
-        waveCount = 1;          // 웨이브 초기화
+        waveCount = 1;
+        normalsClearedInCycle = 0; // 웨이브 초기화
         startGame();            // 기존 startGame() 호출
         setScreen(new GamePlayScreen(this)); // 게임 화면 전환
     }
@@ -367,6 +415,7 @@ public class Game extends Canvas
     public void startInfiniteMode(){
         infiniteMode = true; // 무한모드
         waveCount = 1; // 웨이브 초기화
+        normalsClearedInCycle = 0;
         startGame(); //기존 startGame() 호출하기
         setScreen(new GamePlayScreen(this)); // 게임 화면 전환
     }
@@ -460,9 +509,16 @@ public class Game extends Canvas
         // 3) 전멸했을 때만 분기
         if (alienCount == 0) {
             if (infiniteMode) {
-                // 매 웨이브마다 보스
                 if (!bossActive) {
-                    spawnBoss();
+                    normalsClearedInCycle++;
+                    if (normalsClearedInCycle >= 3) {
+                        // 3회 클리어 → 보스 소환
+                        normalsClearedInCycle = 0;
+                        spawnBoss();
+                    } else {
+                        // 다음 일반 웨이브 진행
+                        spawnAliens();
+                    }
                 }
             } else {
                 if (!bossActive) {

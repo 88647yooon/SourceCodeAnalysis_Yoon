@@ -22,8 +22,16 @@ public class AlienEntity extends Entity {
 	private final long frameDuration = 250;
 	/** The current frame of animation being displayed */
 	private int frameNumber;
-	
-	/**
+
+    //최대 체력과 현재 체력
+    private int maxHP = 1;
+    private int currentHP=1;
+
+    /** 웨이브에 따라 외계인 이동 속도를 키울 때 사용하는 배수 (1.0 = 기본) */
+    private double speedMul = 1.0;
+
+
+    /**
 	 * Create a new alien entity
 	 * 
 	 * @param game The game in which this entity is being created
@@ -118,8 +126,32 @@ public class AlienEntity extends Entity {
 			game.notifyDeath();
 		}
 	}
-	
-	/**
+
+    // 최대 체력 증가 메소드
+    public void setMaxHP(int hp) {
+        this.maxHP = Math.max(1, hp);
+        this.currentHP = this.maxHP;
+    }
+
+    /** @return true면 사망 처리 필요 */
+    //적 체력 감소 메소드
+    public boolean takeDamage(int dmg) {
+        currentHP -= Math.max(1, dmg);
+        return currentHP <= 0;
+    }
+
+    /** 수평 이동 속도 배수 적용 (좌/우 방향은 유지) */
+    public void applySpeedMultiplier(double mul) {
+        if (mul <= 0) return;
+        this.speedMul = mul;
+
+        // moveSpeed는 이 클래스의 private final이지만 동일 클래스 안이라 접근 가능
+        double base = Math.abs(dx) > 0 ? moveSpeed : moveSpeed; // 방향은 dx의 부호를 따름
+        double dir = (dx < 0) ? -1.0 : 1.0;
+        setHorizontalMovement(dir * base * speedMul);
+    }
+  	/*
+  	*
 	 * Notification that this alien has collided with another entity
 	 * 
 	 * @param other The other entity

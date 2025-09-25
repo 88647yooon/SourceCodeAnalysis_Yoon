@@ -15,7 +15,11 @@ public class RangedAlienEntity extends AlienEntity {
     private long cooldownJitterMs = 600; // 랜덤 지터
 
     private double bulletSpeed = 220; // px/s
-    private double leadFactor = 0.25;     // 수평 예측(원하면 0으로)
+    private double leadFactor = 0.25;
+
+    //난이도 증가 필드
+    private double fireRateMul = 1.0;     // 높을수록 더 자주 쏨 (쿨다운을 나눔)
+    private double bulletSpeedMul = 1.0;  // 탄속 배수// 수평 예측(원하면 0으로)
 
     private final Sprite sprite;
 
@@ -25,10 +29,7 @@ public class RangedAlienEntity extends AlienEntity {
         this.player = player;
         this.sprite = SpriteStore.get().getSprite("sprites/enemy_gunner.png");
 
-        // 난이도/웨이브 보정(있으면)
-        int wave = game.getWaveCount();
-        bulletSpeed += Math.min(200, wave * 12); // 웨이브마다 탄속 소폭 증가
-        baseCooldownMs = Math.max(700, baseCooldownMs - wave * 30); // 웨이브 올라갈수록 빠르게
+
     }
 
 
@@ -40,7 +41,15 @@ public class RangedAlienEntity extends AlienEntity {
     }
     private void maybeFire() {
         long now = System.currentTimeMillis();
-        long nextWindow = lastShotAt + baseCooldownMs + (long)(Math.random() * cooldownJitterMs);
+
+        // 배수 반영한 유효 쿨다운/지터 (연사 배수↑ => 더 자주 쏨)
+        long effectiveCooldown = Math.max(200, (long)(baseCooldownMs / fireRateMul));
+        long effectiveJitter   = (long)(cooldownJitterMs / fireRateMul);
+
+        long nextWindow = lastShotAt
+                + effectiveCooldown
+                + ThreadLocalRandom.current().nextLong(effectiveJitter + 1);
+
         //플레이어 존재 체크
         if (now < nextWindow || player == null) return;
         // 발사 타이밍 도달 + 화면 안에 플레이어 존재 확인
@@ -58,15 +67,27 @@ public class RangedAlienEntity extends AlienEntity {
         double dirX = 0.0;
         double dirY = 1.0;
 
+        double effectiveBulletSpeed = bulletSpeed * bulletSpeedMul;
+
         EnemyShotEntity bullet = new EnemyShotEntity(
                 game,
                 "sprites/enemy_bullet.png",
                 sx, sy,
                 dirX, dirY,
-                bulletSpeed
+                effectiveBulletSpeed
         );
         game.addEntity(bullet);
         lastShotAt = now;
+    }
+
+    //연사속도 증가 메소드
+    public void setFireRateMultiplier(double mul) {
+        this.fireRateMul = Math.max(0.25, mul); // 하한 보호
+    }
+
+    //탄속 증가 메소드
+    public void setBulletSpeedMultiplier(double mul) {
+        this.bulletSpeedMul = Math.max(0.5, mul);
     }
     @Override
     public void collidedWith(Entity other) {

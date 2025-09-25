@@ -2,6 +2,8 @@ package org.newdawn.spaceinvaders.entity;
 
 import org.newdawn.spaceinvaders.Game;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 public class DiagonalShooterAlienEntity extends AlienEntity{
     private final Game game;
 
@@ -9,6 +11,10 @@ public class DiagonalShooterAlienEntity extends AlienEntity{
     private long baseCooldownMs = 1600;   // 기본 쿨다운(양쪽 2발이라 약간 길게)
     private long cooldownJitterMs = 500;  // 랜덤 지터
     private double bulletSpeed = 240;     // px/s
+
+    //난이도 조절관련 필드
+    private double fireRateMul = 1.0;
+    private double bulletSpeedMul = 1.0;
 
     public DiagonalShooterAlienEntity(Game game, int x, int y) {
         super(game, "sprites/enemy_diagonal.png", x, y); // 스프라이트 하나 준비해 두면 좋아요
@@ -26,7 +32,15 @@ public class DiagonalShooterAlienEntity extends AlienEntity{
 
     private void maybeFire() {
         long now = System.currentTimeMillis();
-        long nextWindow = lastShotAt + baseCooldownMs + (long) (Math.random() * cooldownJitterMs);
+
+        // 연사 배수 반영(배수↑ => 더 자주 쏨)
+        long effectiveCooldown = Math.max(250, (long) (baseCooldownMs / fireRateMul));
+        long effectiveJitter   = Math.max(1,   (long) (cooldownJitterMs / fireRateMul));
+
+        long nextWindow = lastShotAt
+                + effectiveCooldown
+                + ThreadLocalRandom.current().nextLong(effectiveJitter + 1);
+
         if (now < nextWindow) return;
 
         // 내 총구 위치 (아래쪽 중앙)
@@ -38,12 +52,18 @@ public class DiagonalShooterAlienEntity extends AlienEntity{
         double dlx = -inv, dly = inv; // down-left
         double drx =  inv, dry = inv; // down-right
 
+        double speed = bulletSpeed * bulletSpeedMul;
+
         // 두 발 생성
-        game.addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, dlx, dly, bulletSpeed));
-        game.addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, drx, dry, bulletSpeed));
+        game.addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, dlx, dly, speed));
+        game.addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, drx, dry, speed));
 
         lastShotAt = now;
     }
+
+    //난이도 조절용 메소드
+    public void setFireRateMultiplier(double mul) { this.fireRateMul = Math.max(0.25, mul); }
+    public void setBulletSpeedMultiplier(double mul) { this.bulletSpeedMul = Math.max(0.5, mul); }
 
     @Override
     public void collidedWith(Entity other) {
