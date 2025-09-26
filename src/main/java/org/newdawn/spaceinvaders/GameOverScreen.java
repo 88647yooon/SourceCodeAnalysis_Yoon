@@ -45,7 +45,7 @@ public class GameOverScreen implements Screen {
                     java.lang.reflect.Field f = Game.class.getDeclaredField("infiniteMode");
                     f.setAccessible(true);
                     boolean wasInfinite = f.getBoolean(game);
-                    if (wasInfinite) game.startInfiniteMode(); else game.startStageMode();
+                    if (wasInfinite) game.startInfiniteMode(); else game.startStageMode(1);
                 } catch (Exception ignore) {
                     game.startInfiniteMode(); // 실패하면 무한모드로 재시작
                 }

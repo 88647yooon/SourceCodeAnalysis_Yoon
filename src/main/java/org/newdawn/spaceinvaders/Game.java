@@ -404,9 +404,9 @@ public class Game extends Canvas
 
 
     //스테이지모드
-    public void startStageMode(){
+    public void startStageMode(int StageNum){
         infiniteMode = false;   // 스테이지 모드
-        waveCount = 1;
+        waveCount = StageNum;
         normalsClearedInCycle = 0; // 웨이브 초기화
         startGame();            // 기존 startGame() 호출
         setScreen(new GamePlayScreen(this)); // 게임 화면 전환

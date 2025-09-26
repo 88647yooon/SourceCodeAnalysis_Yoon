@@ -66,7 +66,7 @@ public class MenuScreen implements Screen {
             menuIndex = (menuIndex + 1) % menuItems.length;
         } else if (keyCode == KeyEvent.VK_ENTER) {
             switch (menuIndex) {
-                case 0: game.startStageMode(); break;
+                case 0: game.setScreen(new StageSelectScreen(game)); break;
                 case 1: game.startInfiniteMode(); break;
                 //case 2: game.showScoreboard(); break;
                 case 3: System.exit(0);
