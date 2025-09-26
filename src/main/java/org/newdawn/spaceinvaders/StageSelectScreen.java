@@ -6,20 +6,20 @@ import java.awt.event.KeyEvent;
 
 public class StageSelectScreen implements Screen{
     private Game game;
-    private int SelectIndex = 0;
+
     private final int MaxStage = 5;
 
     //스테이지 이미지
     private final Image[] stageImages = new Image[MaxStage];
 
     // 애니메이션용 오프셋
-    private int BaseCardWidth = 180;
-    private int BaseCardHeight = 260;
-    private int spacing = 40;
+    private int Baseicon = 120;
+    private int selectedSize = 200;
 
-    private float currentOffsetX = 0;  // 현재 오프셋
-    private float targetOffsetX = 0;   // 목표 오프셋
-    private float slideSpeed = 0.2f; //슬라이드 이동 속도
+    private float currentIndex = 0;   // 현재 인덱스 (부드럽게 이동)
+    private int SelectIndex = 0;
+    private float slideSpeed = 0.2f;  // 보간 속도
+    private int spacing = 220;        // 카드 간격
 
     public StageSelectScreen(Game game) {
         this.game = game;
@@ -36,49 +36,53 @@ public class StageSelectScreen implements Screen{
                 stageImages[i] = null;
             }
         }
+
     }
 
     @Override
     public void render(Graphics2D g) {
         g.setColor(Color.black);
         g.fillRect(0, 0, 800, 600);
+        int centerX = 400;
+        int y = 300;
 
-        // 부드러운 이동
-        currentOffsetX += (targetOffsetX - currentOffsetX) * slideSpeed;
-
-        int iconSize = 150;
-        int spacing = 50;
-
-        // 전체 카드 폭 계산
-        int totalWidth = MaxStage * (iconSize + spacing) - spacing;
-
-        // 화면 중앙 정렬 좌표
-        int startX = (800 - totalWidth) / 2;
-        int y = (600 - iconSize) / 2;  // 세로도 중앙
+        // 부드러운 효과
+        currentIndex += (SelectIndex - currentIndex) * slideSpeed;
 
         for (int i = 0; i < MaxStage; i++) {
-            int x = startX + i * (iconSize + spacing);
+            float relative = i - currentIndex;
+
+            // x 좌표 (중앙에서 relativeIndex만큼 간격 이동)
+            int x = centerX + Math.round(relative * spacing);
+            // 선택된 스테이지는 크게, 나머지는 작게
+            int size = (Math.round(currentIndex) == i) ? selectedSize : Baseicon;
+
+            int drawX = x - size / 2;
+            int drawY = y - size / 2;
 
             if (stageImages[i] != null) {
-                g.drawImage(stageImages[i], x, y, iconSize, iconSize, null);
+                g.drawImage(stageImages[i], drawX, drawY, size, size, null);
             } else {
                 g.setColor(Color.RED);
-                g.fillOval(x, y, iconSize, iconSize); // fallback
+                g.fillOval(drawX, drawY, size, size);
             }
 
-            // 선택된 아이콘 강조 (노란 원 테두리)
-            if (i == SelectIndex) {
-                g.setColor(Color.YELLOW);
+            if (Math.round(currentIndex) == i) {
                 g.setStroke(new BasicStroke(4));
-                g.drawOval(x - 2, y - 2, iconSize + 4, iconSize + 4);
+                g.drawOval(drawX - 4, drawY - 4, size + 8, size + 8);
 
-                g.setFont(new Font("Arial", Font.BOLD, 20));
+                g.setFont(new Font("Arial", Font.BOLD, 24));
                 g.setColor(Color.WHITE);
                 g.drawString("Stage " + (i + 1),
-                        x + iconSize / 2 - 30,
-                        y + iconSize + 30);
+                        centerX - 40, y + selectedSize / 2 + 40);
             }
         }
+
+
+
+
+
+
 
         // 안내 텍스트
         g.setFont(new Font("Dialog", Font.BOLD, 18));
@@ -93,21 +97,15 @@ public class StageSelectScreen implements Screen{
 
     @Override
     public void handleKeyPress(int keyCode) {
-        if (keyCode == KeyEvent.VK_LEFT) {
-            if (SelectIndex > 0) {
+        if (keyCode == KeyEvent.VK_LEFT && selectedSize > 0) {
                 SelectIndex--;
-                targetOffsetX += (BaseCardWidth + spacing);
-            }
         }
-        if (keyCode == KeyEvent.VK_RIGHT) {
-            if (SelectIndex < MaxStage - 1) {
+        if (keyCode == KeyEvent.VK_RIGHT && SelectIndex < MaxStage - 1) {
                 SelectIndex++;
-                targetOffsetX -= (BaseCardWidth + spacing);
             }
-        }
+
         if (keyCode == KeyEvent.VK_ENTER) {
-            int stage = SelectIndex + 1;
-            game.startStageMode(stage);
+            game.startStageMode(SelectIndex + 1);
         }
         if (keyCode == KeyEvent.VK_ESCAPE) {
             game.setScreen(new MenuScreen(game));
