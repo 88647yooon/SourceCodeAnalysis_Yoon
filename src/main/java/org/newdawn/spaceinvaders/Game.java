@@ -410,12 +410,12 @@ public class Game extends Canvas
 
 
     //스테이지모드
-    public void startStageMode(){
+    public void startStageMode(int StageNum){
         currentMode = Mode.STAGE;
         score = 0;
         runStartedAtMs = System.currentTimeMillis();
         infiniteMode = false;   // 스테이지 모드
-        waveCount = 1;
+        waveCount = StageNum;
         normalsClearedInCycle = 0; // 웨이브 초기화
         startGame();            // 기존 startGame() 호출
         setScreen(new GamePlayScreen(this)); // 게임 화면 전환
@@ -879,12 +879,11 @@ public void showScoreboard(){
         final JDialog dlg = new JDialog((JFrame) null, "로그인 / 회원가입", true);
         JTabbedPane tabs = new JTabbedPane();
 
-        // === 로그인 탭 ===
+        // 로그인 탭
         JPanel login = new JPanel(new java.awt.GridBagLayout());
         JTextField loginEmail = new JTextField(20);
         JPasswordField loginPw = new JPasswordField(20);
         JButton btnLogin = new JButton("로그인");
-
         java.awt.GridBagConstraints c = gbc();
         login.add(new JLabel("이메일"), c);
         c.gridx = 1;
@@ -913,13 +912,12 @@ public void showScoreboard(){
         });
         login.add(btnLogin, c);
 
-        // === 회원가입 탭 ===
+        // 회원가입 탭
         JPanel signup = new JPanel(new java.awt.GridBagLayout());
         JTextField signEmail = new JTextField(20);
         JPasswordField signPw = new JPasswordField(20);
         JPasswordField signPw2 = new JPasswordField(20);
         JButton btnSign = new JButton("회원가입");
-
         c = gbc();
         signup.add(new JLabel("이메일"), c);
         c.gridx = 1;
@@ -977,7 +975,6 @@ public void showScoreboard(){
         // 로그인/회원가입 성공 못하면 프로그램 종료 (필요에 따라 제거 가능)
         if (SESSION_ID_TOKEN == null) System.exit(0);
     }
-
 
     private static java.awt.GridBagConstraints gbc() { return gbc(0,0); }
     private static java.awt.GridBagConstraints gbc(int x, int y) {
