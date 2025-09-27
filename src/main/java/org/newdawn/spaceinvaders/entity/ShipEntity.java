@@ -15,8 +15,26 @@ public class ShipEntity extends Entity {
     private long lastDamageTime = 0;
     private long invincible = 500; //500ms 무적
 
+    // ⬇⬇ "공유"용 정적 상태 (게임 모드가 바뀌어도 유지)
+    private static int S_LEVEL = 1;
+    private static int S_XP_INTO_LEVEL = 0;
+
+    // === Level / XP (no stat effects) ===
+    private int level = 1;
+    private int xpIntoLevel = 0;
+    private int xpToNext = reqFor(1);
+
     // ShipEntity.java (클래스 필드)
     private boolean invulnerable = false;
+
+    // 필요 경험치 공식 (느리게): req(L) = 200 + 50 * L * (L - 1)
+    private static int reqFor(int L) { return 200 + 50 * L * (L - 1); }
+
+    // HUD용 Getter
+    public int  getLevel()         { return level; }
+    public int  getXpIntoLevel()   { return xpIntoLevel; }
+    public int  getXpToNextLevel() { return xpToNext; }
+    public int  getXpPercent()     { return (int)Math.round(100.0 * xpIntoLevel / Math.max(1, xpToNext)); }
 
     public void setInvulnerable(boolean inv) { this.invulnerable = inv; }
     public boolean isInvulnerable() { return invulnerable; }
@@ -32,6 +50,11 @@ public class ShipEntity extends Entity {
 		super(ref,x,y);
 		
 		this.game = game;
+
+        // ✅ 레벨 공유 상태 로드
+        this.level = S_LEVEL;
+        this.xpIntoLevel = S_XP_INTO_LEVEL;
+        this.xpToNext = reqFor(level);
 	}
     public int getMaxHP(){
         return maxHP;
@@ -110,7 +133,22 @@ public class ShipEntity extends Entity {
         setHorizontalMovement(0);
         setVerticalMovement(0);
     }
-	
+    // XP 지급 (레벨업 자동 처리)
+    public void addXp(int amount) {
+        if (amount <= 0) return;
+        xpIntoLevel += amount;
+        while (xpIntoLevel >= xpToNext) {
+            xpIntoLevel -= xpToNext;
+            level++;
+            xpToNext = reqFor(level);
+            // TODO: 레벨업 이펙트/사운드/토스트 등
+        }
+
+        // ✅ 공유 상태 저장 (스테이지↔무한 공통)
+        S_LEVEL = level;
+        S_XP_INTO_LEVEL = xpIntoLevel;
+    }
+
 	/**
 	 * Notification that the player's ship has collided with something
 	 * 
