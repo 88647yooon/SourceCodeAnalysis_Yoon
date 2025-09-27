@@ -285,6 +285,15 @@ public class Game extends Canvas
 
     //무한모드 메소드
     private void spawnAliens() {
+        // 0) 이전 웨이브의 인질 제거 (누적 방지)
+        if (infiniteMode) {
+            for (java.util.Iterator<Entity> it = entities.iterator(); it.hasNext();) {
+                Entity e = it.next();
+                if (e instanceof HostageEntity) {
+                    it.remove(); // 즉시 제거 (removeList 대기 없이)
+                }
+            }
+        }
         //난이도 조절
         Difficulty diff = computeDifficultyForWave(waveCount);
         // 난이도 조절용: waveCount 증가
@@ -324,14 +333,23 @@ public class Game extends Canvas
         }
         // ✅ 무한모드일 때 일정 확률로 인질 추가
         if (infiniteMode) {
-            int hostageNum = 1 + (int)(Math.random() * 3); // 1~3명
-            for (int i = 0; i < hostageNum; i++) {
-                // 열 랜덤 선택
-                int c = (int)(Math.random() * cols);
-                int x = startX + (c * gapX);
-                int y = startY - 40; // 👈 맨윗줄보다 살짝 위에 배치
-                Entity hostage = new HostageEntity(this, x, y);
-                entities.add(hostage);
+            int hostageNum = 1 + (int)(Math.random() * 2);
+            if (hostageNum > 0) {
+                // 서로 다른 열에 배치(중복 방지)
+                java.util.Set<Integer> usedCols = new java.util.HashSet<>();
+                for (int i = 0; i < hostageNum; i++) {
+                    int c;
+                    int guard = 0; // 무한루프 방지
+                    do {
+                        c = (int)(Math.random() * cols);
+                    } while (usedCols.contains(c) && ++guard < 10);
+                    usedCols.add(c);
+
+                    int x = startX + (c * gapX);
+                    int y = startY - 40; // 맨 윗줄보다 살짝 위
+                    Entity hostage = new HostageEntity(this, x, y);
+                    entities.add(hostage);
+                }
             }
         }
         waveCount++;
@@ -339,6 +357,13 @@ public class Game extends Canvas
 
     //보스 소환 메소드
     private void spawnBoss() {
+        // ✅ 보스 웨이브 시작: 기존 인질 전부 제거
+        for (java.util.Iterator<Entity> it = entities.iterator(); it.hasNext();) {
+            Entity e = it.next();
+            if (e instanceof HostageEntity) {
+                it.remove();
+            }
+        }
 
         int bossW = 120;   // BossEntity.draw()에서 쓰는 축소 크기와 일치
         int bossH = 120;
@@ -526,13 +551,16 @@ public class Game extends Canvas
                         spawnAliens();
                     }
                 }
-            } // ✅ 스테이지 모드일 때
-            if (waveCount == 5) {
+                return;
+            }else {
+                // ⬇️ 스테이지 모드: 보스 웨이브/승리 처리
                 if (!bossActive) {
-                    spawnBoss(); // 보스 소환
+                    if (waveCount == 5) {
+                        spawnBoss();
+                    } else {
+                        notifyWin();
+                    }
                 }
-            } else {
-                notifyWin(); // 나머지 스테이지는 전멸하면 바로 승리
             }
         }
 		// if there are still some aliens left then they all need to get faster, so
