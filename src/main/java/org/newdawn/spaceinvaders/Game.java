@@ -431,11 +431,10 @@ public class Game extends Canvas
         startGame(); //기존 startGame() 호출하기
         setScreen(new GamePlayScreen(this)); // 게임 화면 전환
     }
-    /* 나중에 firebase 연동해서 구현예정
     public void showScoreboard(){
         setScreen(new ScoreboardScreen(this)); //점수판 화면으로 전환
     }
-    */
+  
 
 
 
@@ -802,9 +801,7 @@ public class Game extends Canvas
 		}
 	}
 /// 여기서부터는 모두 백엔드 코드
-public void showScoreboard(){
-    setScreen(new ScoreboardScreen(this));
-}
+
 // 점수 업로드(로그인 필요: SESSION_UID/SESSION_ID_TOKEN 사용)
     protected static class ScoreEntry {
        String mode;
