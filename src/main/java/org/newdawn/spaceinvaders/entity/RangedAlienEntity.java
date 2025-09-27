@@ -28,10 +28,7 @@ public class RangedAlienEntity extends AlienEntity {
         this.game = game;
         this.player = player;
         this.sprite = SpriteStore.get().getSprite("sprites/enemy_gunner.png");
-
-
     }
-
 
     @Override
     public void move(long delta) {
@@ -39,44 +36,48 @@ public class RangedAlienEntity extends AlienEntity {
 
         maybeFire();
     }
+
     private void maybeFire() {
         long now = System.currentTimeMillis();
 
-        // 배수 반영한 유효 쿨다운/지터 (연사 배수↑ => 더 자주 쏨)
         long effectiveCooldown = Math.max(200, (long)(baseCooldownMs / fireRateMul));
-        long effectiveJitter   = (long)(cooldownJitterMs / fireRateMul);
-
+        long effectiveJitter   = Math.max(0,   (long)(cooldownJitterMs / fireRateMul));
         long nextWindow = lastShotAt
                 + effectiveCooldown
                 + ThreadLocalRandom.current().nextLong(effectiveJitter + 1);
 
-        //플레이어 존재 체크
         if (now < nextWindow || player == null) return;
-        // 발사 타이밍 도달 + 화면 안에 플레이어 존재 확인
-        // 간단 조준(현재 위치를 향한 단위벡터)
+
+        // 발사 원점
         double sx = this.getX() + this.getWidth()  * 0.5;
         double sy = this.getY() + this.getHeight() * 0.5;
+
+        // 플레이어 현재 중심을 향해 "직선"
+        // (참고: 아래 계산은 남겨두지만 실제 발사 방향은 '항상 아래로' 고정함)
         double px = player.getX() + player.getWidth()  * 0.5;
         double py = player.getY() + player.getHeight() * 0.5;
 
         double tx = px - sx;
         double ty = py - sy;
-        double len = Math.sqrt(tx*tx + ty*ty);
-        if (len < 1) return;
+        double len = Math.hypot(tx, ty);
+        if (len < 1e-3) {
+            // 너무 가까우면 그냥 아래로 쏴 버림
+            len = 1.0;
+        }
 
-        double dirX = 0.0;
-        double dirY = 1.0;
+        double speed = bulletSpeed * bulletSpeedMul;
 
-        double effectiveBulletSpeed = bulletSpeed * bulletSpeedMul;
+        // ✅ Ranged 적은 항상 '아래로 직선' 발사 (유도처럼 보이지 않게)
+        double vx = 0.0;
+        double vy = speed;
 
-        EnemyShotEntity bullet = new EnemyShotEntity(
+        game.addEntity(new EnemyShotEntity(
                 game,
                 "sprites/enemy_bullet.png",
                 sx, sy,
-                dirX, dirY,
-                effectiveBulletSpeed
-        );
-        game.addEntity(bullet);
+                vx, vy,                 // ✅ 절대속도(px/s) — 항상 아래로
+                speed
+        ));
         lastShotAt = now;
     }
 
@@ -89,6 +90,7 @@ public class RangedAlienEntity extends AlienEntity {
     public void setBulletSpeedMultiplier(double mul) {
         this.bulletSpeedMul = Math.max(0.5, mul);
     }
+
     @Override
     public void collidedWith(Entity other) {
 

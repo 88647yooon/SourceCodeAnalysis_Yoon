@@ -14,6 +14,12 @@ public class ShipEntity extends Entity {
     private int currentHP = 3; // 현재 체력
     private long lastDamageTime = 0;
     private long invincible = 500; //500ms 무적
+
+    // ShipEntity.java (클래스 필드)
+    private boolean invulnerable = false;
+
+    public void setInvulnerable(boolean inv) { this.invulnerable = inv; }
+    public boolean isInvulnerable() { return invulnerable; }
 	/**
 	 * Create a new entity to represent the players ship
 	 *  
@@ -39,6 +45,10 @@ public class ShipEntity extends Entity {
 
         if(now - lastDamageTime < invincible){
             return;//아직 무적 상태라면 무시
+        }
+        //테스트 용 무적모드
+        if (invulnerable) {
+            return; // ✅ 무적이면 데미지 무시
         }
 
         currentHP -= d;
@@ -93,6 +103,13 @@ public class ShipEntity extends Entity {
         }
 		super.move(delta);
 	}
+    //초기 위치 설정
+    public void teleportTo(int nx, int ny) {
+        this.x = nx;
+        this.y = ny;
+        setHorizontalMovement(0);
+        setVerticalMovement(0);
+    }
 	
 	/**
 	 * Notification that the player's ship has collided with something

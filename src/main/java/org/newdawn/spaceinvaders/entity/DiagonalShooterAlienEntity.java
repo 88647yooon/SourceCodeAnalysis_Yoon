@@ -33,30 +33,29 @@ public class DiagonalShooterAlienEntity extends AlienEntity{
     private void maybeFire() {
         long now = System.currentTimeMillis();
 
-        // 연사 배수 반영(배수↑ => 더 자주 쏨)
         long effectiveCooldown = Math.max(250, (long) (baseCooldownMs / fireRateMul));
         long effectiveJitter   = Math.max(1,   (long) (cooldownJitterMs / fireRateMul));
-
         long nextWindow = lastShotAt
                 + effectiveCooldown
                 + ThreadLocalRandom.current().nextLong(effectiveJitter + 1);
-
         if (now < nextWindow) return;
 
-        // 내 총구 위치 (아래쪽 중앙)
         double sx = getX() + getWidth() * 0.5;
         double sy = getY() + getHeight();
 
-        // 양쪽 대각선 단위벡터 (아래-왼쪽, 아래-오른쪽)
+        // 양쪽 대각선 단위벡터
         final double inv = 1.0 / Math.sqrt(2.0);
         double dlx = -inv, dly = inv; // down-left
         double drx =  inv, dry = inv; // down-right
 
         double speed = bulletSpeed * bulletSpeedMul;
 
-        // 두 발 생성
-        game.addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, dlx, dly, speed));
-        game.addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, drx, dry, speed));
+        // ✅ 절대속도(px/s)로 변환해서 넘긴다
+        double vx1 = dlx * speed, vy1 = dly * speed;
+        double vx2 = drx * speed, vy2 = dry * speed;
+
+        game.addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, vx1, vy1, speed));
+        game.addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, vx2, vy2, speed));
 
         lastShotAt = now;
     }

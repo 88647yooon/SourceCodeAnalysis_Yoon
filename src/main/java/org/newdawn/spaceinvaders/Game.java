@@ -234,6 +234,9 @@ public class Game extends Canvas
 		// create the player ship and place it roughly in the center of the screen
 		ship = new ShipEntity(this,"sprites/ship.gif",370,550);
 		entities.add(ship);
+
+        // ✅ 보스 테스트용: 무적 켜기
+        ((ShipEntity) ship).setInvulnerable(false);
 		
 		// create a block of aliens (5 rows, by 12 aliens, spaced evenly)
 		alienCount = 0;
@@ -257,16 +260,19 @@ public class Game extends Canvas
     public void addEntity(Entity e) { entities.add(e); }
 
     public void spawnEnemyShot(double x, double y, double vx, double vy) {
-        // vx, vy는 px/s 절대속도라고 가정 → EnemyShotEntity의 (dir, speed)로 변환
         double speed = Math.sqrt(vx*vx + vy*vy);
         double dirX = (speed == 0) ? 0 : vx / speed;
         double dirY = (speed == 0) ? 1 : vy / speed;
 
+        // ✅ 여기서 절대속도로 변환해서 넘긴다
+        double dx = dirX * speed;
+        double dy = dirY * speed;
+
         EnemyShotEntity s = new EnemyShotEntity(
                 this,
-                "sprites/enemy_bullet.png",
+                "sprites/enemy_bullet.png",  // 아래 2번과 일치시킴
                 x, y,
-                dirX, dirY,
+                dx, dy,                      // ✅ px/s
                 speed
         );
         entities.add(s);
@@ -339,7 +345,7 @@ public class Game extends Canvas
         int startX = (800 - bossW) / 2;  // 화면 가로 800px 기준 중앙
         int startY = 50;                 // 상단에서 50px 아래
 
-        Entity boss = new org.newdawn.spaceinvaders.entity.BossEntity(this, 360, 60);
+        Entity boss = new org.newdawn.spaceinvaders.entity.BossEntity(this, 360, 60, getPlayerShip());
         entities.add(boss);
         bossActive = true;
     }
@@ -520,11 +526,13 @@ public class Game extends Canvas
                         spawnAliens();
                     }
                 }
-            } else {
+            } // ✅ 스테이지 모드일 때
+            if (waveCount == 5) {
                 if (!bossActive) {
-                    spawnBoss();
+                    spawnBoss(); // 보스 소환
                 }
-                notifyWin();
+            } else {
+                notifyWin(); // 나머지 스테이지는 전멸하면 바로 승리
             }
         }
 		// if there are still some aliens left then they all need to get faster, so
