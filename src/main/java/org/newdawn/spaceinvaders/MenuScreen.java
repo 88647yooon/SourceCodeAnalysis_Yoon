@@ -68,7 +68,7 @@ public class MenuScreen implements Screen {
             switch (menuIndex) {
                 case 0: game.setScreen(new StageSelectScreen(game)); break;
                 case 1: game.startInfiniteMode(); break;
-                //case 2: game.showScoreboard(); break;
+                case 2: game.showScoreboard(); break;
                 case 3: System.exit(0);
             }
         }
