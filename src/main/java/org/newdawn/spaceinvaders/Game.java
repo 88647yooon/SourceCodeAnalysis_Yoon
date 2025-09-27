@@ -21,10 +21,8 @@ import java.util.List;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Map;
 
 
-import javax.swing.JFrame;
 
 /***
  import javax.swing.JFrame;
@@ -55,6 +53,8 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -131,6 +131,12 @@ public class Game extends Canvas
     private BackgroundRenderer backgroundRenderer;
     /**스크린**/
     private Screen currentScreen;
+    // 게임 모드/점수/세션 측정
+    private enum Mode { STAGE, INFINITE }
+    private Mode currentMode = Mode.STAGE;
+    private int score = 0;
+    private long runStartedAtMs = 0L;
+
 
 
 
@@ -405,6 +411,9 @@ public class Game extends Canvas
 
     //스테이지모드
     public void startStageMode(){
+        currentMode = Mode.STAGE;
+        score = 0;
+        runStartedAtMs = System.currentTimeMillis();
         infiniteMode = false;   // 스테이지 모드
         waveCount = 1;
         normalsClearedInCycle = 0; // 웨이브 초기화
@@ -413,6 +422,9 @@ public class Game extends Canvas
     }
     //무한모드
     public void startInfiniteMode(){
+        currentMode = Mode.INFINITE;
+        score = 0;
+        runStartedAtMs = System.currentTimeMillis();
         infiniteMode = true; // 무한모드
         waveCount = 1; // 웨이브 초기화
         normalsClearedInCycle = 0;
@@ -451,6 +463,7 @@ public class Game extends Canvas
 		menuIndex =0;
 
         setScreen(new GameOverScreen(this));
+        uploadScoreIfLoggedIn(); ///사용자 사망시 파이어베이스에 업로드
 	}
 
     public boolean isInfiniteMode() {
@@ -464,6 +477,7 @@ public class Game extends Canvas
 	public void notifyWin() {
 		message = "Well done! You Win!";
 		waitingForKeyPress = true;
+        uploadScoreIfLoggedIn(); /// 사용자 승리 시 또한 파이어베이스에 업로드
 	}
 
 
@@ -499,6 +513,7 @@ public class Game extends Canvas
 	 * Notification that an alien has been killed
 	 */
 	public void notifyAlienKilled() {
+        score += 100;
         // 1) 안전하게 카운트
         alienCount--;
         if (alienCount < 0) alienCount = 0;
@@ -786,6 +801,65 @@ public class Game extends Canvas
             }
 		}
 	}
+/// 여기서부터는 모두 백엔드 코드
+public void showScoreboard(){
+    setScreen(new ScoreboardScreen(this));
+}
+// 점수 업로드(로그인 필요: SESSION_UID/SESSION_ID_TOKEN 사용)
+    protected static class ScoreEntry {
+       String mode;
+       Integer score;
+       Integer wave;
+       Long durationMs;
+       String timestamp;
+   }
+
+     protected static List<ScoreEntry> fetchMyTopScores(int limit) {
+         List<Game.ScoreEntry> list = new ArrayList<>();
+         if (SESSION_UID == null || SESSION_ID_TOKEN == null) return list;
+
+         try {
+             String endpoint = DB_URL + "/users/" + SESSION_UID
+                     + "/scores.json?auth=" + urlEnc(SESSION_ID_TOKEN)
+                     + "&orderBy=%22score%22&limitToLast=" + limit;
+             String res = httpGet(endpoint);
+
+             java.lang.reflect.Type mapType =
+                     new TypeToken<java.util.Map<String, Game.ScoreEntry>>(){}.getType();
+             java.util.Map<String, Game.ScoreEntry> map = new Gson().fromJson(res, mapType);
+             if (map != null) list.addAll(map.values());
+
+             // Firebase는 오름차순 → 내림차순 정렬
+             list.sort((a,b) -> Integer.compare(
+                     b.score == null ? 0 : b.score,
+                     a.score == null ? 0 : a.score
+             ));
+         } catch (Exception e) {
+             System.err.println("❌ 점수 조회 실패: " + e.getMessage());
+         }
+         return list;
+    }
+   private void uploadScoreIfLoggedIn() {
+      if (SESSION_UID == null || SESSION_ID_TOKEN == null) return;
+
+      long durationMs = (runStartedAtMs > 0) ? (System.currentTimeMillis() - runStartedAtMs) : 0L;
+      String modeStr = (currentMode == Mode.STAGE) ? "STAGE" : "INFINITE";
+
+      String json = "{"
+            + "\"mode\":" + quote(modeStr) + ","
+            + "\"score\":" + score + ","
+            + "\"wave\":" + waveCount + ","              // 마지막 웨이브(참고용)
+            + "\"durationMs\":" + durationMs + ","
+            + "\"timestamp\":" + quote(now())
+            + "}";
+
+      try {
+        restPushJson("users/" + SESSION_UID + "/scores", SESSION_ID_TOKEN, json);
+        System.out.println("✅ 점수 업로드 완료: " + json);
+        } catch (Exception e) {
+        System.err.println("❌ 점수 업로드 실패: " + e.getMessage());
+     }
+   }
 
     private static void writeLog(String eventType) {
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("logs");
@@ -802,62 +876,96 @@ public class Game extends Canvas
     }
     /// 로그인 화면
     private static void showAuthDialogAndLogin() {
-        final JDialog dlg = new JDialog((JFrame)null, "로그인 / 회원가입", true);
+        final JDialog dlg = new JDialog((JFrame) null, "로그인 / 회원가입", true);
         JTabbedPane tabs = new JTabbedPane();
 
-        // 로그인 탭
+        // === 로그인 탭 ===
         JPanel login = new JPanel(new java.awt.GridBagLayout());
         JTextField loginEmail = new JTextField(20);
         JPasswordField loginPw = new JPasswordField(20);
         JButton btnLogin = new JButton("로그인");
+
         java.awt.GridBagConstraints c = gbc();
-        login.add(new JLabel("이메일"), c); c.gridx=1; login.add(loginEmail, c);
-        c = gbc(0,1); login.add(new JLabel("비밀번호"), c); c.gridx=1; login.add(loginPw, c);
-        c = gbc(0,2); c.gridwidth=2;
+        login.add(new JLabel("이메일"), c);
+        c.gridx = 1;
+        login.add(loginEmail, c);
+
+        c = gbc(0, 1);
+        login.add(new JLabel("비밀번호"), c);
+        c.gridx = 1;
+        login.add(loginPw, c);
+
+        c = gbc(0, 2);
+        c.gridwidth = 2;
         btnLogin.addActionListener(ev -> {
             try {
                 AuthResult ar = restSignIn(loginEmail.getText().trim(), new String(loginPw.getPassword()));
-                SESSION_UID = ar.localId; SESSION_EMAIL = ar.email; SESSION_ID_TOKEN = ar.idToken;
+                SESSION_UID = ar.localId;
+                SESSION_EMAIL = ar.email;
+                SESSION_ID_TOKEN = ar.idToken;
+
                 JOptionPane.showMessageDialog(dlg, "로그인 성공: " + ar.email);
                 dlg.dispose();
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dlg, "로그인 실패\n" + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(dlg, "로그인 실패\n" + ex.getMessage(),
+                        "오류", JOptionPane.ERROR_MESSAGE);
             }
         });
         login.add(btnLogin, c);
 
-        // 회원가입 탭
+        // === 회원가입 탭 ===
         JPanel signup = new JPanel(new java.awt.GridBagLayout());
         JTextField signEmail = new JTextField(20);
         JPasswordField signPw = new JPasswordField(20);
         JPasswordField signPw2 = new JPasswordField(20);
         JButton btnSign = new JButton("회원가입");
+
         c = gbc();
-        signup.add(new JLabel("이메일"), c); c.gridx=1; signup.add(signEmail, c);
-        c = gbc(0,1); signup.add(new JLabel("비밀번호"), c); c.gridx=1; signup.add(signPw, c);
-        c = gbc(0,2); signup.add(new JLabel("비밀번호 확인"), c); c.gridx=1; signup.add(signPw2, c);
-        c = gbc(0,3); c.gridwidth=2;
+        signup.add(new JLabel("이메일"), c);
+        c.gridx = 1;
+        signup.add(signEmail, c);
+
+        c = gbc(0, 1);
+        signup.add(new JLabel("비밀번호"), c);
+        c.gridx = 1;
+        signup.add(signPw, c);
+
+        c = gbc(0, 2);
+        signup.add(new JLabel("비밀번호 확인"), c);
+        c.gridx = 1;
+        signup.add(signPw2, c);
+
+        c = gbc(0, 3);
+        c.gridwidth = 2;
         btnSign.addActionListener(ev -> {
             String pw1 = new String(signPw.getPassword());
             String pw2 = new String(signPw2.getPassword());
             if (!pw1.equals(pw2)) {
-                JOptionPane.showMessageDialog(dlg, "비밀번호가 일치하지 않습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(dlg, "비밀번호가 일치하지 않습니다.",
+                        "오류", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             try {
                 AuthResult ar = restSignUp(signEmail.getText().trim(), pw1);
-                SESSION_UID = ar.localId; SESSION_EMAIL = ar.email; SESSION_ID_TOKEN = ar.idToken;
+                SESSION_UID = ar.localId;
+                SESSION_EMAIL = ar.email;
+                SESSION_ID_TOKEN = ar.idToken;
+
                 JOptionPane.showMessageDialog(dlg, "회원가입 성공: " + ar.email);
-                // 기본 프로필 저장(선택)
-                restSetJson("users/"+SESSION_UID+"/profile", SESSION_ID_TOKEN,
-                        "{\"email\":"+quote(SESSION_EMAIL)+",\"createdAt\":"+quote(now())+"}");
+
+                // ✅ 선택적으로 기본 프로필 저장
+                restSetJson("users/" + SESSION_UID + "/profile", SESSION_ID_TOKEN,
+                        "{\"email\":" + quote(SESSION_EMAIL) + ",\"createdAt\":" + quote(now()) + "}");
+
                 dlg.dispose();
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dlg, "회원가입 실패\n" + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(dlg, "회원가입 실패\n" + ex.getMessage(),
+                        "오류", JOptionPane.ERROR_MESSAGE);
             }
         });
         signup.add(btnSign, c);
 
+        // === 탭 추가 ===
         tabs.add("로그인", login);
         tabs.add("회원가입", signup);
 
@@ -866,8 +974,10 @@ public class Game extends Canvas
         dlg.setLocationRelativeTo(null);
         dlg.setVisible(true);
 
-        if (SESSION_ID_TOKEN == null) System.exit(0); // 취소 시 종료(원하면 다르게 처리)
+        // 로그인/회원가입 성공 못하면 프로그램 종료 (필요에 따라 제거 가능)
+        if (SESSION_ID_TOKEN == null) System.exit(0);
     }
+
 
     private static java.awt.GridBagConstraints gbc() { return gbc(0,0); }
     private static java.awt.GridBagConstraints gbc(int x, int y) {
@@ -948,6 +1058,13 @@ public class Game extends Canvas
     // =========================
     // 🔧 HTTP & 미니 JSON 유틸 (의존성 없음)
     // =========================
+    private static String httpGet(String endpoint) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("Accept","application/json");
+        return readResp(conn);
+    }
+
     private static String httpPostJson(String endpoint, String body) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
         conn.setRequestMethod("POST");
