@@ -41,8 +41,8 @@ public class BossEntity extends Entity {
     private double swirlAngle = 0.0;
     private double swirlRotationSpeed = 60; // deg/sec
     private int swirlBullets = 12;
-    private long swirlInterval = 420; // ms
-    private double swirlBulletSpeed = 180;
+    private long swirlInterval = 650; // ms
+    private double swirlBulletSpeed = 120;
 
     // 텔레포트/버스트
     private long teleportCooldown = 2400;
@@ -79,6 +79,34 @@ public class BossEntity extends Entity {
     private final int maxX; // (화면폭 - 보스폭 - 여유)
     private final int screenWidthFallback = 640; // 없으면 640 기준
     private final int marginX = 20;
+
+
+    // --- Phase 0: 낙하 폭탄(이펙트 포함) ---
+    private long   p0BombIntervalMs   = 1600;
+    private long   p0LastBombAt       = 0;
+    private int    p0BombsPerVolley   = 2;
+    private double p0BombFallSpeed    = 120;  // px/s
+    private int    p0ExplodeY;
+    private int    p0ShardCount       = 8;
+    private double p0ShardSpeed       = 220;
+    private long   p0ShadowBlinkMs    = 900;  // 마지막 경고 깜빡임 구간(폭발 직전 ms)
+    // 필드에 범위 값 추가
+    private int p0ExplodeYMin = 300;  // 최소 터지는 높이
+    private int p0ExplodeYMax = 520;  // 최대 터지는 높이
+
+    // 폭탄 착지 경고(그림자) 이펙트용
+    private static class Shadow {
+        final double x; final int y; final long startAt; final long explodeAt;
+        Shadow(double x, int y, long startAt, long explodeAt) {
+            this.x = x; this.y = y; this.startAt = startAt; this.explodeAt = explodeAt;
+        }
+    }
+    private final java.util.List<Shadow> shadows = new java.util.ArrayList<>();
+
+
+
+    // Phase 2 스월 간격(기본 320ms → 완화 )
+    private long p2SwirlIntervalMs = 900;
 
     // ✅ 내부 지연 실행용 태스크 큐(스레드 미사용)
     private static class Task {
@@ -127,6 +155,37 @@ public class BossEntity extends Entity {
         g.fillRect((int)x, (int)y - 10, bw, h);
         g.setColor(Color.DARK_GRAY);
         g.drawRect((int)x, (int)y - 10, w, h);
+
+        // ✅ 폭탄 착지 경고(그림자) 이펙트
+        if (!shadows.isEmpty()) {
+            Graphics2D g2 = (Graphics2D) g;
+            long t = now;
+
+            for (int i = 0; i < shadows.size(); i++) {
+                Shadow s = shadows.get(i);
+                if (t >= s.explodeAt) continue;  // 이미 폭발 끝난 경고는 그리지 않음
+
+                long remain = s.explodeAt - t;
+                // 기본: 반투명 검은 원(점점 진해짐)
+                float alpha = (float) Math.min(1.0, (double) (t - s.startAt) / Math.max(1, (s.explodeAt - s.startAt)));
+                alpha = 0.2f + 0.6f * alpha; // 0.2 → 0.8
+                g2.setColor(new Color(0f, 0f, 0f, alpha));
+
+                int r = 12; // 그림자 반경
+                g2.fillOval((int) s.x - r, s.y - r, r * 2, r * 2);
+
+                // 폭발 직전 깜빡임: 빨간 링(반짝)
+                if (remain <= p0ShadowBlinkMs) {
+                    // 0~1 깜빡임 파형
+                    double phase = (remain / 100.0); // 10Hz-ish
+                    double pulse = 0.5 * (1 + Math.sin(phase));
+                    float a = (float) (0.4 + 0.6 * pulse); // 0.4~1.0
+                    g2.setColor(new Color(1f, 0.2f, 0.2f, a));
+                    g2.setStroke(new BasicStroke(2f));
+                    g2.drawOval((int) s.x - (r + 4), s.y - (r + 4), (r + 4) * 2, (r + 4) * 2);
+                }
+            }
+        }
 
         // 레이저 경고선/본체(유한 길이)
         if (laserActive || (laserChargeStart > 0 && now - laserChargeStart < laserChargeMs)) {
@@ -190,14 +249,14 @@ public class BossEntity extends Entity {
         // (D) 패턴 실행
         switch (phase) {
             case 0:
-                doSwirl(delta, swirlBullets, swirlRotationSpeed, swirlInterval, swirlBulletSpeed);
+                doPhase0Bombs();        // 낙하 폭탄 + 파편
                 break;
             case 1:
                 doTeleportBurst();
                 doMinionSpawn();
                 break;
             case 2:
-                doSwirl(delta, swirlBullets + 4, swirlRotationSpeed * 1.6, 320, swirlBulletSpeed + 40);
+                doSwirl(delta, swirlBullets + 4, swirlRotationSpeed * 1.6, p2SwirlIntervalMs, swirlBulletSpeed + 40);
                 doLaserSweep(2800);
                 break;
         }
@@ -252,7 +311,7 @@ public class BossEntity extends Entity {
             this.y = p.y;
 
             // 텔레포트 직후 버스트(플레이어 조준)
-            final double angleToPlayer = angleTo(player.getX(), player.getY());
+            final double angleToPlayer = angleTo(playerCenterX(), playerCenterY());
             for (int i = 0; i < burstCount; i++) {
                 final int delay = (int) (i * burstGapMs);
                 schedule(delay, () ->
@@ -365,6 +424,67 @@ public class BossEntity extends Entity {
             }
         }
     }
+
+    /** Phase 0: 폭탄을 떨어뜨리고, 착지 시 파편으로 터뜨린다(그림자 경고 + 깜빡임) */
+    private void doPhase0Bombs() {
+        if (now - p0LastBombAt < p0BombIntervalMs) return;
+        p0LastBombAt = now;
+
+        int p0ExplodeY = p0ExplodeYMin + (int)(Math.random() * (p0ExplodeYMax - p0ExplodeYMin));
+
+        // 화면 폭(좌/우) 계산
+        int sw = screenWidthFallback;
+        try { sw = (int) Game.class.getMethod("getScreenWidth").invoke(game); } catch (Exception ignored) {}
+        int left = minX;
+        int right = Math.max(left + 40, sw - marginX);
+
+        // 보스 중심
+        double sx0 = x + BOSS_W / 2.0;
+        double sy0 = y + BOSS_H / 2.0;
+
+        for (int i = 0; i < p0BombsPerVolley; i++) {
+            // 무작위 착지 X
+            double tx = left + Math.random() * (right - left);
+
+            // 폭발까지 시간
+            double distY = Math.max(0, p0ExplodeY - sy0);
+            double timeToExplode = distY / p0BombFallSpeed; // seconds
+            long   explodeDelay  = (long)(timeToExplode * 1000.0);
+
+            // x 방향 속도: sx0 → tx 로 정확히 도달하게
+            double dx = (tx - sx0) / timeToExplode; // px/s
+            double dy = p0BombFallSpeed;
+
+            // 폭탄(느리게 낙하)
+            EnemyShotEntity bomb = new EnemyShotEntity(
+                    game, ENEMY_BULLET, sx0, sy0, dx, dy, Math.hypot(dx, dy)
+            );
+            game.addEntity(bomb);
+
+            // 그림자 경고 등록(폭발 시각까지 표시)
+            shadows.add(new Shadow(tx, p0ExplodeY, now, now + explodeDelay));
+
+            // 폭발 시점: 폭탄 제거 + 파편 생성 + 그림자 제거
+            schedule(explodeDelay, () -> {
+                game.removeEntity(bomb);
+
+                // 폭발 지점/원형 파편
+                for (int k = 0; k < p0ShardCount; k++) {
+                    double ang = 360.0 * k / p0ShardCount;
+                    spawnAngleShot(tx, p0ExplodeY, ang, p0ShardSpeed);
+                }
+
+                // 만료된 그림자들 정리
+                for (int idx = shadows.size() - 1; idx >= 0; idx--) {
+                    if (shadows.get(idx).explodeAt <= now) {
+                        shadows.remove(idx);
+                    }
+                }
+            });
+        }
+    }
+
+
 
     /* ✅ 내부 지연 실행: 스레드 대신 게임 루프 시점에 처리 */
     private void schedule(long delayMs, Runnable r) {
