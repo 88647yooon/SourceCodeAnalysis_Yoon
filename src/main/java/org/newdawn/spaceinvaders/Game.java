@@ -33,14 +33,7 @@ import java.io.FileInputStream;
 
 import javax.swing.*;
 
-import org.newdawn.spaceinvaders.entity.AlienEntity;
-import org.newdawn.spaceinvaders.entity.Entity;
-import org.newdawn.spaceinvaders.entity.ShipEntity;
-import org.newdawn.spaceinvaders.entity.ShotEntity;
-import org.newdawn.spaceinvaders.entity.EnemyShotEntity;
-import org.newdawn.spaceinvaders.entity.RangedAlienEntity;
-import org.newdawn.spaceinvaders.entity.HostageEntity;
-import org.newdawn.spaceinvaders.entity.DiagonalShooterAlienEntity;
+import org.newdawn.spaceinvaders.entity.*;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
@@ -266,7 +259,10 @@ public class Game extends Canvas
 	}
     public ShipEntity getPlayerShip() { return (ShipEntity) ship; }
 
-    public void addEntity(Entity e) { entities.add(e); }
+    public void addEntity(Entity e) {
+        entities.add(e);
+
+    }
 
     public void spawnEnemyShot(double x, double y, double vx, double vy) {
         double speed = Math.sqrt(vx*vx + vy*vy);
@@ -655,6 +651,11 @@ public class Game extends Canvas
 
     }
 
+    // alienCount setter 추가
+    public void setAlienCount(int count) {
+        this.alienCount = count;
+    }
+
 	/**
 	 * Notification that an alien has been killed
 	 */
@@ -663,6 +664,7 @@ public class Game extends Canvas
         // 1) 안전하게 카운트
         alienCount--;
         if (alienCount < 0) alienCount = 0;
+        System.out.println("[DEBUG] Alien killed! alienCount=" + alienCount + " stage=" + currentStageId + " bossActive=" + bossActive);
 
         // 2) 위험 모드 갱신
         dangerMode = (getPlayerShip().getCurrentHP() < 2);
@@ -685,7 +687,7 @@ public class Game extends Canvas
             }else {
                 // ⬇️ 스테이지 모드: 보스 웨이브/승리 처리
                 if (!bossActive) {
-                    if (waveCount == 5) {
+                    if (currentStageId == 5) {
                         spawnBoss();
                     } else {
                         notifyWin();

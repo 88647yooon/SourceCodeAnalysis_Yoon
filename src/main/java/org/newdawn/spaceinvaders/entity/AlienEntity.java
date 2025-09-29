@@ -156,7 +156,23 @@ public class AlienEntity extends Entity {
 	 * 
 	 * @param other The other entity
 	 */
+    @Override
 	public void collidedWith(Entity other) {
-		// collisions with aliens are handled elsewhere
+		//플레이어의 총알과 충돌한 경우일 때
+        if (other instanceof ShotEntity) {
+            ShotEntity shot = (ShotEntity) other;
+
+            //피격 처리
+            boolean dead = takeDamage(shot.getDamage());
+
+            //총알 제거
+            game.removeEntity(shot);
+
+            if(dead){
+                //적 제거
+                game.removeEntity(this);
+                game.notifyAlienKilled();
+            }
+        }
 	}
 }
