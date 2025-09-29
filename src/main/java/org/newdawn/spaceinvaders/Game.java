@@ -126,6 +126,7 @@ public class Game extends Canvas
     /**스크린**/
     private Screen currentScreen;
 
+
     // 게임 모드/점수/세션 측정
     private enum Mode { STAGE, INFINITE }
     private Mode currentMode = Mode.STAGE;
@@ -492,9 +493,10 @@ public class Game extends Canvas
         return stageStars.getOrDefault(stageId, 0);
     }
 
-
-
-
+    //스테이지모드 체크용
+    public boolean isStageMode() {
+        return currentMode == Mode.STAGE;
+    }
 
     //스테이지모드
     public void startStageMode(int StageNum){
@@ -591,6 +593,16 @@ public class Game extends Canvas
         uploadScoreIfLoggedIn(); /// 사용자 승리 시 또한 파이어베이스에 업로드
 	}
 
+    public int getStageTimeLimitMs(){
+        //무한 모드에서는 숨김
+        if (currentMode != Mode.STAGE) return 0;
+        if(runStartedAtMs == 0)return STAGE_TIME_LIMIT_MS;
+
+        long elapsed = System.currentTimeMillis() - runStartedAtMs;
+        int timeLeft = (int)(STAGE_TIME_LIMIT_MS - elapsed);
+        //음수 방지, 0으로 고정
+        return Math.max(0, timeLeft);
+    }
 
 
     // 엔티티 리스트 접근

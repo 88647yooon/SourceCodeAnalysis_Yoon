@@ -27,6 +27,20 @@ public class HUDRenderer {
             g.drawImage(img, x + i * (heartSize + heartGap), y, heartSize, heartSize, null);
         }
 
+        //남은 시간(스테이지 모드일때만 표시)
+        int timeLeftMs = game.getStageTimeLimitMs();
+        if(timeLeftMs > 0 || game.isStageMode()){
+            int seconds = timeLeftMs / 1000;
+            int min = seconds / 60;
+            int sec = seconds % 60;
+
+            String timeText = String.format("%02d:%02d", min, sec);
+            g.setFont(new Font("Arial", Font.BOLD, 20));
+            g.setColor(Color.WHITE);
+            g.drawString(timeText, game.getWidth() - 100 ,40);
+        }
+
+
         // ===== XP 세그먼트 바 — 화면 하단 전체 폭으로 =====
         int screenW = (game.getWidth()  > 0) ? game.getWidth()  : 800;
         int screenH = (game.getHeight() > 0) ? game.getHeight() : 600;
