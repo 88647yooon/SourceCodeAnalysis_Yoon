@@ -131,6 +131,7 @@ public class Game extends Canvas
     private BackgroundRenderer backgroundRenderer;
     /**스크린**/
     private Screen currentScreen;
+
     // 게임 모드/점수/세션 측정
     private enum Mode { STAGE, INFINITE }
     private Mode currentMode = Mode.STAGE;
@@ -270,7 +271,7 @@ public class Game extends Canvas
         double dirX = (speed == 0) ? 0 : vx / speed;
         double dirY = (speed == 0) ? 1 : vy / speed;
 
-        // ✅ 여기서 절대속도로 변환해서 넘긴다
+        //  여기서 절대속도로 변환해서 넘긴다
         double dx = dirX * speed;
         double dy = dirY * speed;
 
@@ -337,7 +338,7 @@ public class Game extends Canvas
                 alienCount++;
             }
         }
-        // ✅ 무한모드일 때 일정 확률로 인질 추가
+        //  무한모드일 때 일정 확률로 인질 추가
         if (infiniteMode) {
             int hostageNum = 1 + (int)(Math.random() * 2);
             if (hostageNum > 0) {
@@ -363,7 +364,7 @@ public class Game extends Canvas
 
     //보스 소환 메소드
     private void spawnBoss() {
-        // ✅ 보스 웨이브 시작: 기존 인질 전부 제거
+        //  보스 웨이브 시작: 기존 인질 전부 제거
         for (java.util.Iterator<Entity> it = entities.iterator(); it.hasNext();) {
             Entity e = it.next();
             if (e instanceof HostageEntity) {

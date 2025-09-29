@@ -1,34 +1,53 @@
 package org.newdawn.spaceinvaders.entity;
 
 import org.newdawn.spaceinvaders.Game;
+import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
 
 import java.awt.Graphics;
 
 public class HostageEntity extends Entity {
     private final Game game;
+    private final Sprite[] frames = new Sprite[3];
+
+    // --- animation state ---
+    private int frameIndex = 0;
+    private long frameTimerMs = 0;
+    private long frameDurationMs = 240; // 프레임 유지 시간(조절해서 속도 변경)
 
     public HostageEntity(Game game, int x, int y) {
-        super("sprites/hostage.png", x, y); // 스프라이트는 따로 준비 필요
+        super("sprites/hostage1.png", x, y); // 스프라이트는 따로 준비 필요
+
+        // setup the animatin frames
+        frames[0] = sprite;
+        frames[1] = SpriteStore.get().getSprite("sprites/hostage2.png");
+        frames[2] = SpriteStore.get().getSprite("sprites/hostage3.png");
         this.game = game;
     }
     @Override
     public void move(long delta) {
-        // 움직이지 않음
+        // 애니메이션 타이머만 갱신
+        frameTimerMs += delta;
+        if (frameTimerMs >= frameDurationMs) {
+            frameTimerMs -= frameDurationMs;
+            frameIndex = (frameIndex + 1) % frames.length; // 0→1→2→0…
+            sprite = frames[frameIndex];
+        }
     }
     @Override
     public void collidedWith(Entity other) {
         if (other instanceof ShotEntity) {
-            // 인질이 총에 맞았다! → 페널티 부여
-            game.removeEntity(this);
+            //플레이어 탄 제거
             game.removeEntity(other);
 
-            // 예: 게임 오버 처리
-            game.notifyDeath();
+            // 페널티: 플레이어 HP 1 감소
+            ShipEntity player = game.getPlayerShip();
+            if (player != null) {
+                player.damage(1); // BossEntity에서 쓰던 동일 API
+            }
+            //인질은 제거
+            game.removeEntity(this);
 
-            // 또는 점수 차감만 하고 계속 진행할 수도 있음
-            // game.addScore(-500);
         }
-        // 적 탄/외계인 충돌은 무시
     }
 }

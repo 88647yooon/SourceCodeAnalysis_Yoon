@@ -73,12 +73,16 @@ public class BossEntity extends Entity {
     private static final int BOSS_W = 120;
     private static final int BOSS_H = 120;
 
-    // ✅ 화면 경계(가로) — 프로젝트 해상도에 맞춰 필요시 조정
+    //  화면 경계(가로) — 프로젝트 해상도에 맞춰 필요시 조정
     //   Game에 화면 폭을 제공하는 메서드가 있다면 그걸로 대체하세요.
     private final int minX = 20;
     private final int maxX; // (화면폭 - 보스폭 - 여유)
     private final int screenWidthFallback = 640; // 없으면 640 기준
     private final int marginX = 20;
+
+    // --- 페이즈 전환 그레이스 타임(패턴 잠금) ---
+    private long phaseIntroMs = 1500;    // 전환 후 쉬는 시간(ms) — 원하면 1200~2000 사이로 조절
+    private long phaseHoldUntil = 0;     // 이 시각 전까지는 어떤 공격 패턴도 실행하지 않음
 
 
     // --- Phase 0: 낙하 폭탄(이펙트 포함) ---
@@ -108,7 +112,7 @@ public class BossEntity extends Entity {
     // Phase 2 스월 간격(기본 320ms → 완화 )
     private long p2SwirlIntervalMs = 900;
 
-    // ✅ 내부 지연 실행용 태스크 큐(스레드 미사용)
+    //  내부 지연 실행용 태스크 큐(스레드 미사용)
     private static class Task {
         final long executeAt;
         final Runnable r;
@@ -156,7 +160,7 @@ public class BossEntity extends Entity {
         g.setColor(Color.DARK_GRAY);
         g.drawRect((int)x, (int)y - 10, w, h);
 
-        // ✅ 폭탄 착지 경고(그림자) 이펙트
+        //  폭탄 착지 경고(그림자) 이펙트
         if (!shadows.isEmpty()) {
             Graphics2D g2 = (Graphics2D) g;
             long t = now;
@@ -209,6 +213,17 @@ public class BossEntity extends Entity {
             g2.drawLine(cx, cy, ex, ey);
             g2.setStroke(old);
         }
+
+        // ▶ 페이즈 전환 중이면 보스 테두리 깜빡임(선택)
+        if (now < phaseHoldUntil) {
+            Graphics2D g2 = (Graphics2D) g;
+            Stroke oldS = g2.getStroke();
+            float a = 0.4f + 0.6f * (float)Math.abs(Math.sin((now % 600) / 600.0 * Math.PI * 2));
+            g2.setColor(new Color(255, 255, 0, (int)(a * 255)));
+            g2.setStroke(new BasicStroke(3f));
+            g2.drawRect((int)x, (int)y, BOSS_W, BOSS_H);
+            g2.setStroke(oldS);
+        }
     }
 
     @Override
@@ -234,7 +249,7 @@ public class BossEntity extends Entity {
             setVerticalMovement(40);
         }
 
-        // ✅ (B-2) X 경계 반전으로 화면 이탈 방지
+        //  (B-2) X 경계 반전으로 화면 이탈 방지
         double vx = getHorizontalMovement();
         if (x <= minX && vx < 0) {
             setHorizontalMovement(Math.abs(vx));
@@ -242,26 +257,31 @@ public class BossEntity extends Entity {
             setHorizontalMovement(-Math.abs(vx));
         }
 
-        // (C) 페이즈 전환 (퍼센트 기준)
+        //  페이즈 전환 (퍼센트 기준)
         if (phase == 0 && hp <= (maxHP * 2) / 3) enterPhase(1);
         if (phase == 1 && hp <= (maxHP) / 3)     enterPhase(2);
 
-        // (D) 패턴 실행
-        switch (phase) {
-            case 0:
-                doPhase0Bombs();        // 낙하 폭탄 + 파편
-                break;
-            case 1:
-                doTeleportBurst();
-                doMinionSpawn();
-                break;
-            case 2:
-                doSwirl(delta, swirlBullets + 4, swirlRotationSpeed * 1.6, p2SwirlIntervalMs, swirlBulletSpeed + 40);
-                doLaserSweep(2800);
-                break;
+        //  그레이스 타임 체크
+        boolean phaseUnlocked = now >= phaseHoldUntil;
+
+        //  패턴 실행
+        if (phaseUnlocked) {
+            switch (phase) {
+                case 0:
+                    doPhase0Bombs();        // 낙하 폭탄 + 파편
+                    break;
+                case 1:
+                    doTeleportBurst();
+                    doMinionSpawn();
+                    break;
+                case 2:
+                    doSwirl(delta, swirlBullets + 4, swirlRotationSpeed * 1.6, p2SwirlIntervalMs, swirlBulletSpeed + 40);
+                    doLaserSweep(2800);
+                    break;
+            }
         }
 
-        // (E) 마지막에 실제 이동
+        //  마지막에 실제 이동
         super.move(delta);
     }
 
@@ -280,6 +300,18 @@ public class BossEntity extends Entity {
     private void enterPhase(int next) {
         phase = next;
         phaseStartAt = now;
+        // ▶ 전환 후 일정 시간 공격 금지
+        phaseHoldUntil = now + phaseIntroMs;
+
+        // ▶ 진행 중이던 패턴/타이머 초기화(즉시 공격 방지)
+        laserActive = false;
+        laserChargeStart = 0;
+
+        lastFireAt = now;       // 탄막 타이머 리셋
+        lastTeleportAt = now;   // 텔레포트/버스트 타이머 리셋
+        lastSpawnAt = now;      // 소환 타이머 리셋
+
+        tasks.clear();          // 이전 페이즈에서 예약된 지연 태스크 제거(유효탄 방지)
     }
 
     /* ------------------------------
@@ -363,7 +395,7 @@ public class BossEntity extends Entity {
         }
     }
 
-    // ✅ 유한 길이 선분 레이저 판정
+    //  유한 길이 선분 레이저 판정
     private boolean intersectsLaserSegment(ShipEntity ship) {
         // 보스 중심
         double cx = x + BOSS_W / 2.0;
@@ -416,7 +448,15 @@ public class BossEntity extends Entity {
     @Override
     public void collidedWith(Entity other) {
         if (other instanceof ShotEntity) {
+            //탄은 항상 제거
             game.removeEntity(other);
+
+            // 페이즈 전환시 무적: 데미지 무시
+            if (System.currentTimeMillis() < phaseHoldUntil) {
+                return;
+            }
+
+            //평소엔 데미지 적용
             hp -= 1;
             if (hp <= 0) {
                 game.removeEntity(this);
@@ -486,7 +526,7 @@ public class BossEntity extends Entity {
 
 
 
-    /* ✅ 내부 지연 실행: 스레드 대신 게임 루프 시점에 처리 */
+    /* 내부 지연 실행: 스레드 대신 게임 루프 시점에 처리 */
     private void schedule(long delayMs, Runnable r) {
         tasks.add(new Task(now + delayMs, r));
     }

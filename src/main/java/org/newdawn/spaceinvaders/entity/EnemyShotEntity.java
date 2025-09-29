@@ -82,7 +82,7 @@ public class EnemyShotEntity extends Entity {
     public void move(long delta) {
         ageMs += delta;
 
-        // ✅ 직선 잠금일 때는 유도 완전 차단
+        // 직선 잠금일 때는 유도 완전 차단
         if (!forceNoHoming && homing && ageMs >= homingDelayMs && target != null) {
             double tx = target.getX() - this.x;
             double ty = target.getY() - this.y;

@@ -41,6 +41,29 @@ public class ShotEntity extends Entity {
         }
     }
 
+    @Override
+    public boolean collidesWith(Entity other) {
+        // 적 탄에 대해서만 축소 히트박스 사용
+        if (other instanceof EnemyShotEntity) {
+            final double scale = 0.45; // 크기 조절 가능
+            int w = (int) (sprite.getWidth()  * scale);
+            int h = (int) (sprite.getHeight() * scale);
+            int sx = getX() + (sprite.getWidth()  - w) / 2;
+            int sy = getY() + (sprite.getHeight() - h) / 2;
+
+            java.awt.Rectangle me  = new java.awt.Rectangle(sx, sy, w, h);
+            java.awt.Rectangle him = new java.awt.Rectangle(
+                    other.getX(), other.getY(),
+                    other.sprite.getWidth(), other.sprite.getHeight()
+            );
+            return me.intersects(him);
+        }
+
+        // 그 외(외계인 몸통 등)는 기존 전역 판정 유지
+        return super.collidesWith(other);
+    }
+
+
     /**
      * Notification that this shot has collided with another entity
      *
