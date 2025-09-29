@@ -15,13 +15,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Iterator;
 import java.util.List;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-
 
 
 /***
@@ -36,8 +32,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 
 import javax.swing.*;
-
-import java.text.SimpleDateFormat;
 
 import org.newdawn.spaceinvaders.entity.AlienEntity;
 import org.newdawn.spaceinvaders.entity.Entity;
@@ -144,7 +138,9 @@ public class Game extends Canvas
     // Game.java (필드)
     private enum GameState { MENU, PLAYING,GAMEOVER, SCOREBOARD, EXIT }
     private GameState state = GameState.MENU;
-
+    private Map<Integer, Integer> stageStarScoreRequirements = new HashMap<>();
+    //스테이지 별 개수 저장소
+    private Map<Integer, Integer> stageStars = new HashMap<>();
     private String[] menuItems = {"스테이지 모드", "무한 모드", "스코어보드", "게임 종료"};
     private int menuIndex = 0;
 
@@ -439,6 +435,60 @@ public class Game extends Canvas
             ds.setBulletSpeedMultiplier(d.bulletSpeedMul);
         }
     }
+
+    private  void stageStarScoreRequirements(){
+
+        //3별기준 점수테이블
+        stageStarScoreRequirements.put(1, 1000);
+        stageStarScoreRequirements.put(2, 2000);
+        stageStarScoreRequirements.put(3, 3000);
+        stageStarScoreRequirements.put(4, 4000);
+        stageStarScoreRequirements.put(5, 5000);
+    }
+
+    public int getStageStarScoreRequirements(int stageId) {
+        return stageStarScoreRequirements.getOrDefault(stageId, 1000);
+    }
+
+    //별 시스템
+    //⭐ 1개 -> 클리어 성공
+    //
+    //⭐⭐ 2개 -> 클리어 + 시간 제한 내 클리어
+    //
+    //⭐⭐⭐ 3개 -> 클리어 + 시간 제한 + 무피격 + 스테이지별 점수 조건 충족
+    private void evaluateStageResult(int stageId, int timeLeft, int damageTaken, int score) {
+        int stars = 1; // 기본: 클리어 성공
+
+        if (timeLeft > 0) {
+            stars = 2;
+
+            int requiredScore = getStageStarScoreRequirements(stageId);
+
+            if (damageTaken == 0 && score >= requiredScore) {
+                stars = 3;
+            }
+        }
+        //별 저장
+        setStageStars(stageId, stars);
+    }
+
+    //별 저장
+    public void setStageStars(int stageId, int stars) {
+        int prev = stageStars.getOrDefault(stageId, 0);
+
+        // 기존보다 높은 기록만 저장 (예: 예전엔 2별, 새로 3별 달성 → 3별로 갱신)
+        if (stars > prev) {
+            stageStars.put(stageId, stars);
+        }
+    }
+
+    //별 조회
+    public int getStageStars(int stageId) {
+        return stageStars.getOrDefault(stageId, 0);
+    }
+
+
+
 
 
     //스테이지모드

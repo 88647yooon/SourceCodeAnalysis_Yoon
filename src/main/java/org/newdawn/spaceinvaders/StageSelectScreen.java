@@ -12,6 +12,10 @@ public class StageSelectScreen implements Screen{
     //스테이지 이미지
     private final Image[] stageImages = new Image[MaxStage];
 
+    //별 이미지
+    private Image starFilled;
+    private Image starEmpty;
+
     // 애니메이션용 오프셋
     private int Baseicon = 120;
     private int selectedSize = 200;
@@ -20,6 +24,8 @@ public class StageSelectScreen implements Screen{
     private int SelectIndex = 0;
     private float slideSpeed = 0.2f;  // 보간 속도
     private int spacing = 220;        // 카드 간격
+
+
 
     public StageSelectScreen(Game game) {
         this.game = game;
@@ -37,6 +43,10 @@ public class StageSelectScreen implements Screen{
             }
         }
 
+
+        //별 이미지 로드
+        starFilled = new ImageIcon(getClass().getResource("/sprites/star_filled.png")).getImage();
+        starEmpty = new ImageIcon(getClass().getResource("/sprites/star_empty.png")).getImage();
     }
 
     @Override
@@ -75,7 +85,26 @@ public class StageSelectScreen implements Screen{
                 g.setColor(Color.WHITE);
                 g.drawString("Stage " + (i + 1),
                         centerX - 40, y + selectedSize / 2 + 40);
+
+
             }
+
+            //모든 스테이지 아이콘 아래 별 표시
+            int stars = game.getStageStars(i + i);
+            int starSize = 30;
+            int starSpacing = 36;
+            int starY = drawY + size + 10;
+            int starX = x - (starSpacing * 3) / 2;
+
+            for (int s = 0; s < 3; s++){
+                Image starImg = (s <stars) ? starFilled : starEmpty;
+                if(starImg != null){
+                    g.drawImage(starImg, starX + s * starSpacing,
+                            starY, starSize, starSize, null);
+                }
+
+            }
+
         }
 
 

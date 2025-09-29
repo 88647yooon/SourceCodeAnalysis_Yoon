@@ -43,6 +43,8 @@ public class HUDRenderer {
         // 레벨 텍스트(바 위에 살짝)
         g.setColor(Color.WHITE);
         g.drawString("Lv." + player.getLevel(), barX, barY - 6);
+
+
     }
 
     /** 초록 세그먼트 XP 바 (segments: 칸 수) — 하단 버전 */
