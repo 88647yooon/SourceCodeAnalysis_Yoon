@@ -93,7 +93,7 @@ public class StageSelectScreen implements Screen{
             int stars = game.getStageStars(i + i);
             int starSize = 30;
             int starSpacing = 36;
-            int starY = drawY + size + 10;
+            int starY = drawY + size - 15;
             int starX = x - (starSpacing * 3) / 2;
 
             for (int s = 0; s < 3; s++){
