@@ -131,7 +131,12 @@ public class Game extends Canvas
     private Mode currentMode = Mode.STAGE;
     private int score = 0;
     private long runStartedAtMs = 0L;
-
+    //현재 스테이지 번호
+    private int currentStageId = 1;
+    // 스테이지 시작 시 플레이어 HP 저장
+    private int stageStartHP = 0;
+    // 스테이지 시간 제한 (일단 전체적으로 2분으로 잡아두었음)
+    private static final int STAGE_TIME_LIMIT_MS = 120_000;
 
 
 
@@ -498,8 +503,11 @@ public class Game extends Canvas
         runStartedAtMs = System.currentTimeMillis();
         infiniteMode = false;   // 스테이지 모드
         waveCount = StageNum;
+        currentStageId = StageNum;
         normalsClearedInCycle = 0; // 웨이브 초기화
         startGame();            // 기존 startGame() 호출
+        //시작시 HP스냅샷
+        stageStartHP = getPlayerShip().getCurrentHP();
         setScreen(new GamePlayScreen(this)); // 게임 화면 전환
     }
     //무한모드
@@ -561,6 +569,22 @@ public class Game extends Canvas
 	public void notifyWin() {
 		message = "Well done! You Win!";
 		waitingForKeyPress = true;
+
+        if (currentMode == Mode.STAGE) {
+            // 경과시간 기반으로 남은시간 계산
+            long elapsed = (runStartedAtMs > 0) ? (System.currentTimeMillis() - runStartedAtMs) : 0L;
+            int timeLeft = Math.max(0, STAGE_TIME_LIMIT_MS - (int)elapsed);
+
+            //받은 피해량 계산(시작 HP - 현재 HP)
+            int damageTaken = 0;
+            ShipEntity p = getPlayerShip();
+            if (p != null) {
+                damageTaken = Math.max(0, stageStartHP - p.getCurrentHP());
+            }
+            //별 평가 호출
+            evaluateStageResult(currentStageId, timeLeft, damageTaken, score);
+        }
+
         if (SESSION_UID != null && SESSION_ID_TOKEN != null) {
             LevelManager.saveLastLevel(SESSION_UID, SESSION_ID_TOKEN, getPlayerShip().getLevel());
         }
