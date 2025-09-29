@@ -26,7 +26,7 @@ public class AlienEntity extends Entity {
     //최대 체력과 현재 체력
     private int maxHP = 1;
     private int currentHP=1;
-
+    private boolean dead = false;
     /** 웨이브에 따라 외계인 이동 속도를 키울 때 사용하는 배수 (1.0 = 기본) */
     private double speedMul = 1.0;
 
@@ -158,21 +158,6 @@ public class AlienEntity extends Entity {
 	 */
     @Override
 	public void collidedWith(Entity other) {
-		//플레이어의 총알과 충돌한 경우일 때
-        if (other instanceof ShotEntity) {
-            ShotEntity shot = (ShotEntity) other;
-
-            //피격 처리
-            boolean dead = takeDamage(shot.getDamage());
-
-            //총알 제거
-            game.removeEntity(shot);
-
-            if(dead){
-                //적 제거
-                game.removeEntity(this);
-                game.notifyAlienKilled();
-            }
-        }
+        //플레이어 탄환과의 충돌은 shotEntity에서 처리, 여기서는 아무것도 안함
 	}
 }

@@ -246,15 +246,9 @@ public class Game extends Canvas
             //무한모드 : 웨이브 스폰으로 시작
             spawnAliens();
         }else{
-            //기존 스테이지 모드 : 5*12 고정 배치
+            //스테이지 모드에서는 여기에 적을 깔지 않음
+            //StageManager.applyStage()가 적 배치 담당
 
-            for (int row=0;row<5;row++) {
-                for (int x=0;x<12;x++) {
-                    Entity alien = new AlienEntity(this,100+(x*50),(50)+row*30);
-                    entities.add(alien);
-                    alienCount++;
-                }
-            }
         }
 	}
     public ShipEntity getPlayerShip() { return (ShipEntity) ship; }
@@ -506,7 +500,10 @@ public class Game extends Canvas
         startGame();            // 기존 startGame() 호출
         //시작시 HP스냅샷
         stageStartHP = getPlayerShip().getCurrentHP();
+        //스테이지 배치 적용
+        StageManager.applyStage(StageNum, this);
         setScreen(new GamePlayScreen(this)); // 게임 화면 전환
+
     }
     //무한모드
     public void startInfiniteMode(){

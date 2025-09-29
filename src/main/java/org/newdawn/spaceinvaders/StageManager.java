@@ -52,7 +52,7 @@ public final class StageManager {
                 count = spawnGrid(game, 5, 10, 100, 50, 50, 30);
         }
 
-
+        //배치된 적 수를 alienCount로 반영
         game.setAlienCount(count);
     }
 
