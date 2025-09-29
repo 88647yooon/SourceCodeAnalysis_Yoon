@@ -77,6 +77,14 @@ public class ShipEntity extends Entity {
 
     // 필요 경험치 공식 (느리게): req(L) = 200 + 50 * L * (L - 1)
     private static int reqFor(int L) { return 200 + 50 * L * (L - 1); }
+    //레벨 저장용 setter
+    public void setLevel(int lvl) {
+        this.level = Math.max(1, lvl);
+        this.xpIntoLevel = 0;
+        this.xpToNext = reqFor(this.level);
+        S_LEVEL = this.level;
+        S_XP_INTO_LEVEL = this.xpIntoLevel;
+    }
 
     // HUD용 Getter
     public int  getLevel()         { return level; }
