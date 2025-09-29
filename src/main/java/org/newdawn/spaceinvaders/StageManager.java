@@ -46,7 +46,7 @@ public final class StageManager {
                 count = spawnMixed(game, ship);                  // 혼합 편성(난이도↑)
                 break;
             case 5:
-                count = spawnBossOnly(game, ship);               // ✅ 바로 보스!
+                count = spawnBossOnly(game, ship);               //   보스
                 break;
             default:
                 count = spawnGrid(game, 5, 10, 100, 50, 50, 30);

@@ -50,7 +50,7 @@ public class DiagonalShooterAlienEntity extends AlienEntity{
 
         double speed = bulletSpeed * bulletSpeedMul;
 
-        // ✅ 절대속도(px/s)로 변환해서 넘긴다
+        //  절대속도(px/s)로 변환해서 넘긴다
         double vx1 = dlx * speed, vy1 = dly * speed;
         double vx2 = drx * speed, vy2 = dry * speed;
 

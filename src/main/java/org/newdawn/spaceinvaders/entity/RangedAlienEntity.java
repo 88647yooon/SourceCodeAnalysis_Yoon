@@ -67,7 +67,7 @@ public class RangedAlienEntity extends AlienEntity {
 
         double speed = bulletSpeed * bulletSpeedMul;
 
-        // ✅ Ranged 적은 항상 '아래로 직선' 발사 (유도처럼 보이지 않게)
+        // Ranged 적은 항상 '아래로 직선' 발사 (유도처럼 보이지 않게)
         double vx = 0.0;
         double vy = speed;
 
@@ -75,7 +75,7 @@ public class RangedAlienEntity extends AlienEntity {
                 game,
                 "sprites/enemy_bullet.png",
                 sx, sy,
-                vx, vy,                 // ✅ 절대속도(px/s) — 항상 아래로
+                vx, vy,                 // 절대속도(px/s) — 항상 아래로
                 speed
         ));
         lastShotAt = now;

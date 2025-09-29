@@ -51,7 +51,7 @@ public class AlienEntity extends Entity {
 		dx = -moveSpeed;
 	}
     public AlienEntity(Game game,String ref,int x,int y) {
-        super(ref, x, y);              // ✅ ref를 그대로 사용
+        super(ref, x, y);              //  ref를 그대로 사용
         this.game = game;
         dx = -moveSpeed;
 

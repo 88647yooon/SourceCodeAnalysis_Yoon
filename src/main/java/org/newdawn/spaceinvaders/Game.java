@@ -238,7 +238,7 @@ public class Game extends Canvas
 		entities.add(ship);
 
         // ✅ 보스 테스트용: 무적 켜기
-        ((ShipEntity) ship).setInvulnerable(false);
+        ((ShipEntity) ship).setInvulnerable(true);
 		
 		// create a block of aliens (5 rows, by 12 aliens, spaced evenly)
 		alienCount = 0;
@@ -277,7 +277,7 @@ public class Game extends Canvas
                 this,
                 "sprites/enemy_bullet.png",  // 아래 2번과 일치시킴
                 x, y,
-                dx, dy,                      // ✅ px/s
+                dx, dy,                      //  px/s
                 speed
         );
         entities.add(s);

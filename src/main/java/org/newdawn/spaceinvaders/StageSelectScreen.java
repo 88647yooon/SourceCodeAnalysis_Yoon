@@ -136,7 +136,7 @@ public class StageSelectScreen implements Screen{
         if (keyCode == KeyEvent.VK_ENTER) {
             int stageNum = SelectIndex + 1;
             game.startStageMode(stageNum);          // 기존 초기화
-            StageManager.applyStage(stageNum, game); // ✅ 스테이지별 엔티티 강제 적용
+            StageManager.applyStage(stageNum, game); // 스테이지별 엔티티 강제 적용
         }
         if (keyCode == KeyEvent.VK_ESCAPE) {
             game.setScreen(new MenuScreen(game));

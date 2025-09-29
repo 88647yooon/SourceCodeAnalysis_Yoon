@@ -17,7 +17,7 @@ public class LevelManager {
         return 1; // 실패 시 기본 레벨
     }
 
-    // ✅ 마지막 레벨 저장
+    //  마지막 레벨 저장
     public static void saveLastLevel(String uid, String idToken, int level) {
         if (uid == null || idToken == null) return;
         try {

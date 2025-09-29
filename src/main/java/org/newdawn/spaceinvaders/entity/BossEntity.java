@@ -63,7 +63,7 @@ public class BossEntity extends Entity {
     private long laserDurationMs = 900;
     private double laserAngleDeg = 90;
     private int laserWidthPx = 14;
-    private int laserLengthPx = 900; // ✅ 유한 길이(화면 끝까지X)
+    private int laserLengthPx = 900; //  유한 길이(화면 끝까지X)
 
     // 발사 스프라이트
     private static final String ENEMY_BULLET = "sprites/enemy_bullet.png";
