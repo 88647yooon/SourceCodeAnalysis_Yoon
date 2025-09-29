@@ -542,6 +542,9 @@ public class Game extends Canvas
         waitingForKeyPress = false;
         message = "";
 		menuIndex =0;
+        if (SESSION_UID != null && SESSION_ID_TOKEN != null) {
+            LevelManager.saveLastLevel(SESSION_UID, SESSION_ID_TOKEN, getPlayerShip().getLevel());
+        }
 
         setScreen(new GameOverScreen(this));
         uploadScoreIfLoggedIn(); ///사용자 사망시 파이어베이스에 업로드
@@ -558,6 +561,9 @@ public class Game extends Canvas
 	public void notifyWin() {
 		message = "Well done! You Win!";
 		waitingForKeyPress = true;
+        if (SESSION_UID != null && SESSION_ID_TOKEN != null) {
+            LevelManager.saveLastLevel(SESSION_UID, SESSION_ID_TOKEN, getPlayerShip().getLevel());
+        }
         uploadScoreIfLoggedIn(); /// 사용자 승리 시 또한 파이어베이스에 업로드
 	}
 
@@ -927,6 +933,7 @@ public class Game extends Canvas
        Integer wave;
        Long durationMs;
        String timestamp;
+       Integer level;
    }
 
      protected static List<ScoreEntry> fetchMyTopScores(int limit) {
@@ -961,6 +968,7 @@ public class Game extends Canvas
       String modeStr = (currentMode == Mode.STAGE) ? "STAGE" : "INFINITE";
 
       String json = "{"
+              + "\"level\":" + ((ShipEntity) ship).getLevel() + ","
             + "\"mode\":" + quote(modeStr) + ","
             + "\"score\":" + score + ","
             + "\"wave\":" + waveCount + ","              // 마지막 웨이브(참고용)
@@ -1162,7 +1170,7 @@ public class Game extends Canvas
         return httpPostJson(endpoint, json);
     }
 
-    private static String restSetJson(String path, String idToken, String json) throws Exception {
+    protected static String restSetJson(String path, String idToken, String json) throws Exception {
         String endpoint = DB_URL + "/" + path + ".json?auth=" + urlEnc(idToken);
         return httpPutJson(endpoint, json);
     }
@@ -1170,14 +1178,14 @@ public class Game extends Canvas
     // =========================
     // 🔧 HTTP & 미니 JSON 유틸 (의존성 없음)
     // =========================
-    private static String httpGet(String endpoint) throws Exception {
+    protected static String httpGet(String endpoint) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("Accept","application/json");
         return readResp(conn);
     }
 
-    private static String httpPostJson(String endpoint, String body) throws Exception {
+    protected static String httpPostJson(String endpoint, String body) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
         conn.setRequestMethod("POST");
         conn.setDoOutput(true);
@@ -1188,7 +1196,7 @@ public class Game extends Canvas
         return readResp(conn);
     }
 
-    private static String httpPutJson(String endpoint, String body) throws Exception {
+    protected static String httpPutJson(String endpoint, String body) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
         conn.setRequestMethod("PUT");
         conn.setDoOutput(true);
@@ -1199,7 +1207,7 @@ public class Game extends Canvas
         return readResp(conn);
     }
 
-    private static String readResp(HttpURLConnection conn) throws Exception {
+    protected static String readResp(HttpURLConnection conn) throws Exception {
         int code = conn.getResponseCode();
         try (InputStream is = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream()) {
             String txt = readFully(is, "UTF-8");
@@ -1207,7 +1215,7 @@ public class Game extends Canvas
             throw new RuntimeException("HTTP " + code + ": " + txt);
         }
     }
-    private static String readFully(InputStream is, String charset) throws Exception {
+    protected static String readFully(InputStream is, String charset) throws Exception {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             byte[] buf = new byte[4096];
@@ -1221,7 +1229,7 @@ public class Game extends Canvas
         }
     }
 
-    private static String jget(String json, String key) {
+    protected static String jget(String json, String key) {
         // 매우 단순한 "키:문자열" 추출. (필요한 필드만)
         // "key" : "value"
         String k = "\"" + key.replace("\"","\\\"") + "\"";
@@ -1266,7 +1274,7 @@ public class Game extends Canvas
         return sb.toString();
     }
 
-    private static String quote(String s) {
+    protected static String quote(String s) {
         if (s == null) return "null";
         StringBuilder sb = new StringBuilder("\"");
         for (int i=0;i<s.length();i++) {
@@ -1288,12 +1296,12 @@ public class Game extends Canvas
         return sb.toString();
     }
 
-    private static String urlEnc(String s) {
+    protected static String urlEnc(String s) {
         try { return java.net.URLEncoder.encode(s, "UTF-8"); }
         catch (Exception e) { return s; }
     }
 
-    private static String now() {
+    protected static String now() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
     }
 
@@ -1331,12 +1339,15 @@ public class Game extends Canvas
             } catch (InterruptedException ignored) {}
 
             Game g = new Game();
-
+            /// 사용자 레벨 불러오가
+            int savedLevel = LevelManager.loadLastLevel(DB_URL, SESSION_UID, SESSION_ID_TOKEN);
+            g.getPlayerShip().setLevel(savedLevel);
             // Start the main game loop, note: this method will not
             // return until the game has finished running. Hence we are
             // using the actual main thread to run the game.
             g.gameLoop();
             writeLog("game over");
+
 
 
         } catch (Exception e) {
