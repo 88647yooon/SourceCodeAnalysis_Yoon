@@ -448,9 +448,10 @@ public class BossEntity extends Entity {
     @Override
     public void collidedWith(Entity other) {
         if (other instanceof ShotEntity) {
+            ShotEntity shot = (ShotEntity) other;
             //탄은 항상 제거
             game.removeEntity(other);
-
+            hp -= Math.max(1, shot.getDamage());    // ★ 공격력 반영
             // 페이즈 전환시 무적: 데미지 무시
             if (System.currentTimeMillis() < phaseHoldUntil) {
                 return;

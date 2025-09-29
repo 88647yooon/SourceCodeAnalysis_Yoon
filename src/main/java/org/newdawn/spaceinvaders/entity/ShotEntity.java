@@ -14,6 +14,8 @@ public class ShotEntity extends Entity {
     private final Game game;
     /** True if this shot has been "used", i.e. its hit something */
     private boolean used = false;
+    //기본 데미지
+    private int damage = 1;
 
     /**
      * Create a new shot from the player
@@ -106,4 +108,7 @@ public class ShotEntity extends Entity {
             return;
         }
     }
+    // 데미지 getter setter 추가
+    public void setDamage(int damage) { this.damage = Math.max(1, damage); }
+    public int getDamage() { return damage; }
 }

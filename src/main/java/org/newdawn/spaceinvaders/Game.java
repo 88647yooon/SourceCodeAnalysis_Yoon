@@ -243,7 +243,7 @@ public class Game extends Canvas
 		entities.add(ship);
 
         // ✅ 보스 테스트용: 무적 켜기
-        ((ShipEntity) ship).setInvulnerable(true);
+        ((ShipEntity) ship).setInvulnerable(false);
 		
 		// create a block of aliens (5 rows, by 12 aliens, spaced evenly)
 		alienCount = 0;
@@ -536,6 +536,29 @@ public class Game extends Canvas
                 entity.move(delta);
             }
         }
+        // 충돌
+        for (int p = 0; p < entities.size(); p++) {
+            for (int s = p + 1; s < entities.size(); s++) {
+                Entity a = entities.get(p);
+                Entity b = entities.get(s);
+                if (a.collidesWith(b)) {
+                    a.collidedWith(b);
+                    b.collidedWith(a);
+                }
+            }
+        }
+
+        // 제거/정리
+        entities.removeAll(removeList);
+        removeList.clear();
+
+        // ★ 핵심: logicRequiredThisLoop 처리
+        if (logicRequiredThisLoop) {
+            for (int i = 0; i < entities.size(); i++) {
+                entities.get(i).doLogic();
+            }
+            logicRequiredThisLoop = false;
+        }
 
 
     }
@@ -636,7 +659,7 @@ public class Game extends Canvas
 			// update the frame counter
 			lastFpsTime += delta;
 			fps++;
-			
+
 			// update our FPS counter if a second has passed since
 			// we last recorded
 			if (lastFpsTime >= 1000) {
@@ -644,14 +667,18 @@ public class Game extends Canvas
 				lastFpsTime = 0;
 				fps = 0;
 			}
-			
-			// Get hold of a graphics context for the accelerated 
+            //화면 업데이트를 먼저 돌림(오버레이 처리 /일시 정지)
+            if (currentScreen != null) {
+                currentScreen.update(delta);
+            }
+
+			// Get hold of a graphics context for the accelerated
 			// surface and blank it out
 			Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
 
             // 배경 + 엔티티를 통합 렌더링
             render(g);
-            
+
             if (state == GameState.MENU) {
                 g.dispose();
                 strategy.show();
@@ -659,45 +686,49 @@ public class Game extends Canvas
                 continue; // 메뉴일 땐 이하(엔티티 이동/충돌) 스킵
             }
 
-			// cycle round asking each entity to move itself
-			if (!waitingForKeyPress) {
-				for (int i=0;i<entities.size();i++) {
-					Entity entity = (Entity) entities.get(i);
-					
-					entity.move(delta);
-				}
-			}
-			
-			// brute force collisions, compare every entity against
-			// every other entity. If any of them collide notify 
-			// both entities that the collision has occured
-			for (int p=0;p<entities.size();p++) {
-				for (int s=p+1;s<entities.size();s++) {
-					Entity me = (Entity) entities.get(p);
-					Entity him = (Entity) entities.get(s);
-					
-					if (me.collidesWith(him)) {
-						me.collidedWith(him);
-						him.collidedWith(me);
-					}
-				}
-			}
-			
-			// remove any entity that has been marked for clear up
-			entities.removeAll(removeList);
-			removeList.clear();
+            //스크린이 주도한다면 레거시 엔티티/충돌/로직 블록을 건너뜀
+            boolean screenDrivesGame = (currentScreen != null);
+            if (!screenDrivesGame) {
+                // cycle round asking each entity to move itself
+                if (!waitingForKeyPress) {
+                    for (int i=0;i<entities.size();i++) {
+                        Entity entity = (Entity) entities.get(i);
 
-			// if a game event has indicated that game logic should
-			// be resolved, cycle round every entity requesting that
-			// their personal logic should be considered.
-			if (logicRequiredThisLoop) {
-				for (int i=0;i<entities.size();i++) {
-					Entity entity = (Entity) entities.get(i);
-					entity.doLogic();
-				}
-				
-				logicRequiredThisLoop = false;
-			}
+                        entity.move(delta);
+                    }
+                }
+
+                // brute force collisions, compare every entity against
+                // every other entity. If any of them collide notify
+                // both entities that the collision has occured
+                for (int p=0;p<entities.size();p++) {
+                    for (int s=p+1;s<entities.size();s++) {
+                        Entity me = (Entity) entities.get(p);
+                        Entity him = (Entity) entities.get(s);
+
+                        if (me.collidesWith(him)) {
+                            me.collidedWith(him);
+                            him.collidedWith(me);
+                        }
+                    }
+                }
+
+                // remove any entity that has been marked for clear up
+                entities.removeAll(removeList);
+                removeList.clear();
+
+                // if a game event has indicated that game logic should
+                // be resolved, cycle round every entity requesting that
+                // their personal logic should be considered.
+                if (logicRequiredThisLoop) {
+                    for (int i=0;i<entities.size();i++) {
+                        Entity entity = (Entity) entities.get(i);
+                        entity.doLogic();
+                    }
+
+                    logicRequiredThisLoop = false;
+                }
+            }
 			
 			// if we're waiting for an "any key" press then draw the 
 			// current message 

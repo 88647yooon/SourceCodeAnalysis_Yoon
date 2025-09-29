@@ -138,6 +138,14 @@ public class EnemyShotEntity extends Entity {
     @Override
     public void collidedWith(Entity other) {
         if (other instanceof ShipEntity) {
+            ShipEntity ship = (ShipEntity) other;
+            // 대시 무적 중이면 피해 없이 탄만 제거
+            if (ship.isInvulnerable()) {
+                game.removeEntity(this);
+                return;
+            }
+            // 평소처럼 피해 적용
+            ship.damage(1);
             game.removeEntity(this);
             ((ShipEntity) other).damage(1);
         }
