@@ -123,6 +123,6 @@ public final class StageManager {
     private static int spawnBossOnly(Game game, ShipEntity ship) {
         // 필요하면 인트로 연출용으로 아래에 잔챙이 약간 섞어도 됨 (지금은 보스만)
         game.addEntity(new BossEntity(game, 360, 60, ship));
-        return 1;
+        return 0;
     }
 }

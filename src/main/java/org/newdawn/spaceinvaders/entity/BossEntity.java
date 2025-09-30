@@ -361,6 +361,9 @@ public class BossEntity extends Entity {
 
             game.addEntity(new RangedAlienEntity(game, (int)(x - 30), (int)(y + 120), player));
             game.addEntity(new DiagonalShooterAlienEntity(game, (int)(x + 60), (int)(y + 120)));
+
+            //보스가 잡몹소환시 alienCount도 또한 같이 증가하도록 바꿈
+            game.setAlienCount(game.getAlienCount() + 2);
         }
     }
 

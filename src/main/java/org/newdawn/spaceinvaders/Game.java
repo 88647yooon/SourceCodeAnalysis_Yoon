@@ -502,6 +502,12 @@ public class Game extends Canvas
         stageStartHP = getPlayerShip().getCurrentHP();
         //스테이지 배치 적용
         StageManager.applyStage(StageNum, this);
+        // 스테이지5에서 보스 두마리 생성 방지
+        if (StageNum == 5) {
+            bossActive = true;   // 보스전 플래그 ON
+            // 혹시 안전하게
+            if (alienCount < 0) alienCount = 0;
+        }
         setScreen(new GamePlayScreen(this)); // 게임 화면 전환
 
     }
