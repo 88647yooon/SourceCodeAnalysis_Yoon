@@ -175,7 +175,8 @@ public class Game extends Canvas
 		// Tell AWT not to bother repainting our canvas since we're
 		// going to do that our self in accelerated mode
 		setIgnoreRepaint(true);
-		
+		//별 점수 기준 초기화
+        stageStarScoreRequirements();
 		// finally make the window visible 
 		container.pack();
 		container.setResizable(false);
@@ -475,12 +476,47 @@ public class Game extends Canvas
         // 기존보다 높은 기록만 저장 (예: 예전엔 2별, 새로 3별 달성 → 3별로 갱신)
         if (stars > prev) {
             stageStars.put(stageId, stars);
+
+            //파이어베이스에 업로드
+            saveStageStars();
         }
     }
 
     //별 조회
     public int getStageStars(int stageId) {
         return stageStars.getOrDefault(stageId, 0);
+    }
+
+    //별 저장(파이어베이스용)
+    public void saveStageStars() {
+        if(SESSION_UID == null || SESSION_ID_TOKEN == null) return;
+        try{
+            String json = new Gson().toJson(stageStars);
+            restSetJson("user/" + SESSION_UID + "/stageStars", SESSION_ID_TOKEN, json);
+            System.out.println("✅ 별 기록 업로드 완료: " + json);
+        } catch (Exception e){
+            System.err.println("❌ 별 기록 업로드 실패: " + e.getMessage());
+        }
+    }
+
+    //별 불러오기(파이어베이스에서 게임으로 로그인 하면 불러오는 방식)
+    public void loadStageStars() {
+        if(SESSION_UID == null || SESSION_ID_TOKEN == null) return;
+        try{
+            String endpoint = DB_URL + "/users/" + SESSION_UID + "/stageStars";
+            String res = httpGet(endpoint);
+
+            java.lang.reflect.Type mapType = new com.google.gson.reflect.TypeToken<Map<Integer,Integer>>(){}.getType();
+            Map<Integer,Integer> loaded = new Gson().fromJson(res, mapType);
+
+            if(loaded != null) {
+                stageStars.clear();
+                stageStars.putAll(loaded);
+            }
+            System.out.println("✅ 별 기록 불러오기 완료: " + stageStars);
+        } catch (Exception e){
+            System.out.println("❌ 별 기록 불러오기 실패: " + e.getMessage());
+        }
     }
 
     //스테이지모드 체크용
@@ -500,6 +536,8 @@ public class Game extends Canvas
         startGame();            // 기존 startGame() 호출
         //시작시 HP스냅샷
         stageStartHP = getPlayerShip().getCurrentHP();
+        //별 점수 기준 초기화
+        stageStarScoreRequirements();
         //스테이지 배치 적용
         StageManager.applyStage(StageNum, this);
         // 스테이지5에서 보스 두마리 생성 방지

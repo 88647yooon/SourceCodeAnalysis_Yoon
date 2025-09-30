@@ -90,7 +90,7 @@ public class StageSelectScreen implements Screen{
             }
 
             //모든 스테이지 아이콘 아래 별 표시
-            int stars = game.getStageStars(i + i);
+            int stars = game.getStageStars(i + 1);
             int starSize = 30;
             int starSpacing = 36;
             int starY = drawY + size - 15;
@@ -126,12 +126,12 @@ public class StageSelectScreen implements Screen{
 
     @Override
     public void handleKeyPress(int keyCode) {
-        if (keyCode == KeyEvent.VK_LEFT && selectedSize > 0) {
+        if (keyCode == KeyEvent.VK_LEFT && SelectIndex > 0) {
                 SelectIndex--;
         }
         if (keyCode == KeyEvent.VK_RIGHT && SelectIndex < MaxStage - 1) {
                 SelectIndex++;
-            }
+        }
 
         if (keyCode == KeyEvent.VK_ENTER) {
             int stageNum = SelectIndex + 1;
