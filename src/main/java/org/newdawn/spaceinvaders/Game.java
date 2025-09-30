@@ -998,9 +998,6 @@ public class Game extends Canvas
 		 * @param e The details of the key that was typed. 
 		 */
 		public void keyTyped(KeyEvent e) {
-            if(e.getKeyChar()==9){
-
-            }
             if (e.getKeyChar() == 27) { // ESC
                 if (score > 0 && SESSION_UID != null && SESSION_ID_TOKEN != null) {
                     System.out.println("[ESC] 중간 점수 업로드: score=" + score);
