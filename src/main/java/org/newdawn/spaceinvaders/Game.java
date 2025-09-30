@@ -995,6 +995,11 @@ public class Game extends Canvas
 		 */
 		public void keyTyped(KeyEvent e) {
             if (e.getKeyChar() == 27) { // ESC
+                if (score > 0 && SESSION_UID != null && SESSION_ID_TOKEN != null) {
+                    System.out.println("[ESC] 중간 점수 업로드: score=" + score);
+                    uploadScoreIfLoggedIn();
+                }
+
                 // ESC만 상태 전환(타이틀 복귀 등) 처리하고,
                 // 선택/방향은 Screen이 처리
                 state = GameState.MENU;
@@ -1036,32 +1041,65 @@ public class Game extends Canvas
                      a.score == null ? 0 : a.score
              ));
          } catch (Exception e) {
-             System.err.println("❌ 점수 조회 실패: " + e.getMessage());
+             System.err.println("점수 조회 실패: " + e.getMessage());
          }
          return list;
     }
-   private void uploadScoreIfLoggedIn() {
-      if (SESSION_UID == null || SESSION_ID_TOKEN == null) return;
+    protected static List<ScoreEntry> fetchGlobalTopScores(int limit) {
+        List<Game.ScoreEntry> list = new ArrayList<>();
+        if (SESSION_ID_TOKEN == null) return list;
 
-      long durationMs = (runStartedAtMs > 0) ? (System.currentTimeMillis() - runStartedAtMs) : 0L;
-      String modeStr = (currentMode == Mode.STAGE) ? "STAGE" : "INFINITE";
+        try {
+            String endpoint = DB_URL + "/globalScores.json?auth=" + urlEnc(SESSION_ID_TOKEN)
+                    + "&orderBy=%22score%22&limitToLast=" + limit;
+            String res = httpGet(endpoint);
 
-      String json = "{"
-              + "\"level\":" + ((ShipEntity) ship).getLevel() + ","
-            + "\"mode\":" + quote(modeStr) + ","
-            + "\"score\":" + score + ","
-            + "\"wave\":" + waveCount + ","              // 마지막 웨이브(참고용)
-            + "\"durationMs\":" + durationMs + ","
-            + "\"timestamp\":" + quote(now())
-            + "}";
+            java.lang.reflect.Type mapType =
+                    new com.google.gson.reflect.TypeToken<Map<String, Game.ScoreEntry>>(){}.getType();
+            Map<String, Game.ScoreEntry> map = new com.google.gson.Gson().fromJson(res, mapType);
+            if (map != null) list.addAll(map.values());
 
-      try {
-        restPushJson("users/" + SESSION_UID + "/scores", SESSION_ID_TOKEN, json);
-        System.out.println("✅ 점수 업로드 완료: " + json);
+            list.sort((a,b) -> Integer.compare(
+                    b.score == null ? 0 : b.score,
+                    a.score == null ? 0 : a.score
+            ));
         } catch (Exception e) {
-        System.err.println("❌ 점수 업로드 실패: " + e.getMessage());
-     }
-   }
+            System.err.println(" 글로벌 점수 조회 실패: " + e.getMessage());
+        }
+
+        return list;
+    }
+
+
+    private void uploadScoreIfLoggedIn() {
+        if (SESSION_UID == null || SESSION_ID_TOKEN == null) return;
+
+        long durationMs = (runStartedAtMs > 0) ? (System.currentTimeMillis() - runStartedAtMs) : 0L;
+        String modeStr = (currentMode == Mode.STAGE) ? "STAGE" : "INFINITE";
+
+        String json = "{"
+                + "\"uid\":" + quote(SESSION_UID) + ","
+                + "\"email\":" + quote(SESSION_EMAIL) + ","
+                + "\"level\":" + ((ShipEntity) ship).getLevel() + ","
+                + "\"mode\":" + quote(modeStr) + ","
+                + "\"score\":" + score + ","
+                + "\"wave\":" + waveCount + ","
+                + "\"durationMs\":" + durationMs + ","
+                + "\"timestamp\":" + quote(now())
+                + "}";
+
+        try {
+            // ① 개인 기록 저장
+            restPushJson("users/" + SESSION_UID + "/scores", SESSION_ID_TOKEN, json);
+            // ② 글로벌 점수판에도 저장
+            restPushJson("globalScores", SESSION_ID_TOKEN, json);
+
+            System.out.println("점수 업로드 완료: " + json);
+        } catch (Exception e) {
+            System.err.println("점수 업로드 실패: " + e.getMessage());
+        }
+    }
+
 
     private static void writeLog(String eventType) {
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("logs");
@@ -1418,6 +1456,7 @@ public class Game extends Canvas
             } catch (InterruptedException ignored) {}
 
             Game g = new Game();
+            ScoreboardScreen ss = new ScoreboardScreen(g);
             /// 사용자 레벨 불러오가
             int[] saved = LevelManager.loadLastLevel(DB_URL, SESSION_UID, SESSION_ID_TOKEN);
             g.getPlayerShip().setLevelAndXp(saved[0], saved[1]);
@@ -1425,6 +1464,7 @@ public class Game extends Canvas
             // return until the game has finished running. Hence we are
             // using the actual main thread to run the game.
             g.gameLoop();
+            ss.reloadScores();
             writeLog("game over");
 
 
