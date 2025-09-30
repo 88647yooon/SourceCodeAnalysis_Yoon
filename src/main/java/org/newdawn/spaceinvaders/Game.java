@@ -205,6 +205,8 @@ public class Game extends Canvas
 		// initialise the entities in our game so there's something
 		// to see at startup
 		initEntities();
+
+        SoundManager.get().setSfxVolume(-20.0f);  // 약 70% 볼륨
 	}
 	
 	/**
@@ -228,6 +230,8 @@ public class Game extends Canvas
         //무한모드일시 웨이브 카운트 초기화
         waveCount = 1;
 	}
+
+
 	
 	/**
 	 * Initialise the starting state of the entities (ship and aliens). Each
@@ -239,7 +243,7 @@ public class Game extends Canvas
 		entities.add(ship);
 
         // ✅ 보스 테스트용: 무적 켜기
-        ((ShipEntity) ship).setInvulnerable(true);
+        ((ShipEntity) ship).setInvulnerable(false);
 		
 		// create a block of aliens (5 rows, by 12 aliens, spaced evenly)
 		alienCount = 0;
@@ -763,6 +767,9 @@ public class Game extends Canvas
 		lastFire = System.currentTimeMillis();
 		ShotEntity shot = new ShotEntity(this,"sprites/shot.gif",ship.getX()+10,ship.getY()-30);
 		entities.add(shot);
+
+        SoundManager.get().playSfx(SoundManager.Sfx.SHOOT);
+        System.out.println("[DEBUG] tryToFire SFX requested");
 	}
     //플레이어 피격시
     public void onPlayerHit() {
@@ -911,8 +918,9 @@ public class Game extends Canvas
 			SystemTimer.sleep(lastLoopTime+10-SystemTimer.getTime());
 		}
 	}
-    public void setScreen(Screen screen) {
+    void setScreen(Screen screen) {
         this.currentScreen = screen;
+        updateBGMForContext(); // bgm추가
     }
 
     public void render(Graphics2D g) {
@@ -1008,6 +1016,32 @@ public class Game extends Canvas
             }
 		}
 	}
+
+
+    private void updateBGMForContext() {
+        SoundManager sm = SoundManager.get();
+
+        if (currentScreen instanceof MenuScreen) {
+            System.out.println("[BGM] MENU");
+            sm.play(SoundManager.Bgm.MENU);
+            return;
+        }
+
+        if (currentScreen instanceof GamePlayScreen) {
+            // 스테이지 5만 보스 BGM, 무한모드는 항상 STAGE
+            if (currentMode == Mode.STAGE && currentStageId == 5) {
+                System.out.println("[BGM] BOSS (Stage 5)");
+                sm.play(SoundManager.Bgm.BOSS);
+            } else {
+                System.out.println("[BGM] STAGE");
+                sm.play(SoundManager.Bgm.STAGE);
+            }
+            return;
+        }
+
+        System.out.println("[BGM] MENU (fallback)");
+        sm.play(SoundManager.Bgm.MENU);
+    }
 /// 여기서부터는 모두 백엔드 코드
 
 // 점수 업로드(로그인 필요: SESSION_UID/SESSION_ID_TOKEN 사용)
