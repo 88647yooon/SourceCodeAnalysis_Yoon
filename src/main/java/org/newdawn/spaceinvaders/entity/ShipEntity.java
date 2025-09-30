@@ -28,6 +28,16 @@ public class ShipEntity extends Entity {
     private int level = 1;
     private int xpIntoLevel = 0;
     private int xpToNext = reqFor(1);
+    //레벨 및 경험치 저장
+    // ShipEntity.java 안에 추가
+    public void setLevelAndXp(int lvl, int xp) {
+        this.level = Math.max(1, lvl);
+        this.xpIntoLevel = Math.max(0, xp);
+        this.xpToNext = reqFor(this.level);
+        S_LEVEL = this.level;
+        S_XP_INTO_LEVEL = this.xpIntoLevel;
+    }
+
 
     //레벨 관련 필드
     private int levelUpPoints = 0;

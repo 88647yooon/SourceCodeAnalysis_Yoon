@@ -590,7 +590,7 @@ public class Game extends Canvas
         message = "";
 		menuIndex =0;
         if (SESSION_UID != null && SESSION_ID_TOKEN != null) {
-            LevelManager.saveLastLevel(SESSION_UID, SESSION_ID_TOKEN, getPlayerShip().getLevel());
+            LevelManager.saveLastLevel(SESSION_UID, SESSION_ID_TOKEN, getPlayerShip().getLevel(), getPlayerShip().getXpIntoLevel());
         }
 
         setScreen(new GameOverScreen(this));
@@ -625,7 +625,7 @@ public class Game extends Canvas
         }
 
         if (SESSION_UID != null && SESSION_ID_TOKEN != null) {
-            LevelManager.saveLastLevel(SESSION_UID, SESSION_ID_TOKEN, getPlayerShip().getLevel());
+            LevelManager.saveLastLevel(SESSION_UID, SESSION_ID_TOKEN, getPlayerShip().getLevel(), getPlayerShip().getXpIntoLevel());
         }
         uploadScoreIfLoggedIn(); /// 사용자 승리 시 또한 파이어베이스에 업로드
 	}
@@ -1419,8 +1419,8 @@ public class Game extends Canvas
 
             Game g = new Game();
             /// 사용자 레벨 불러오가
-            int savedLevel = LevelManager.loadLastLevel(DB_URL, SESSION_UID, SESSION_ID_TOKEN);
-            g.getPlayerShip().setLevel(savedLevel);
+            int[] saved = LevelManager.loadLastLevel(DB_URL, SESSION_UID, SESSION_ID_TOKEN);
+            g.getPlayerShip().setLevelAndXp(saved[0], saved[1]);
             // Start the main game loop, note: this method will not
             // return until the game has finished running. Hence we are
             // using the actual main thread to run the game.
