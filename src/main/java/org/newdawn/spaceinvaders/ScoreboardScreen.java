@@ -60,7 +60,6 @@ public class ScoreboardScreen implements Screen {
     @Override
     public void handleKeyPress(int keyCode) {
         if (keyCode == java.awt.event.KeyEvent.VK_TAB) {
-            System.out.println("TAB detected!");
             showGlobal = !showGlobal;
             reloadScores();
         }

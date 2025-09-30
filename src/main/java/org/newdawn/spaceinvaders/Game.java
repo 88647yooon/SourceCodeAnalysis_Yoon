@@ -193,7 +193,10 @@ public class Game extends Canvas
 		// add a key input system (defined below) to our canvas
 		// so we can respond to key pressed
 		addKeyListener(new KeyInputHandler());
-		
+        setFocusable(true);
+        setFocusTraversalKeysEnabled(false);  //탭키 먹히게 함
+        SwingUtilities.invokeLater(this::requestFocusInWindow);
+
 		// request the focus so key events come to us
 		requestFocus();
 
@@ -207,6 +210,7 @@ public class Game extends Canvas
 		initEntities();
 
         SoundManager.get().setSfxVolume(-20.0f);  // 약 70% 볼륨
+
 	}
 	
 	/**
@@ -232,7 +236,7 @@ public class Game extends Canvas
 	}
 
 
-	
+
 	/**
 	 * Initialise the starting state of the entities (ship and aliens). Each
 	 * entitiy will be added to the overall list of entities in the game.
