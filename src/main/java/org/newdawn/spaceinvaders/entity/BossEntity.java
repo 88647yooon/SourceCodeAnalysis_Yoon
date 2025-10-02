@@ -529,7 +529,6 @@ public class BossEntity extends Entity {
     }
 
 
-
     /* 내부 지연 실행: 스레드 대신 게임 루프 시점에 처리 */
     private void schedule(long delayMs, Runnable r) {
         tasks.add(new Task(now + delayMs, r));

@@ -209,7 +209,7 @@ public class Game extends Canvas
 		// to see at startup
 		initEntities();
 
-        SoundManager.get().setSfxVolume(-20.0f);  // 약 70% 볼륨
+        SoundManager.get().setSfxVolume(-15.0f);  // 약 70% 볼륨
 
 	}
 	
@@ -773,7 +773,6 @@ public class Game extends Canvas
 		entities.add(shot);
 
         SoundManager.get().playSfx(SoundManager.Sfx.SHOOT);
-        System.out.println("[DEBUG] tryToFire SFX requested");
 	}
     //플레이어 피격시
     public void onPlayerHit() {
