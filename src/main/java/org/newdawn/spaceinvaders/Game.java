@@ -993,6 +993,7 @@ public class Game extends Canvas {
 	}
     void setScreen(Screen screen) {
         this.currentScreen = screen;
+        this.waitingForKeyPress = false;
         updateBGMForContext(); // bgm추가
     }
 
@@ -1050,13 +1051,13 @@ public class Game extends Canvas {
 		 */
         @Override
 		public void keyPressed(KeyEvent e) {
-            if(waitingForKeyPress){
-                waitingForKeyPress = false;
-                setScreen(new StageSelectScreen(Game.this));
-            }
             // 상태 상관없이 Screen에게 위임
             if (currentScreen != null) {
                 currentScreen.handleKeyPress(e.getKeyCode());
+            }
+            if(waitingForKeyPress){
+                waitingForKeyPress = false;
+                setScreen(new StageSelectScreen(Game.this));
             }
 		} 
 		
