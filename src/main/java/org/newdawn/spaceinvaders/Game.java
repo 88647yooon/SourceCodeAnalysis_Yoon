@@ -62,66 +62,109 @@ import java.nio.charset.StandardCharsets;
  * 
  * @author Kevin Glass
  */
-public class Game extends Canvas 
-{  /// 아래 5개는 회원가입, 로그인과 관련된 필드
+public class Game extends Canvas {
+    /// 아래 5개는 회원가입, 로그인과 관련된 필드
     private static final String API_KEY = "AIzaSyCdY9-wpF3Ad2DXkPTXGcqZEKWBD1qRYKE";
-    private static final String DB_URL  = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app/";
+    private static final String DB_URL = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app/";
     private static final String DB_KEYFILE = "src/main/resources/serviceAccountKey.json";
-    private static String SESSION_UID   = null;
-    private static String SESSION_EMAIL = null;
-    private static String SESSION_ID_TOKEN = null;
+    protected  static String SESSION_UID   = null;
+    protected static String SESSION_EMAIL = null;
+    protected static String SESSION_ID_TOKEN = null;
 	/** The stragey that allows us to use accelerate page flipping */
 	private BufferStrategy strategy;
 	/** True if the game is currently "running", i.e. the game loop is looping */
 	private boolean gameRunning = true;
     /** The list of all the entities that exist in our game */
     private ArrayList<Entity> entities = new ArrayList<>();
-    /** The list of entities that need to be removed from the game this loop */
+    /**
+     * The list of entities that need to be removed from the game this loop
+     */
     private ArrayList<Entity> removeList = new ArrayList<>();
-    /** The entity representing the player */
-	private Entity ship;
-	/** The speed at which the player's ship should move (pixels/sec) */
-	private double moveSpeed = 300;
-	/** The time at which last fired a shot */
-	private long lastFire = 0;
-	/** The interval between our players shot (ms) */
-	private long firingInterval = 500;
-	/** The number of aliens left on the screen */
-	private int alienCount;
-	/** 위험한 상황이 발생했을 시**/
+    /**
+     * The entity representing the player
+     */
+    private Entity ship;
+    /**
+     * The speed at which the player's ship should move (pixels/sec)
+     */
+    private double moveSpeed = 300;
+    /**
+     * The time at which last fired a shot
+     */
+    private long lastFire = 0;
+    /**
+     * The interval between our players shot (ms)
+     */
+    private long firingInterval = 500;
+    /**
+     * The number of aliens left on the screen
+     */
+    private int alienCount;
+    /**
+     * 위험한 상황이 발생했을 시
+     **/
     private boolean dangerMode = false;
-	/** The message to display which waiting for a key press */
-	private String message = "";
-	/** True if we're holding up game play until a key has been pressed */
-	private boolean waitingForKeyPress = true;
-	/** True if the left cursor key is currently pressed */
-	private boolean leftPressed = false;
-	/** True if the right cursor key is currently pressed */
-	private boolean rightPressed = false;
-    /** True if the upper cursor key is currently pressed */
+    /**
+     * The message to display which waiting for a key press
+     */
+    private String message = "";
+    /**
+     * True if we're holding up game play until a key has been pressed
+     */
+    private boolean waitingForKeyPress = true;
+    /**
+     * True if the left cursor key is currently pressed
+     */
+    private boolean leftPressed = false;
+    /**
+     * True if the right cursor key is currently pressed
+     */
+    private boolean rightPressed = false;
+    /**
+     * True if the upper cursor key is currently pressed
+     */
     private boolean UpPressed = false;
-    /** True if the lower cursor key is currently pressed */
+    /**
+     * True if the lower cursor key is currently pressed
+     */
     private boolean DownPressed = false;
-	/** True if we are firing */
-	private boolean firePressed = false;
-	/** True if game logic needs to be applied this loop, normally as a result of a game event */
-	private boolean logicRequiredThisLoop = false;
-	/** The last time at which we recorded the frame rate */
-	private long lastFpsTime;
-	/** The current number of frames recorded */
-	private int fps;
-	/** The normal title of the game window */
-	private String windowTitle = "Space Invaders 102";
-	/** The game window that we'll update with the frame count */
-	private JFrame container;
-    /** 백그라운드렌더러 선언**/
+    /**
+     * True if we are firing
+     */
+    private boolean firePressed = false;
+    /**
+     * True if game logic needs to be applied this loop, normally as a result of a game event
+     */
+    private boolean logicRequiredThisLoop = false;
+    /**
+     * The last time at which we recorded the frame rate
+     */
+    private long lastFpsTime;
+    /**
+     * The current number of frames recorded
+     */
+    private int fps;
+    /**
+     * The normal title of the game window
+     */
+    private String windowTitle = "Space Invaders 102";
+    /**
+     * The game window that we'll update with the frame count
+     */
+    private JFrame container;
+    /**
+     * 백그라운드렌더러 선언
+     **/
     private BackgroundRenderer backgroundRenderer;
-    /**스크린**/
+    /**
+     * 스크린
+     **/
     private Screen currentScreen;
 
 
     // 게임 모드/점수/세션 측정
-    private enum Mode { STAGE, INFINITE }
+    private enum Mode {STAGE, INFINITE}
+
     private Mode currentMode = Mode.STAGE;
     private int score = 0;
     private long runStartedAtMs = 0L;
@@ -133,9 +176,9 @@ public class Game extends Canvas
     private static final int STAGE_TIME_LIMIT_MS = 120_000;
 
 
-
     // Game.java (필드)
-    private enum GameState { MENU, PLAYING,GAMEOVER, SCOREBOARD, EXIT }
+    private enum GameState {MENU, PLAYING, GAMEOVER, SCOREBOARD, EXIT}
+
     private GameState state = GameState.MENU;
     private Map<Integer, Integer> stageStarScoreRequirements = new HashMap<>();
     //스테이지 별 개수 저장소
@@ -145,87 +188,88 @@ public class Game extends Canvas
 
     //무한 모드 관련 필드 추가
     private boolean infiniteMode = false;// 메뉴 선택 결과를 저장할 예시 플래그
-	int waveCount =1;// 현재 웨이브 번호
+    int waveCount = 1;// 현재 웨이브 번호
     //무한 모드 보스 사이클
     private int normalsClearedInCycle = 0;
 
     private static final double RANGED_ALIEN_RATIO = 0.25; // 25% 확률로 원거리
     //보스 관련 필드 추가
     private boolean bossActive = false;
-    /**
-	 * Construct our game and set it running.
-	 */
 
-	public Game() {
-		// create a frame to contain our game
-		container = new JFrame("Space Invaders 102");
-		// backgroundRenderer 생성자
+    /**
+     * Construct our game and set it running.
+     */
+
+    public Game() {
+        // create a frame to contain our game
+        container = new JFrame("Space Invaders 102");
+        // backgroundRenderer 생성자
         backgroundRenderer = new BackgroundRenderer();
 
         setScreen(new MenuScreen(this)); //시작화면 = 메뉴
-		// get hold the content of the frame and set up the resolution of the game
-		JPanel panel = (JPanel) container.getContentPane();
-		panel.setPreferredSize(new Dimension(800,600));
-		panel.setLayout(null);
-		
-		// setup our canvas size and put it into the content of the frame
-		setBounds(0,0,800,600);
-		panel.add(this);
-		
-		// Tell AWT not to bother repainting our canvas since we're
-		// going to do that our self in accelerated mode
-		setIgnoreRepaint(true);
-		//별 점수 기준 초기화
+        // get hold the content of the frame and set up the resolution of the game
+        JPanel panel = (JPanel) container.getContentPane();
+        panel.setPreferredSize(new Dimension(800, 600));
+        panel.setLayout(null);
+
+        // setup our canvas size and put it into the content of the frame
+        setBounds(0, 0, 800, 600);
+        panel.add(this);
+
+        // Tell AWT not to bother repainting our canvas since we're
+        // going to do that our self in accelerated mode
+        setIgnoreRepaint(true);
+        //별 점수 기준 초기화
         stageStarScoreRequirements();
-		// finally make the window visible 
-		container.pack();
-		container.setResizable(false);
-		container.setVisible(true);
-		
-		// add a listener to respond to the user closing the window. If they
-		// do we'd like to exit the game
-		container.addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				System.exit(0);
-			}
-		});
-		
-		// add a key input system (defined below) to our canvas
-		// so we can respond to key pressed
-		addKeyListener(new KeyInputHandler());
+        // finally make the window visible
+        container.pack();
+        container.setResizable(false);
+        container.setVisible(true);
+
+        // add a listener to respond to the user closing the window. If they
+        // do we'd like to exit the game
+        container.addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                System.exit(0);
+            }
+        });
+
+        // add a key input system (defined below) to our canvas
+        // so we can respond to key pressed
+        addKeyListener(new KeyInputHandler());
         setFocusable(true);
         setFocusTraversalKeysEnabled(false);  //탭키 먹히게 함
         SwingUtilities.invokeLater(this::requestFocusInWindow);
 
-		// request the focus so key events come to us
-		requestFocus();
+        // request the focus so key events come to us
+        requestFocus();
 
-		// create the buffering strategy which will allow AWT
-		// to manage our accelerated graphics
-		createBufferStrategy(2);
-		strategy = getBufferStrategy();
-		
-		// initialise the entities in our game so there's something
-		// to see at startup
-		initEntities();
+        // create the buffering strategy which will allow AWT
+        // to manage our accelerated graphics
+        createBufferStrategy(2);
+        strategy = getBufferStrategy();
+
+        // initialise the entities in our game so there's something
+        // to see at startup
+        initEntities();
 
         SoundManager.get().setSfxVolume(-15.0f);  // 약 70% 볼륨
 
-	}
-	
-	/**
-	 * Start a fresh game, this should clear out any old data and
-	 * create a new set.
-	 */
-	private void startGame() {
-		// clear out any existing entities and intialise a new set
-		entities.clear();
+    }
+
+    /**
+     * Start a fresh game, this should clear out any old data and
+     * create a new set.
+     */
+    private void startGame() {
+        // clear out any existing entities and intialise a new set
+        entities.clear();
         removeList.clear();
         alienCount = 0;
 
         initEntities();
 
-		// blank out any keyboard settings we might currently have
+        // blank out any keyboard settings we might currently have
         leftPressed = rightPressed = firePressed = false;
         //실재로 플레이 가능 상태로 전환
         waitingForKeyPress = false;
@@ -233,34 +277,36 @@ public class Game extends Canvas
 
         //무한모드일시 웨이브 카운트 초기화
         waveCount = 1;
-	}
+    }
 
 
-
-	/**
-	 * Initialise the starting state of the entities (ship and aliens). Each
-	 * entitiy will be added to the overall list of entities in the game.
-	 */
-	private void initEntities() {
-		// create the player ship and place it roughly in the center of the screen
-		ship = new ShipEntity(this,"sprites/ship.gif",370,550);
-		entities.add(ship);
+    /**
+     * Initialise the starting state of the entities (ship and aliens). Each
+     * entitiy will be added to the overall list of entities in the game.
+     */
+    private void initEntities() {
+        // create the player ship and place it roughly in the center of the screen
+        ship = new ShipEntity(this, "sprites/ship.gif", 370, 550);
+        entities.add(ship);
 
         // ✅ 보스 테스트용: 무적 켜기
         ((ShipEntity) ship).setInvulnerable(false);
-		
-		// create a block of aliens (5 rows, by 12 aliens, spaced evenly)
-		alienCount = 0;
-        if(infiniteMode){
+
+        // create a block of aliens (5 rows, by 12 aliens, spaced evenly)
+        alienCount = 0;
+        if (infiniteMode) {
             //무한모드 : 웨이브 스폰으로 시작
             spawnAliens();
-        }else{
+        } else {
             //스테이지 모드에서는 여기에 적을 깔지 않음
             //StageManager.applyStage()가 적 배치 담당
 
         }
-	}
-    public ShipEntity getPlayerShip() { return (ShipEntity) ship; }
+    }
+
+    public ShipEntity getPlayerShip() {
+        return (ShipEntity) ship;
+    }
 
     public void addEntity(Entity e) {
         entities.add(e);
@@ -268,7 +314,7 @@ public class Game extends Canvas
     }
 
     public void spawnEnemyShot(double x, double y, double vx, double vy) {
-        double speed = Math.sqrt(vx*vx + vy*vy);
+        double speed = Math.sqrt(vx * vx + vy * vy);
         double dirX = (speed == 0) ? 0 : vx / speed;
         double dirY = (speed == 0) ? 1 : vy / speed;
 
@@ -285,7 +331,11 @@ public class Game extends Canvas
         );
         entities.add(s);
     }
-    public int getWaveCount() { return waveCount; }   // BackgroundRenderer에서 필요
+
+    public int getWaveCount() {
+        return waveCount;
+    }   // BackgroundRenderer에서 필요
+
     public void notifyPlayerHit() {
         // TODO: HP 감소/이펙트/사운드 등
         // 일단 컴파일만 되게 스텁
@@ -295,7 +345,7 @@ public class Game extends Canvas
     private void spawnAliens() {
         // 0) 이전 웨이브의 인질 제거 (누적 방지)
         if (infiniteMode) {
-            for (java.util.Iterator<Entity> it = entities.iterator(); it.hasNext();) {
+            for (java.util.Iterator<Entity> it = entities.iterator(); it.hasNext(); ) {
                 Entity e = it.next();
                 if (e instanceof HostageEntity) {
                     it.remove(); // 즉시 제거 (removeList 대기 없이)
@@ -321,7 +371,7 @@ public class Game extends Canvas
 
                 // 확률 설정: 초반 웨이브는 낮고, 점점 증가(최대 25%)
                 double diagonalProb = Math.min(0.05 + (waveCount - 1) * 0.02, 0.25); // 5% → 25%
-                double rangedProb   = RANGED_ALIEN_RATIO; // 기존 원거리 확률(25%)
+                double rangedProb = RANGED_ALIEN_RATIO; // 기존 원거리 확률(25%)
 
                 double r = Math.random();
                 Entity alien;
@@ -341,7 +391,7 @@ public class Game extends Canvas
         }
         //  무한모드일 때 일정 확률로 인질 추가
         if (infiniteMode) {
-            int hostageNum = 1 + (int)(Math.random() * 2);
+            int hostageNum = 1 + (int) (Math.random() * 2);
             if (hostageNum > 0) {
                 // 서로 다른 열에 배치(중복 방지)
                 java.util.Set<Integer> usedCols = new java.util.HashSet<>();
@@ -349,7 +399,7 @@ public class Game extends Canvas
                     int c;
                     int guard = 0; // 무한루프 방지
                     do {
-                        c = (int)(Math.random() * cols);
+                        c = (int) (Math.random() * cols);
                     } while (usedCols.contains(c) && ++guard < 10);
                     usedCols.add(c);
 
@@ -366,7 +416,7 @@ public class Game extends Canvas
     //보스 소환 메소드
     private void spawnBoss() {
         //  보스 웨이브 시작: 기존 인질 전부 제거
-        for (java.util.Iterator<Entity> it = entities.iterator(); it.hasNext();) {
+        for (java.util.Iterator<Entity> it = entities.iterator(); it.hasNext(); ) {
             Entity e = it.next();
             if (e instanceof HostageEntity) {
                 it.remove();
@@ -382,6 +432,7 @@ public class Game extends Canvas
         entities.add(boss);
         bossActive = true;
     }
+
     // 보스 처치시 콜백
     public void onBossKilled() {
         bossActive = false;
@@ -393,11 +444,12 @@ public class Game extends Canvas
             notifyWin();
         }
     }
-	/**
-	 * Notification from a game entity that the logic of the game
-	 * should be run at the next opportunity (normally as a result of some
-	 * game event)
-	 */
+
+    /**
+     * Notification from a game entity that the logic of the game
+     * should be run at the next opportunity (normally as a result of some
+     * game event)
+     */
     //추가 난이도 구조
     private static class Difficulty {
         int alienHP;
@@ -405,6 +457,7 @@ public class Game extends Canvas
         double fireRateMul;       // 높을수록 더 자주 발사(쿨타임 나눔)
         double bulletSpeedMul;    // 적 탄속 배수
     }
+
     //웨이브당 난이도 구조
     private Difficulty computeDifficultyForWave(int wave) {
         Difficulty d = new Difficulty();
@@ -412,13 +465,13 @@ public class Game extends Canvas
         d.alienHP = 1 + Math.max(0, (wave - 1) / 2);
 
         // 수평 이동 속도: 웨이브마다 +8% (최대 2.5배)
-        d.alienSpeedMul   = Math.min(2.5, 1.0 + 0.08 * (wave - 1));
+        d.alienSpeedMul = Math.min(2.5, 1.0 + 0.08 * (wave - 1));
 
         // 연사 속도: 웨이브마다 +10% (최대 3배) → 쿨타임을 나눠 적용
-        d.fireRateMul     = Math.min(3.0, 1.0 + 0.10 * (wave - 1));
+        d.fireRateMul = Math.min(3.0, 1.0 + 0.10 * (wave - 1));
 
         // 탄속: 웨이브마다 +5% (최대 2배)
-        d.bulletSpeedMul  = Math.min(2.0, 1.0 + 0.05 * (wave - 1));
+        d.bulletSpeedMul = Math.min(2.0, 1.0 + 0.05 * (wave - 1));
         return d;
     }
 
@@ -441,7 +494,7 @@ public class Game extends Canvas
         }
     }
 
-    private  void stageStarScoreRequirements(){
+    private void stageStarScoreRequirements() {
 
         //3별기준 점수테이블
         stageStarScoreRequirements.put(1, 1000);
@@ -456,13 +509,13 @@ public class Game extends Canvas
     }
 
     //별 시스템
-    //⭐ 1개 -> 클리어 성공
+    //별 1개 -> 클리어 성공
     //
-    //⭐⭐ 2개 -> 클리어 + 시간 제한 내 클리어
+    //별 2개 -> 클리어 + 시간 제한 내 클리어
     //
-    //⭐⭐⭐ 3개 -> 클리어 + 시간 제한 + 무피격 + 스테이지별 점수 조건 충족
+    //별 3개 -> 클리어 + 시간 제한 + 무피격 + 스테이지별 점수 조건 충족
     private void evaluateStageResult(int stageId, int timeLeft, int damageTaken, int score) {
-        int stars = 1; // 기본: 클리어 성공
+        int stars = 1; // 기본 : 클리어 성공
 
         if (timeLeft > 0) {
             stars = 2;
@@ -481,7 +534,7 @@ public class Game extends Canvas
     public void setStageStars(int stageId, int stars) {
         int prev = stageStars.getOrDefault(stageId, 0);
 
-        // 기존보다 높은 기록만 저장 (예: 예전엔 2별, 새로 3별 달성 → 3별로 갱신)
+        // 기존보다 높은 기록만 저장 (예: 예전엔 2별, 새로 3별 달성 -> 3별로 갱신)
         if (stars > prev) {
             stageStars.put(stageId, stars);
 
@@ -497,34 +550,50 @@ public class Game extends Canvas
 
     //별 저장(파이어베이스용)
     public void saveStageStars() {
-        if(SESSION_UID == null || SESSION_ID_TOKEN == null) return;
-        try{
-            String json = new Gson().toJson(stageStars);
-            restSetJson("user/" + SESSION_UID + "/stageStars", SESSION_ID_TOKEN, json);
-            System.out.println("✅ 별 기록 업로드 완료: " + json);
-        } catch (Exception e){
-            System.err.println("❌ 별 기록 업로드 실패: " + e.getMessage());
+        if (SESSION_UID == null || SESSION_ID_TOKEN == null) return;
+
+        try {
+            Map<String, Integer> stringKeyMap = new HashMap<>();
+            for (Map.Entry<Integer, Integer> e : stageStars.entrySet()) {
+                stringKeyMap.put("stage" + e.getKey(), e.getValue());
+            }
+
+            String json = new Gson().toJson(stringKeyMap);
+
+            restSetJson("users/" + SESSION_UID + "/stageStars", SESSION_ID_TOKEN, json);
+
+        }catch(Exception e){
+            System.err.println("별 기록 업로드 실패 " + e.getMessage());
         }
     }
+
 
     //별 불러오기(파이어베이스에서 게임으로 로그인 하면 불러오는 방식)
     public void loadStageStars() {
         if(SESSION_UID == null || SESSION_ID_TOKEN == null) return;
         try{
-            String endpoint = DB_URL + "/users/" + SESSION_UID + "/stageStars";
+            String endpoint = DB_URL + "/users/" + SESSION_UID + "/stageStars.json?auth=" + urlEnc(SESSION_ID_TOKEN);
             String res = httpGet(endpoint);
+            System.out.println("파베 응답 :" + res); //나중에 삭제예정
 
-            java.lang.reflect.Type mapType = new com.google.gson.reflect.TypeToken<Map<Integer,Integer>>(){}.getType();
-            Map<Integer,Integer> loaded = new Gson().fromJson(res, mapType);
+            java.lang.reflect.Type mapType = new com.google.gson.reflect.TypeToken<Map<String ,Integer>>(){}.getType();
+            Map<String,Integer> loaded = new Gson().fromJson(res, mapType);
 
             if(loaded != null) {
                 stageStars.clear();
-                stageStars.putAll(loaded);
+                for (Map.Entry<String,Integer> e : loaded.entrySet()) {
+                    if(e.getKey().startsWith("stage")) {
+                        int stageId = Integer.parseInt(e.getKey().substring(5));
+                        stageStars.put(stageId, e.getValue());
+                    }
+
+                }
             }
             System.out.println("✅ 별 기록 불러오기 완료: " + stageStars);
-        } catch (Exception e){
-            System.out.println("❌ 별 기록 불러오기 실패: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("❌ 별 기록 불러오기 실패: " + e.getMessage());
         }
+
     }
 
     //스테이지모드 체크용
@@ -923,6 +992,7 @@ public class Game extends Canvas
 	}
     void setScreen(Screen screen) {
         this.currentScreen = screen;
+        this.waitingForKeyPress = false;
         updateBGMForContext(); // bgm추가
     }
 
@@ -984,6 +1054,10 @@ public class Game extends Canvas
             if (currentScreen != null) {
                 currentScreen.handleKeyPress(e.getKeyCode());
             }
+            if(waitingForKeyPress){
+                waitingForKeyPress = false;
+                setScreen(new StageSelectScreen(Game.this));
+            }
 		} 
 		
 		/**
@@ -1005,6 +1079,11 @@ public class Game extends Canvas
 		 * @param e The details of the key that was typed. 
 		 */
 		public void keyTyped(KeyEvent e) {
+            if (currentScreen instanceof AuthScreen) {
+                ((AuthScreen) currentScreen).handleCharTyped(e.getKeyChar());
+                return;
+            }
+
             if (e.getKeyChar() == 27) { // ESC
                 if (score > 0 && SESSION_UID != null && SESSION_ID_TOKEN != null) {
                     System.out.println("[ESC] 중간 점수 업로드: score=" + score);
@@ -1050,6 +1129,7 @@ public class Game extends Canvas
 // 점수 업로드(로그인 필요: SESSION_UID/SESSION_ID_TOKEN 사용)
     protected static class ScoreEntry {
        String mode;
+       String email;
        Integer score;
        Integer wave;
        Long durationMs;
@@ -1151,107 +1231,7 @@ public class Game extends Canvas
 
         System.out.println("✅ 로그 저장: " + eventType + " at " + timestamp);
     }
-    /// 로그인 화면
-    private static void showAuthDialogAndLogin() {
-        final JDialog dlg = new JDialog((JFrame) null, "로그인 / 회원가입", true);
-        JTabbedPane tabs = new JTabbedPane();
 
-        // 로그인 탭
-        JPanel login = new JPanel(new java.awt.GridBagLayout());
-        JTextField loginEmail = new JTextField(20);
-        JPasswordField loginPw = new JPasswordField(20);
-        JButton btnLogin = new JButton("로그인");
-        java.awt.GridBagConstraints c = gbc();
-        login.add(new JLabel("이메일"), c);
-        c.gridx = 1;
-        login.add(loginEmail, c);
-
-        c = gbc(0, 1);
-        login.add(new JLabel("비밀번호"), c);
-        c.gridx = 1;
-        login.add(loginPw, c);
-
-        c = gbc(0, 2);
-        c.gridwidth = 2;
-        btnLogin.addActionListener(ev -> {
-            try {
-                AuthResult ar = restSignIn(loginEmail.getText().trim(), new String(loginPw.getPassword()));
-                SESSION_UID = ar.localId;
-                SESSION_EMAIL = ar.email;
-                SESSION_ID_TOKEN = ar.idToken;
-
-                JOptionPane.showMessageDialog(dlg, "로그인 성공: " + ar.email);
-                dlg.dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dlg, "로그인 실패\n" + ex.getMessage(),
-                        "오류", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-        login.add(btnLogin, c);
-
-        // 회원가입 탭
-        JPanel signup = new JPanel(new java.awt.GridBagLayout());
-        JTextField signEmail = new JTextField(20);
-        JPasswordField signPw = new JPasswordField(20);
-        JPasswordField signPw2 = new JPasswordField(20);
-        JButton btnSign = new JButton("회원가입");
-        c = gbc();
-        signup.add(new JLabel("이메일"), c);
-        c.gridx = 1;
-        signup.add(signEmail, c);
-
-        c = gbc(0, 1);
-        signup.add(new JLabel("비밀번호"), c);
-        c.gridx = 1;
-        signup.add(signPw, c);
-
-        c = gbc(0, 2);
-        signup.add(new JLabel("비밀번호 확인"), c);
-        c.gridx = 1;
-        signup.add(signPw2, c);
-
-        c = gbc(0, 3);
-        c.gridwidth = 2;
-        btnSign.addActionListener(ev -> {
-            String pw1 = new String(signPw.getPassword());
-            String pw2 = new String(signPw2.getPassword());
-            if (!pw1.equals(pw2)) {
-                JOptionPane.showMessageDialog(dlg, "비밀번호가 일치하지 않습니다.",
-                        "오류", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            try {
-                AuthResult ar = restSignUp(signEmail.getText().trim(), pw1);
-                SESSION_UID = ar.localId;
-                SESSION_EMAIL = ar.email;
-                SESSION_ID_TOKEN = ar.idToken;
-
-                JOptionPane.showMessageDialog(dlg, "회원가입 성공: " + ar.email);
-
-                // ✅ 선택적으로 기본 프로필 저장
-                restSetJson("users/" + SESSION_UID + "/profile", SESSION_ID_TOKEN,
-                        "{\"email\":" + quote(SESSION_EMAIL) + ",\"createdAt\":" + quote(now()) + "}");
-
-                dlg.dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dlg, "회원가입 실패\n" + ex.getMessage(),
-                        "오류", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-        signup.add(btnSign, c);
-
-        // === 탭 추가 ===
-        tabs.add("로그인", login);
-        tabs.add("회원가입", signup);
-
-        dlg.setContentPane(tabs);
-        dlg.pack();
-        dlg.setLocationRelativeTo(null);
-        dlg.setVisible(true);
-
-        // 로그인/회원가입 성공 못하면 프로그램 종료 (필요에 따라 제거 가능)
-        if (SESSION_ID_TOKEN == null) System.exit(0);
-    }
 
     private static java.awt.GridBagConstraints gbc() { return gbc(0,0); }
     private static java.awt.GridBagConstraints gbc(int x, int y) {
@@ -1264,14 +1244,14 @@ public class Game extends Canvas
     // =========================
     // 🌐 Firebase Auth (REST)
     // =========================
-    private static class AuthResult {
+    protected static class AuthResult {
         final String idToken, refreshToken, localId, email;
         AuthResult(String idToken, String refreshToken, String localId, String email) {
             this.idToken=idToken; this.refreshToken=refreshToken; this.localId=localId; this.email=email;
         }
     }
 
-    private static AuthResult restSignUp(String email, String password) throws Exception {
+    protected static AuthResult restSignUp(String email, String password) throws Exception {
         String endpoint = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" + API_KEY;
         String body = "{"
                 + "\"email\":"+quote(email)+","
@@ -1287,7 +1267,7 @@ public class Game extends Canvas
         return new AuthResult(idToken, refreshToken, localId, emailOut);
     }
 
-    private static AuthResult restSignIn(String email, String password) throws Exception {
+    protected static AuthResult restSignIn(String email, String password) throws Exception {
         String endpoint = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + API_KEY;
         String body = "{"
                 + "\"email\":"+quote(email)+","
@@ -1484,15 +1464,11 @@ public class Game extends Canvas
             System.out.println("Firebase 초기화");
             writeLog("gamestart");
 
-            // 1) 로그인/회원가입 먼저
-            SwingUtilities.invokeLater(() -> showAuthDialogAndLogin());
-            // 로그인 다이얼로그가 modal이므로 여기서 잠시 대기
-            try {
-                // modal dialog가 닫히는 동안 메인 스레드가 바로 진행되지 않게 약간 대기
-                while (SESSION_ID_TOKEN == null) Thread.sleep(100);
-            } catch (InterruptedException ignored) {}
 
             Game g = new Game();
+            g.setScreen(new AuthScreen(g));
+            //사용자 별 기록 불러오기
+            g.loadStageStars();
             ScoreboardScreen ss = new ScoreboardScreen(g);
             /// 사용자 레벨 불러오가
             int[] saved = LevelManager.loadLastLevel(DB_URL, SESSION_UID, SESSION_ID_TOKEN);
