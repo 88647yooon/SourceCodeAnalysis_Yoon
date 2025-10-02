@@ -67,9 +67,9 @@ public class Game extends Canvas
     private static final String API_KEY = "AIzaSyCdY9-wpF3Ad2DXkPTXGcqZEKWBD1qRYKE";
     private static final String DB_URL  = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app/";
     private static final String DB_KEYFILE = "src/main/resources/serviceAccountKey.json";
-    private static String SESSION_UID   = null;
-    private static String SESSION_EMAIL = null;
-    private static String SESSION_ID_TOKEN = null;
+    protected  static String SESSION_UID   = null;
+    protected static String SESSION_EMAIL = null;
+    protected static String SESSION_ID_TOKEN = null;
 	/** The stragey that allows us to use accelerate page flipping */
 	private BufferStrategy strategy;
 	/** True if the game is currently "running", i.e. the game loop is looping */
@@ -1006,6 +1006,11 @@ public class Game extends Canvas
 		 * @param e The details of the key that was typed. 
 		 */
 		public void keyTyped(KeyEvent e) {
+            if (currentScreen instanceof AuthScreen) {
+                ((AuthScreen) currentScreen).handleCharTyped(e.getKeyChar());
+                return;
+            }
+
             if (e.getKeyChar() == 27) { // ESC
                 if (score > 0 && SESSION_UID != null && SESSION_ID_TOKEN != null) {
                     System.out.println("[ESC] 중간 점수 업로드: score=" + score);
@@ -1152,107 +1157,7 @@ public class Game extends Canvas
 
         System.out.println("✅ 로그 저장: " + eventType + " at " + timestamp);
     }
-    /// 로그인 화면
-    private static void showAuthDialogAndLogin() {
-        final JDialog dlg = new JDialog((JFrame) null, "로그인 / 회원가입", true);
-        JTabbedPane tabs = new JTabbedPane();
 
-        // 로그인 탭
-        JPanel login = new JPanel(new java.awt.GridBagLayout());
-        JTextField loginEmail = new JTextField(20);
-        JPasswordField loginPw = new JPasswordField(20);
-        JButton btnLogin = new JButton("로그인");
-        java.awt.GridBagConstraints c = gbc();
-        login.add(new JLabel("이메일"), c);
-        c.gridx = 1;
-        login.add(loginEmail, c);
-
-        c = gbc(0, 1);
-        login.add(new JLabel("비밀번호"), c);
-        c.gridx = 1;
-        login.add(loginPw, c);
-
-        c = gbc(0, 2);
-        c.gridwidth = 2;
-        btnLogin.addActionListener(ev -> {
-            try {
-                AuthResult ar = restSignIn(loginEmail.getText().trim(), new String(loginPw.getPassword()));
-                SESSION_UID = ar.localId;
-                SESSION_EMAIL = ar.email;
-                SESSION_ID_TOKEN = ar.idToken;
-
-                JOptionPane.showMessageDialog(dlg, "로그인 성공: " + ar.email);
-                dlg.dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dlg, "로그인 실패\n" + ex.getMessage(),
-                        "오류", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-        login.add(btnLogin, c);
-
-        // 회원가입 탭
-        JPanel signup = new JPanel(new java.awt.GridBagLayout());
-        JTextField signEmail = new JTextField(20);
-        JPasswordField signPw = new JPasswordField(20);
-        JPasswordField signPw2 = new JPasswordField(20);
-        JButton btnSign = new JButton("회원가입");
-        c = gbc();
-        signup.add(new JLabel("이메일"), c);
-        c.gridx = 1;
-        signup.add(signEmail, c);
-
-        c = gbc(0, 1);
-        signup.add(new JLabel("비밀번호"), c);
-        c.gridx = 1;
-        signup.add(signPw, c);
-
-        c = gbc(0, 2);
-        signup.add(new JLabel("비밀번호 확인"), c);
-        c.gridx = 1;
-        signup.add(signPw2, c);
-
-        c = gbc(0, 3);
-        c.gridwidth = 2;
-        btnSign.addActionListener(ev -> {
-            String pw1 = new String(signPw.getPassword());
-            String pw2 = new String(signPw2.getPassword());
-            if (!pw1.equals(pw2)) {
-                JOptionPane.showMessageDialog(dlg, "비밀번호가 일치하지 않습니다.",
-                        "오류", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            try {
-                AuthResult ar = restSignUp(signEmail.getText().trim(), pw1);
-                SESSION_UID = ar.localId;
-                SESSION_EMAIL = ar.email;
-                SESSION_ID_TOKEN = ar.idToken;
-
-                JOptionPane.showMessageDialog(dlg, "회원가입 성공: " + ar.email);
-
-                // ✅ 선택적으로 기본 프로필 저장
-                restSetJson("users/" + SESSION_UID + "/profile", SESSION_ID_TOKEN,
-                        "{\"email\":" + quote(SESSION_EMAIL) + ",\"createdAt\":" + quote(now()) + "}");
-
-                dlg.dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dlg, "회원가입 실패\n" + ex.getMessage(),
-                        "오류", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-        signup.add(btnSign, c);
-
-        // === 탭 추가 ===
-        tabs.add("로그인", login);
-        tabs.add("회원가입", signup);
-
-        dlg.setContentPane(tabs);
-        dlg.pack();
-        dlg.setLocationRelativeTo(null);
-        dlg.setVisible(true);
-
-        // 로그인/회원가입 성공 못하면 프로그램 종료 (필요에 따라 제거 가능)
-        if (SESSION_ID_TOKEN == null) System.exit(0);
-    }
 
     private static java.awt.GridBagConstraints gbc() { return gbc(0,0); }
     private static java.awt.GridBagConstraints gbc(int x, int y) {
@@ -1265,14 +1170,14 @@ public class Game extends Canvas
     // =========================
     // 🌐 Firebase Auth (REST)
     // =========================
-    private static class AuthResult {
+    protected static class AuthResult {
         final String idToken, refreshToken, localId, email;
         AuthResult(String idToken, String refreshToken, String localId, String email) {
             this.idToken=idToken; this.refreshToken=refreshToken; this.localId=localId; this.email=email;
         }
     }
 
-    private static AuthResult restSignUp(String email, String password) throws Exception {
+    protected static AuthResult restSignUp(String email, String password) throws Exception {
         String endpoint = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" + API_KEY;
         String body = "{"
                 + "\"email\":"+quote(email)+","
@@ -1288,7 +1193,7 @@ public class Game extends Canvas
         return new AuthResult(idToken, refreshToken, localId, emailOut);
     }
 
-    private static AuthResult restSignIn(String email, String password) throws Exception {
+    protected static AuthResult restSignIn(String email, String password) throws Exception {
         String endpoint = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + API_KEY;
         String body = "{"
                 + "\"email\":"+quote(email)+","
@@ -1485,15 +1390,9 @@ public class Game extends Canvas
             System.out.println("Firebase 초기화");
             writeLog("gamestart");
 
-            // 1) 로그인/회원가입 먼저
-            SwingUtilities.invokeLater(() -> showAuthDialogAndLogin());
-            // 로그인 다이얼로그가 modal이므로 여기서 잠시 대기
-            try {
-                // modal dialog가 닫히는 동안 메인 스레드가 바로 진행되지 않게 약간 대기
-                while (SESSION_ID_TOKEN == null) Thread.sleep(100);
-            } catch (InterruptedException ignored) {}
 
             Game g = new Game();
+            g.setScreen(new AuthScreen(g));
             ScoreboardScreen ss = new ScoreboardScreen(g);
             /// 사용자 레벨 불러오가
             int[] saved = LevelManager.loadLastLevel(DB_URL, SESSION_UID, SESSION_ID_TOKEN);
