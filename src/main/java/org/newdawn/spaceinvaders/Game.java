@@ -1130,6 +1130,7 @@ public class Game extends Canvas {
 // 점수 업로드(로그인 필요: SESSION_UID/SESSION_ID_TOKEN 사용)
     protected static class ScoreEntry {
        String mode;
+       String email;
        Integer score;
        Integer wave;
        Long durationMs;

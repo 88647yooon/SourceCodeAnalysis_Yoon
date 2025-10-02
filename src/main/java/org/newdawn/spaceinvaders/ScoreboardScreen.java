@@ -35,18 +35,28 @@ public class ScoreboardScreen implements Screen {
 
         int startY = 140;
         g.setFont(new Font("Monospaced", Font.BOLD, 16));
-        g.drawString(String.format("%-6s %-8s %-10s %-20s", "순위", "점수", "모드", "플레이시간 / 날짜"), 120, startY);
+        // 🔽 헤더에 "유저" 컬럼 추가
+        g.drawString(String.format("%-6s %-12s %-8s %-10s %-20s", "순위", "유저", "점수", "모드", "플레이시간 / 날짜"), 80, startY);
 
         g.setFont(new Font("Monospaced", Font.PLAIN, 16));
         int y = startY + 30;
         for (int i = 0; i < scores.size(); i++) {
             Game.ScoreEntry s = scores.get(i);
-            String line = String.format("%-6s %-8s %-10s %-20s",
-                    (i+1), (s.score==null?0:s.score),
+
+            // 이메일에서 @앞부분 추출
+            String user = "-";
+            if (s.email != null && s.email.contains("@")) {
+                user = s.email.substring(0, s.email.indexOf("@"));
+            }
+
+            String line = String.format("%-6s %-12s %-8s %-10s %-20s",
+                    (i+1),
+                    user,
+                    (s.score==null?0:s.score),
                     (s.mode==null?"-":s.mode),
                     ((s.durationMs==null?0:s.durationMs) + " / " + (s.timestamp==null?"-":s.timestamp))
             );
-            g.drawString(line, 120, y);
+            g.drawString(line, 80, y);
             y += 28;
         }
 
