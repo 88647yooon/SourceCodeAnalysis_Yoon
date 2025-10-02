@@ -3,7 +3,7 @@ package org.newdawn.spaceinvaders;
 import java.awt.*;
 
 public interface Screen {
-   //화면 그리기
+    //화면 그리기
     void render(Graphics2D g);
 
     //프레임 단위 갱신
