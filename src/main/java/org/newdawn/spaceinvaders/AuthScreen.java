@@ -106,6 +106,11 @@ public class AuthScreen implements Screen {
             Game.SESSION_EMAIL = ar.email;
             Game.SESSION_ID_TOKEN = ar.idToken;
 
+            int[] saved = LevelManager.loadLastLevel(Game.DB_URL, Game.SESSION_UID, Game.SESSION_ID_TOKEN);
+            game.getPlayerShip().setLevelAndXp(saved[0], saved[1]);
+            System.out.println("🎯 로그인 후 레벨 복원 완료: Lv." + saved[0] + " (XP " + saved[1] + ")");
+
+
             message = (signupMode ? "회원가입" : "로그인") + " 성공!";
             game.setScreen(new MenuScreen(game)); // ✅ 메뉴 화면으로 이동
         } catch (Exception e) {
