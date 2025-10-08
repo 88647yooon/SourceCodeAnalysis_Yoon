@@ -20,7 +20,7 @@ class BackgroundRenderer {
         boolean any = false;
         for (BufferedImage bg : backgrounds) if (bg != null) { any = true; break; }
         if (!any) {
-            System.err.println("⚠️ Background images not found on classpath. Using gradient fallback.");
+            System.err.println(" Background images not found on classpath. Using gradient fallback.");
         }
     }
 
@@ -28,12 +28,12 @@ class BackgroundRenderer {
     private BufferedImage load(String path) {
         try (InputStream is = getClass().getResourceAsStream(path)) {
             if (is == null) {
-                System.err.println("⚠️ Missing resource: " + path);
+                System.err.println(" Missing resource: " + path);
                 return null;
             }
             return ImageIO.read(is);
         } catch (Exception e) {
-            System.err.println("⚠️ Failed to load " + path + " : " + e.getMessage());
+            System.err.println(" Failed to load " + path + " : " + e.getMessage());
             return null;
         }
     }
