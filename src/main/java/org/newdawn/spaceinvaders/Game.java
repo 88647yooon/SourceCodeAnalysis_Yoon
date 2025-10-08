@@ -62,10 +62,10 @@ import java.nio.charset.StandardCharsets;
  * 
  * @author Kevin Glass
  */
-public class Game extends Canvas {
+public class Game extends Canvas{
     /// 아래 5개는 회원가입, 로그인과 관련된 필드
     private static final String API_KEY = "AIzaSyCdY9-wpF3Ad2DXkPTXGcqZEKWBD1qRYKE";
-    private static final String DB_URL = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app/";
+    protected static final String DB_URL = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app/";
     private static final String DB_KEYFILE = "src/main/resources/serviceAccountKey.json";
     protected  static String SESSION_UID   = null;
     protected static String SESSION_EMAIL = null;
@@ -1445,8 +1445,6 @@ public class Game extends Canvas {
             g.loadStageStars();
             ScoreboardScreen ss = new ScoreboardScreen(g);
             /// 사용자 레벨 불러오가
-            int[] saved = LevelManager.loadLastLevel(DB_URL, SESSION_UID, SESSION_ID_TOKEN);
-            g.getPlayerShip().setLevelAndXp(saved[0], saved[1]);
             // Start the main game loop, note: this method will not
             // return until the game has finished running. Hence we are
             // using the actual main thread to run the game.
