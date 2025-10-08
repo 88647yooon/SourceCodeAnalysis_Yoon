@@ -41,7 +41,6 @@ public class BossEntity extends Entity {
     private double swirlAngle = 0.0;
     private double swirlRotationSpeed = 60; // deg/sec
     private int swirlBullets = 12;
-    private long swirlInterval = 650; // ms
     private double swirlBulletSpeed = 120;
 
     // 텔레포트/버스트

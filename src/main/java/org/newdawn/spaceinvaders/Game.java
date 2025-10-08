@@ -313,33 +313,11 @@ public class Game extends Canvas {
 
     }
 
-    public void spawnEnemyShot(double x, double y, double vx, double vy) {
-        double speed = Math.sqrt(vx * vx + vy * vy);
-        double dirX = (speed == 0) ? 0 : vx / speed;
-        double dirY = (speed == 0) ? 1 : vy / speed;
-
-        //  여기서 절대속도로 변환해서 넘긴다
-        double dx = dirX * speed;
-        double dy = dirY * speed;
-
-        EnemyShotEntity s = new EnemyShotEntity(
-                this,
-                "sprites/enemy_bullet.png",  // 아래 2번과 일치시킴
-                x, y,
-                dx, dy,                      //  px/s
-                speed
-        );
-        entities.add(s);
-    }
 
     public int getWaveCount() {
         return waveCount;
     }   // BackgroundRenderer에서 필요
 
-    public void notifyPlayerHit() {
-        // TODO: HP 감소/이펙트/사운드 등
-        // 일단 컴파일만 되게 스텁
-    }
 
     //무한모드 메소드
     private void spawnAliens() {
@@ -589,9 +567,9 @@ public class Game extends Canvas {
 
                 }
             }
-            System.out.println("✅ 별 기록 불러오기 완료: " + stageStars);
+            System.out.println(" 별 기록 불러오기 완료: " + stageStars);
         } catch (Exception e) {
-            System.err.println("❌ 별 기록 불러오기 실패: " + e.getMessage());
+            System.err.println(" 별 기록 불러오기 실패: " + e.getMessage());
         }
 
     }
@@ -1017,9 +995,6 @@ public class Game extends Canvas {
 
 
     }
-    public boolean isDangerMode(){
-        return dangerMode;
-    }
 
     public int getAlienCount() {
         return alienCount;
@@ -1039,7 +1014,6 @@ public class Game extends Canvas {
 	 */
 	private class KeyInputHandler extends KeyAdapter {
 		/** The number of key presses we've had while waiting for an "any key" press */
-		private int pressCount = 1;
 		
 		/**
 		 * Notification from AWT that a key has been pressed. Note that

@@ -59,11 +59,4 @@ class BackgroundRenderer {
         g.setPaint(old);
     }
 
-    // 필요 시 화면 흔들기 효과
-    @SuppressWarnings("unused")
-    private static void applyShake(Graphics2D g) {
-        int offsetX = (int) (Math.random() * 10 - 5);
-        int offsetY = (int) (Math.random() * 10 - 5);
-        g.translate(offsetX, offsetY);
-    }
 }

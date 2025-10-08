@@ -4,7 +4,6 @@ public class PlayerSkills {
     public int atkLv = 0;      // 0..5
     public int rofLv = 0;      // 0..5
     public int dashLv = 0;     // 0..5
-    public int ignoreLv = 0;   // 0..5  (선택: 안 쓰면 0 고정)
 
     public double atkMul() { return 1.0 + 0.08 * atkLv; }
 
@@ -18,8 +17,7 @@ public class PlayerSkills {
     public double dashCdMul() { return Math.max(0.50, 1.0 - 0.12 * dashLv); }
     public int dashIframesBonusMs() { return 20 * dashLv; }
 
-    // 탄환무시 확률 (0.00 ~ 0.10)
-    public double ignoreChance() { return 0.02 * ignoreLv; }
+
 
 
 }

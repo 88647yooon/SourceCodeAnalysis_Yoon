@@ -15,7 +15,6 @@ public class RangedAlienEntity extends AlienEntity {
     private long cooldownJitterMs = 600; // 랜덤 지터
 
     private double bulletSpeed = 220; // px/s
-    private double leadFactor = 0.25;
 
     //난이도 증가 필드
     private double fireRateMul = 1.0;     // 높을수록 더 자주 쏨 (쿨다운을 나눔)

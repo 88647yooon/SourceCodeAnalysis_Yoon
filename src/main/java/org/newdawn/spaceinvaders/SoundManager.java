@@ -153,20 +153,5 @@ public final class SoundManager {
         } catch (Exception ignore) {}
     }
 
-    /** 리소스 정리 */
-    public void shutdown() {
-        stop();
-        for (Clip c : bgmClips.values()) {
-            try { if (c != null) c.close(); } catch (Exception ignore) {}
-        }
-        bgmClips.clear();
 
-        for (Clip[] pool : sfxPools.values()) {
-            if (pool == null) continue;
-            for (Clip c : pool) {
-                try { if (c != null) c.close(); } catch (Exception ignore) {}
-            }
-        }
-        sfxPools.clear();
-    }
 }

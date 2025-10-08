@@ -3,9 +3,7 @@ package org.newdawn.spaceinvaders;
 public final class SystemTimer {
 	/** 고해상도 타이머의 기준 시점(클래스 로딩 순간) */
 	private static final long START_NANOS = System.nanoTime();
-	/** "타이머 틱/초" 개념을 유지하려면 나노초를 틱으로 간주 (1초 = 1_000_000_000 틱) */
-	@SuppressWarnings("unused")
-	private static final long TIMER_TICKS_PER_SECOND = 1_000_000_000L;
+
 
 	private SystemTimer() { /* 유틸 클래스 */ }
 
