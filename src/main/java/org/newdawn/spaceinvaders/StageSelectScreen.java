@@ -25,6 +25,9 @@ public class StageSelectScreen implements Screen{
     private float slideSpeed = 0.2f;  // 보간 속도
     private int spacing = 220;        // 카드 간격
 
+    //잠긴 스테이지 안내 메시지 관련
+    private String lockMessage ="";
+    private long lockMessageTimer = 0;
 
 
     public StageSelectScreen(Game game) {
@@ -70,6 +73,23 @@ public class StageSelectScreen implements Screen{
             int drawX = x - size / 2;
             int drawY = y - size / 2;
 
+            boolean unlocked = game.isStageUnlocked(i);
+
+            if (Math.round(currentIndex) == i) {
+                g.setStroke(new BasicStroke(4));
+                g.setColor(Color.BLACK);
+                g.drawOval(drawX - 4, drawY - 4, size + 8, size + 8);
+
+                g.setFont(new Font("Arial", Font.BOLD, 24));
+                g.drawString("Stage " + (i + 1), centerX - 40, y + selectedSize / 2 + 40);
+
+                if (!unlocked) {
+                    g.setFont(new Font("Arial", Font.BOLD, 20));
+                    g.setColor(Color.RED);
+                    g.drawString("Locked", centerX - 40, y + selectedSize / 2 + 70);
+                }
+            }
+
             if (stageImages[i] != null) {
                 g.drawImage(stageImages[i], drawX, drawY, size, size, null);
             } else {
@@ -107,11 +127,16 @@ public class StageSelectScreen implements Screen{
 
         }
 
-
-
-
-
-
+        if (lockMessage != null && !lockMessage.isEmpty()) {
+            long elapsed = System.currentTimeMillis() - lockMessageTimer;
+            if (elapsed < 2000) { // 2초 동안 표시
+                g.setFont(new Font("Dialog", Font.BOLD, 24));
+                g.setColor(new Color(255, 100, 100));
+                g.drawString(lockMessage, 270, 80);
+            } else {
+                lockMessage = ""; // 시간 지나면 제거
+            }
+        }
 
         // 안내 텍스트
         g.setFont(new Font("Dialog", Font.BOLD, 18));
@@ -135,8 +160,15 @@ public class StageSelectScreen implements Screen{
 
         if (keyCode == KeyEvent.VK_ENTER) {
             int stageNum = SelectIndex + 1;
-            game.startStageMode(stageNum);          // 기존 초기화
-            StageManager.applyStage(stageNum, game); // 스테이지별 엔티티 강제 적용
+            if(game.isStageUnlocked(SelectIndex)){
+                //해금된 스테이지 상태면 진입 가능함
+                game.startStageMode(stageNum);          // 기존 초기화
+                StageManager.applyStage(stageNum, game); // 스테이지별 엔티티 강제 적용
+            } else {
+                lockMessage = "아직 잠긴 스테이지입니다.";
+                lockMessageTimer = System.currentTimeMillis();
+            }
+
         }
         if (keyCode == KeyEvent.VK_ESCAPE) {
             game.setScreen(new MenuScreen(game));

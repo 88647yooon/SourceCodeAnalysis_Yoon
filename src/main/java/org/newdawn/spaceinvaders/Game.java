@@ -143,6 +143,10 @@ public class Game extends Canvas {
     private static final double RANGED_ALIEN_RATIO = 0.25;
     private boolean bossActive = false;
 
+    //스테이지 잠금 상태 관리 배열
+    private static boolean[] stageUnlocked;
+    private static  final int TOTAL_STAGES = 5;
+
     /** 초기 화면·버퍼·입력·BGM·엔티티 설정 */
     public Game() {
         container = new JFrame("Space Invaders 102");
@@ -179,6 +183,7 @@ public class Game extends Canvas {
         createBufferStrategy(2);
         strategy = getBufferStrategy();
 
+        initStageUnlocks();
         initEntities();
 
         SoundManager.get().setSfxVolume(-15.0f);
@@ -535,6 +540,9 @@ public class Game extends Canvas {
                 damageTaken = Math.max(0, stageStartHP - p.getCurrentHP());
             }
             evaluateStageResult(currentStageId, timeLeft, damageTaken, score);
+
+            unlockNextStage(currentStageId-1);
+
         }
 
         if (SESSION_UID != null && SESSION_ID_TOKEN != null) {
@@ -794,6 +802,27 @@ public class Game extends Canvas {
 
     public int getAlienCount() {
         return alienCount;
+    }
+//스테이지모드 잠금 설정 기능. 스테이지 토탈을 1부터 5까지 정해놓고 클리어될시 다음 스테이지 오픈
+    public void initStageUnlocks(){
+        stageUnlocked = new boolean[TOTAL_STAGES];
+        stageUnlocked[0]=true;
+    }
+
+    public boolean isStageUnlocked(int stageIndex){
+        if (stageUnlocked == null || stageIndex < 0 || stageIndex >= stageUnlocked.length)
+            return false;
+
+        return stageUnlocked[stageIndex];
+    }
+
+    public static void unlockNextStage(int currentStage){
+        if(stageUnlocked == null) return;
+        if(currentStage + 1 < stageUnlocked.length) {
+            if (!stageUnlocked[currentStage + 1]) {
+                stageUnlocked[currentStage + 1] = true;
+            }
+        }
     }
 
     /**
