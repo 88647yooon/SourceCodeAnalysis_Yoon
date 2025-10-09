@@ -38,13 +38,6 @@ public class EnemyShotEntity extends Entity {
         //System.out.println("🟢 Bullet created: vx=" + dx + ", vy=" + dy + ", speed=" + speed);
     }
 
-    /** 각도 기반 생성자 */
-    public static EnemyShotEntity fromAngle(Game game, String spriteRef, double x, double y, double angleDeg, double speed) {
-        double rad = Math.toRadians(angleDeg);
-        double dx = Math.cos(rad) * speed;
-        double dy = Math.sin(rad) * speed;
-        return new EnemyShotEntity(game, spriteRef, x, y, dx, dy, speed);
-    }
 
     /** 호밍 활성화 (보스 전용) */
     public EnemyShotEntity enableHoming(ShipEntity target, long delayMs, double accel, double maxSpeed) {
@@ -55,26 +48,6 @@ public class EnemyShotEntity extends Entity {
         this.homingDelayMs = Math.max(0, delayMs);
         this.homingAccel = accel;
         this.maxHomingSpeed = maxSpeed;
-        return this;
-    }
-
-    /** 직선탄 강제 (Ranged, Diagonal 전용) */
-    public EnemyShotEntity disableHomingHard() {
-        this.forceNoHoming = true;
-        this.homing = false;
-        this.target = null;
-        return this;
-    }
-
-    /** 마찰 설정 (선택) */
-    public EnemyShotEntity setFriction(double frictionPerSec) {
-        this.friction = frictionPerSec;
-        return this;
-    }
-
-    /** 수명 제한 (선택) */
-    public EnemyShotEntity setLifeTimeMs(long ms) {
-        this.lifeTimeMs = ms;
         return this;
     }
 

@@ -76,7 +76,6 @@ public class ShipEntity extends Entity {
 
     // 화면 경계(지금 move에서 쓰는 값과 동일하게 맞춤)
     private static final int TOP_MARGIN = 10;
-    private static final int BOTTOM_LIMIT = 568;
 
     // 잔상 데이터
     private static final class Trail { final int x, y; final long t; Trail(int x,int y,long t){this.x=x; this.y=y; this.t=t;} }
@@ -147,19 +146,8 @@ public class ShipEntity extends Entity {
         lastDamageTime = System.currentTimeMillis();
 
     }
-    public void heal(int d) {
-        currentHP += d;
-        if(currentHP > maxHP){
-            currentHP = maxHP;
-        }
-    }
 
-    public boolean isAlive() {
-        return currentHP > 0;
-    }
-    public boolean isDead() {
-        return currentHP <= 0;
-    }
+
     /**
 	 * Request that the ship move itself based on an elapsed ammount of
 	 * time
@@ -273,16 +261,7 @@ public class ShipEntity extends Entity {
     private long currentShotInterval() { return (long)Math.round(baseShotIntervalMs * skills.rofIntervalMul()); }
     private int  currentShotDamage()   { return Math.max(1, (int)Math.round(baseShotDamage * skills.atkMul())); }
 
-    private void tryFire() {
-        long now = System.currentTimeMillis();
-        if (now - lastShotAt < currentShotInterval()) return;
-        lastShotAt = now;
 
-        // ShotEntity 생성 시 데미지 값을 넘겨주도록 약간 확장
-        ShotEntity shot = new ShotEntity(game, "sprites/shot.png", getX()+sprite.getWidth()/2, getY());
-        shot.setDamage(currentShotDamage());      // ← setDamage 추가(아래 참고)
-        game.addEntity(shot);
-    }
     //대시 관련 스탯 메소드
     private long currentDashCooldown() { return (long)Math.round(baseDashCooldownMs * skills.dashCdMul()); }
     private int  currentDashIframes()  { return baseDashIframesMs + skills.dashIframesBonusMs(); }
