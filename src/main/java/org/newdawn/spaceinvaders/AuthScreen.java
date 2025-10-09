@@ -2,6 +2,7 @@ package org.newdawn.spaceinvaders;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.util.Map;
 
 public class AuthScreen implements Screen {
     private final Game game;
@@ -91,7 +92,7 @@ public class AuthScreen implements Screen {
             Game.AuthResult ar;
             if (signupMode) {
                 if (!password.equals(password2)) {
-                    message = "❌ 비밀번호가 일치하지 않습니다!";
+                    message = "비밀번호가 일치하지 않습니다!";
                     return;
                 }
                 ar = Game.restSignUp(email.trim(), password);
@@ -108,9 +109,12 @@ public class AuthScreen implements Screen {
 
             int[] saved = LevelManager.loadLastLevel(Game.DB_URL, Game.SESSION_UID, Game.SESSION_ID_TOKEN);
             game.getPlayerShip().setLevelAndXp(saved[0], saved[1]);
+            game.getPlayerShip().loadSkillsFromCloud();
             System.out.println("🎯 로그인 후 레벨 복원 완료: Lv." + saved[0] + " (XP " + saved[1] + ")");
 
 
+            PlayerSkills ps = game.getPlayerShip().getSkills();
+            LevelManager.loadSkills(Game.DB_URL, Game.SESSION_UID, Game.SESSION_ID_TOKEN, ps);
             message = (signupMode ? "회원가입" : "로그인") + " 성공!";
             game.setScreen(new MenuScreen(game)); // ✅ 메뉴 화면으로 이동
         } catch (Exception e) {

@@ -65,11 +65,11 @@ import java.nio.charset.StandardCharsets;
 public class Game extends Canvas{
     /// 아래 5개는 회원가입, 로그인과 관련된 필드
     private static final String API_KEY = "AIzaSyCdY9-wpF3Ad2DXkPTXGcqZEKWBD1qRYKE";
-    protected static final String DB_URL = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app/";
+    public static final String DB_URL = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app/";
     private static final String DB_KEYFILE = "src/main/resources/serviceAccountKey.json";
-    protected  static String SESSION_UID   = null;
-    protected static String SESSION_EMAIL = null;
-    protected static String SESSION_ID_TOKEN = null;
+    public  static String SESSION_UID   = null;
+    public static String SESSION_EMAIL = null;
+    public static String SESSION_ID_TOKEN = null;
 	/** The stragey that allows us to use accelerate page flipping */
 	private BufferStrategy strategy;
 	/** True if the game is currently "running", i.e. the game loop is looping */

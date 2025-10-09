@@ -2,10 +2,65 @@ package org.newdawn.spaceinvaders;
 import java.util.*;
 import java.net.*;
 import java.io.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 
 public class LevelManager {
+    public static void saveSkills(String uid, String idToken, PlayerSkills s) {
+        if (uid == null || idToken == null || s == null) {
+            System.out.println("⚠️ saveSkills: uid/token/skills null");
+            return;
+        }
+        try {
+            String json = "{"
+                    + "\"atkLv\":"          + s.atkLv        + ","
+                    + "\"rofLv\":"          + s.rofLv        + ","
+                    + "\"dashLv\":"       + s.dashLv       + ","
+                    + "}";
+            Game.restSetJson("users/" + uid + "/skills", idToken, json);
+            System.out.println("스킬 저장: " + json);
+        } catch (Exception e) {
+            System.err.println("스킬 저장 실패: " + e.getMessage());
+        }
+    }
 
-    // 🔹 마지막 레벨 불러오기
+    public static void loadSkills(String dbUrl, String uid, String idToken, PlayerSkills s) {
+        if (uid == null || idToken == null || s == null) {
+            System.out.println("⚠️ loadSkills: uid/token/skills null");
+            return;
+        }
+        try {
+            String endpoint = dbUrl + "/users/" + uid + "/skills.json?auth=" + Game.urlEnc(idToken);
+            String res = Game.httpGet(endpoint);
+            if (res == null || res.equals("null")) {
+                System.out.println("ℹ️ 스킬 데이터 없음 → 기본값 사용");
+                return;
+            }
+
+            s.atkLv         = extractInt(res, "atkLv", 0);
+            s.rofLv        = extractInt(res, "rofLv", 0);
+            s.dashLv      = extractInt(res, "dashLv", 0);
+
+            System.out.println("✅ 스킬 불러오기 완료: atk=" + s.atkLv + ", rof=" + s.rofLv + ", dashLv=" + s.dashLv );
+        } catch (Exception e) {
+            System.err.println("❌ 스킬 불러오기 실패: " + e.getMessage());
+        }
+    }
+
+    private static int extractInt(String json, String key, int def) {
+        String pattern = "\""+Pattern.quote(key)+"\"\\s*:\\s*(-?\\d+)";
+        Matcher m = Pattern.compile(pattern).matcher(json);
+        if (m.find()) {
+            try { return Integer.parseInt(m.group(1)); } catch (Exception ignore) {}
+        }
+        return def;
+    }
+
+
+
+
+    // 마지막 레벨 불러오기
     public static int[] loadLastLevel(String dbUrl, String uid, String idToken) {
         if (uid == null || idToken == null) {
             System.err.println("⚠️ UID 또는 TOKEN이 null → 로그인 전 호출됨");

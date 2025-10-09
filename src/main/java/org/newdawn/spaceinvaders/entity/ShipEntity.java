@@ -1,6 +1,7 @@
 package org.newdawn.spaceinvaders.entity;
 
 import org.newdawn.spaceinvaders.Game;
+import org.newdawn.spaceinvaders.LevelManager;
 import org.newdawn.spaceinvaders.PlayerSkills;
 //대시시 잔상 그리기
 import java.awt.Graphics;
@@ -37,7 +38,6 @@ public class ShipEntity extends Entity {
         S_LEVEL = this.level;
         S_XP_INTO_LEVEL = this.xpIntoLevel;
     }
-
 
     //레벨 관련 필드
     private int levelUpPoints = 0;
@@ -336,5 +336,29 @@ public class ShipEntity extends Entity {
         g.drawImage(sprite.getImage(), (int)x, (int)y, null);
     }
 
+    public void saveSkillsToCloud() {
+        if (Game.SESSION_UID == null || Game.SESSION_ID_TOKEN == null) {
+            System.out.println("⚠️ UID/TOKEN 없음 - 로그인 후에만 스킬 저장 가능");
+            return;
+        }
+        try {
+            LevelManager.saveSkills(Game.SESSION_UID, Game.SESSION_ID_TOKEN, skills);
+        } catch (Exception e) {
+            System.err.println("❌ ShipEntity: 스킬 저장 실패 - " + e.getMessage());
+        }
+    }
+
+    // 🔹 Firebase에서 스킬 불러오기
+    public void loadSkillsFromCloud() {
+        if (Game.SESSION_UID == null || Game.SESSION_ID_TOKEN == null) {
+            System.out.println("⚠️ UID/TOKEN 없음 - 로그인 후에만 스킬 불러오기 가능");
+            return;
+        }
+        try {
+            LevelManager.loadSkills(Game.DB_URL, Game.SESSION_UID, Game.SESSION_ID_TOKEN, skills);
+        } catch (Exception e) {
+            System.err.println("❌ ShipEntity: 스킬 불러오기 실패 - " + e.getMessage());
+        }
+    }
 
 }
