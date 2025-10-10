@@ -395,14 +395,7 @@ public class Game extends Canvas {
         setStageStars(stageId, stars);
     }
 
-    /** 스테이지 별(★) 기록 저장(고득점만 갱신) */
-    public void setStageStars(int stageId, int stars) {
-        int prev = stageStars.getOrDefault(stageId, 0);
-        if (stars > prev) {
-            stageStars.put(stageId, stars);
-            saveStageStars();
-        }
-    }
+
 
     public int getStageStars(int stageId) {
         return stageStars.getOrDefault(stageId, 0);
@@ -427,18 +420,18 @@ public class Game extends Canvas {
     }
 
     /** 로그인 시 스테이지 별(★) 기록 로드 */
+    // [수정] 로그인 시 별 로드 후 재계산 호출
     public void loadStageStars() {
         if (SESSION_UID == null || SESSION_ID_TOKEN == null) return;
         try {
             String endpoint = DB_URL + "/users/" + SESSION_UID + "/stageStars.json?auth=" + urlEnc(SESSION_ID_TOKEN);
             String res = httpGet(endpoint);
-            System.out.println("파베 응답 :" + res); // 필요 시 제거
 
             java.lang.reflect.Type mapType = new com.google.gson.reflect.TypeToken<Map<String, Integer>>() {}.getType();
             Map<String, Integer> loaded = new Gson().fromJson(res, mapType);
 
+            stageStars.clear();
             if (loaded != null) {
-                stageStars.clear();
                 for (Map.Entry<String, Integer> e : loaded.entrySet()) {
                     if (e.getKey().startsWith("stage")) {
                         int stageId = Integer.parseInt(e.getKey().substring(5));
@@ -446,9 +439,38 @@ public class Game extends Canvas {
                     }
                 }
             }
+
+            // 로드가 끝났으니 잠금 재계산
+            rebuildStageUnlocks();
+
             System.out.println(" 별 기록 불러오기 완료: " + stageStars);
         } catch (Exception e) {
             System.err.println(" 별 기록 불러오기 실패: " + e.getMessage());
+        }
+    }
+
+    // [수정] 별을 갱신/저장한 직후에도 재계산
+    public void setStageStars(int stageId, int stars) {
+        int prev = stageStars.getOrDefault(stageId, 0);
+        if (stars > prev) {
+            stageStars.put(stageId, stars);
+            saveStageStars();
+            // 저장 직후 잠금 재계산
+            rebuildStageUnlocks();
+        }
+    }
+
+    // [추가] 당장 다음 스테이지(= 현재 stageId의 다음 인덱스)를 오픈
+    private void unlockNextStageIfEligible(int currentStageId) {
+        if (stageUnlocked == null) return;
+        if (currentStageId >= TOTAL_STAGES) return;
+
+        // 현재 스테이지의 최종 별 수가 3개 이상일 때만 다음 스테이지 오픈
+        if (getStageStars(currentStageId) >= 3) {
+            int nextIdx = currentStageId; // 1-based의 "다음"은 배열 인덱스로 currentStageId
+            if (nextIdx < stageUnlocked.length) {
+                stageUnlocked[nextIdx] = true;
+            }
         }
     }
 
@@ -540,8 +562,8 @@ public class Game extends Canvas {
                 damageTaken = Math.max(0, stageStartHP - p.getCurrentHP());
             }
             evaluateStageResult(currentStageId, timeLeft, damageTaken, score);
-
-            unlockNextStage(currentStageId-1);
+            //조건 충족시 다음 스테이지 해제
+            unlockNextStageIfEligible(currentStageId);
 
         }
 
@@ -816,12 +838,21 @@ public class Game extends Canvas {
         return stageUnlocked[stageIndex];
     }
 
-    public static void unlockNextStage(int currentStage){
-        if(stageUnlocked == null) return;
-        if(currentStage + 1 < stageUnlocked.length) {
-            if (!stageUnlocked[currentStage + 1]) {
-                stageUnlocked[currentStage + 1] = true;
-            }
+
+
+    // 로드된 stageStars(1..N) 기반으로 잠금 상태 재계산
+    public void rebuildStageUnlocks() {
+        if (stageUnlocked == null || stageUnlocked.length != TOTAL_STAGES) {
+            stageUnlocked = new boolean[TOTAL_STAGES];
+        }
+        // 스테이지 1(인덱스 0)은 항상 오픈
+        stageUnlocked[0] = true;
+
+        // 규칙: i번째 스테이지(1-based, 인덱스 i-1)는
+        // "이전 스테이지 별이 3개 이상이면" 오픈
+        for (int stageId = 2; stageId <= TOTAL_STAGES; stageId++) {
+            int prevStars = getStageStars(stageId - 1); // 1..N
+            stageUnlocked[stageId - 1] = (prevStars >= 3);
         }
     }
 

@@ -45,7 +45,7 @@ public class StageSelectScreen implements Screen{
                 stageImages[i] = null;
             }
         }
-
+        game.rebuildStageUnlocks();
 
         //별 이미지 로드
         starFilled = new ImageIcon(getClass().getResource("/sprites/star_filled.png")).getImage();
@@ -160,18 +160,22 @@ public class StageSelectScreen implements Screen{
 
         if (keyCode == KeyEvent.VK_ENTER) {
             int stageNum = SelectIndex + 1;
-            if(game.isStageUnlocked(SelectIndex)){
-                //해금된 스테이지 상태면 진입 가능함
-                game.startStageMode(stageNum);          // 기존 초기화
-                StageManager.applyStage(stageNum, game); // 스테이지별 엔티티 강제 적용
+            if (game.isStageUnlocked(SelectIndex)) {
+                //  중복 초기화 제거: startStageMode 내부에서 StageManager.applyStage까지 처리됨
+                game.startStageMode(stageNum);
             } else {
-                lockMessage = "아직 잠긴 스테이지입니다.";
+                if (SelectIndex > 0) {
+                    int prevStars = game.getStageStars(SelectIndex); // 이전 스테이지는 (index) == (stageNum-1)
+                    if (prevStars < 3) {
+                        lockMessage = "잠금: 이전 스테이지 3★ 달성 필요";
+                    } else {
+                        lockMessage = "아직 잠긴 스테이지입니다.";
+                    }
+                } else {
+                    lockMessage = "아직 잠긴 스테이지입니다.";
+                }
                 lockMessageTimer = System.currentTimeMillis();
             }
-
-        }
-        if (keyCode == KeyEvent.VK_ESCAPE) {
-            game.setScreen(new MenuScreen(game));
         }
     }
 

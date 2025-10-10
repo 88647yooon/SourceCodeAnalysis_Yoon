@@ -102,10 +102,13 @@ public class AuthScreen implements Screen {
             } else {
                 ar = Game.restSignIn(email.trim(), password);
             }
-
+            //로그인/회원가입 성공 시
             Game.SESSION_UID = ar.localId;
             Game.SESSION_EMAIL = ar.email;
             Game.SESSION_ID_TOKEN = ar.idToken;
+
+            // 사용자별 별 기록 로드
+            game.loadStageStars();
 
             int[] saved = LevelManager.loadLastLevel(Game.DB_URL, Game.SESSION_UID, Game.SESSION_ID_TOKEN);
             game.getPlayerShip().setLevelAndXp(saved[0], saved[1]);
