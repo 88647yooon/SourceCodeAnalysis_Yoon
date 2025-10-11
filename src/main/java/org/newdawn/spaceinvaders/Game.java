@@ -1028,7 +1028,7 @@ public class Game extends Canvas {
 
         ref.push().setValueAsync(logEntry);
 
-        System.out.println("✅ 로그 저장: " + eventType + " at " + timestamp);
+        System.out.println(" 로그 저장: " + eventType + " at " + timestamp);
     }
 
     private static java.awt.GridBagConstraints gbc() { return gbc(0, 0); }
@@ -1093,7 +1093,7 @@ public class Game extends Canvas {
         try {
             restPushJson("users/" + SESSION_UID + "/logs", SESSION_ID_TOKEN, json);
         } catch (Exception e) {
-            System.err.println("⚠️ 로그 저장 실패: " + e.getMessage());
+            System.err.println("⚠ 로그 저장 실패: " + e.getMessage());
         }
     }
 

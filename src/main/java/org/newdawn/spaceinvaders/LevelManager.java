@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 public class LevelManager {
     public static void saveSkills(String uid, String idToken, PlayerSkills s) {
         if (uid == null || idToken == null || s == null) {
-            System.out.println("⚠️ saveSkills: uid/token/skills null");
+            System.out.println(" saveSkills: uid/token/skills null");
             return;
         }
         try {
@@ -27,14 +27,14 @@ public class LevelManager {
 
     public static void loadSkills(String dbUrl, String uid, String idToken, PlayerSkills s) {
         if (uid == null || idToken == null || s == null) {
-            System.out.println("⚠️ loadSkills: uid/token/skills null");
+            System.out.println("️ loadSkills: uid/token/skills null");
             return;
         }
         try {
             String endpoint = dbUrl + "/users/" + uid + "/skills.json?auth=" + Game.urlEnc(idToken);
             String res = Game.httpGet(endpoint);
             if (res == null || res.equals("null")) {
-                System.out.println("ℹ️ 스킬 데이터 없음 → 기본값 사용");
+                System.out.println(" 스킬 데이터 없음 → 기본값 사용");
                 return;
             }
 
@@ -42,9 +42,9 @@ public class LevelManager {
             s.rofLv        = extractInt(res, "rofLv", 0);
             s.dashLv      = extractInt(res, "dashLv", 0);
 
-            System.out.println("✅ 스킬 불러오기 완료: atk=" + s.atkLv + ", rof=" + s.rofLv + ", dashLv=" + s.dashLv );
+            System.out.println(" 스킬 불러오기 완료: atk=" + s.atkLv + ", rof=" + s.rofLv + ", dashLv=" + s.dashLv );
         } catch (Exception e) {
-            System.err.println("❌ 스킬 불러오기 실패: " + e.getMessage());
+            System.err.println(" 스킬 불러오기 실패: " + e.getMessage());
         }
     }
 

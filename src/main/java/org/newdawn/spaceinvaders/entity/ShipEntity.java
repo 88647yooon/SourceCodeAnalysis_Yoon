@@ -317,26 +317,26 @@ public class ShipEntity extends Entity {
 
     public void saveSkillsToCloud() {
         if (Game.SESSION_UID == null || Game.SESSION_ID_TOKEN == null) {
-            System.out.println("⚠️ UID/TOKEN 없음 - 로그인 후에만 스킬 저장 가능");
+            System.out.println(" UID/TOKEN 없음 - 로그인 후에만 스킬 저장 가능");
             return;
         }
         try {
             LevelManager.saveSkills(Game.SESSION_UID, Game.SESSION_ID_TOKEN, skills);
         } catch (Exception e) {
-            System.err.println("❌ ShipEntity: 스킬 저장 실패 - " + e.getMessage());
+            System.err.println(" ShipEntity: 스킬 저장 실패 - " + e.getMessage());
         }
     }
 
     // 🔹 Firebase에서 스킬 불러오기
     public void loadSkillsFromCloud() {
         if (Game.SESSION_UID == null || Game.SESSION_ID_TOKEN == null) {
-            System.out.println("⚠️ UID/TOKEN 없음 - 로그인 후에만 스킬 불러오기 가능");
+            System.out.println(" UID/TOKEN 없음 - 로그인 후에만 스킬 불러오기 가능");
             return;
         }
         try {
             LevelManager.loadSkills(Game.DB_URL, Game.SESSION_UID, Game.SESSION_ID_TOKEN, skills);
         } catch (Exception e) {
-            System.err.println("❌ ShipEntity: 스킬 불러오기 실패 - " + e.getMessage());
+            System.err.println(" ShipEntity: 스킬 불러오기 실패 - " + e.getMessage());
         }
     }
 

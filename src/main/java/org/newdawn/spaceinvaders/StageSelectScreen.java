@@ -39,9 +39,9 @@ public class StageSelectScreen implements Screen{
             java.net.URL url = getClass().getResource(path);
             if (url != null) {
                 stageImages[i] = new ImageIcon(url).getImage();
-                System.out.println("✅ 로드 성공: " + path);
+                System.out.println(" 로드 성공: " + path);
             } else {
-                System.out.println("⚠️ 로드 실패: " + path);
+                System.out.println(" 로드 실패: " + path);
                 stageImages[i] = null;
             }
         }

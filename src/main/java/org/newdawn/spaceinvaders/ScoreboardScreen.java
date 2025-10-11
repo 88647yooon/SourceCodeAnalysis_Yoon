@@ -5,7 +5,7 @@ import java.util.List;
 public class ScoreboardScreen implements Screen {
     private final Game game;
     private List<Game.ScoreEntry> scores;
-    private boolean showGlobal = true; // 🔄 글로벌/내 점수 전환 플래그
+    private boolean showGlobal = true; //  글로벌/내 점수 전환 플래그
 
     public ScoreboardScreen(Game game) {
         this.game = game;
@@ -27,7 +27,7 @@ public class ScoreboardScreen implements Screen {
 
         g.setColor(Color.white);
         g.setFont(new Font("Dialog", Font.BOLD, 28));
-        String title = showGlobal ? "🌍 글로벌 스코어보드" : "📌 내 스코어보드";
+        String title = showGlobal ? " 글로벌 스코어보드" : " 내 스코어보드";
         g.drawString(title, (800 - g.getFontMetrics().stringWidth(title))/2, 80);
 
         g.setFont(new Font("Dialog", Font.PLAIN, 14));
@@ -35,7 +35,7 @@ public class ScoreboardScreen implements Screen {
 
         int startY = 140;
         g.setFont(new Font("Monospaced", Font.BOLD, 16));
-        // 🔽 헤더에 "유저" 컬럼 추가
+        //  헤더에 "유저" 컬럼 추가
         g.drawString(String.format("%-6s %-12s %-8s %-10s %-20s", "순위", "유저", "점수", "모드", "플레이시간 / 날짜"), 80, startY);
 
         g.setFont(new Font("Monospaced", Font.PLAIN, 16));

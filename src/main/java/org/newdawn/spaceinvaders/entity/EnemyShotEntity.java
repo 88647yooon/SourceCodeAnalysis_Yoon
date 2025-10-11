@@ -41,7 +41,7 @@ public class EnemyShotEntity extends Entity {
 
     /** 호밍 활성화 (보스 전용) */
     public EnemyShotEntity enableHoming(ShipEntity target, long delayMs, double accel, double maxSpeed) {
-        System.err.println("⚠️ enableHoming called! bullet@(" + x + "," + y + ")");
+        System.err.println(" enableHoming called! bullet@(" + x + "," + y + ")");
         Thread.dumpStack(); // 호출 지점 추적
         this.homing = true;
         this.target = target;
