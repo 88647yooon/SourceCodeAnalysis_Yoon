@@ -10,21 +10,19 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferStrategy;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
+import java.util.*;
 
 import java.text.SimpleDateFormat;
 
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 
 import javax.swing.*;
 
+import org.newdawn.spaceinvaders.DataBase.*;
+import org.newdawn.spaceinvaders.Screen.Screen;
+import org.newdawn.spaceinvaders.Screen.StageSelectScreen;
 import org.newdawn.spaceinvaders.entity.*;
 
 import com.google.auth.oauth2.GoogleCredentials;
@@ -32,12 +30,7 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 
 /**
  * Game — Space Invaders 메인 오케스트레이션.
@@ -58,18 +51,32 @@ import java.nio.charset.StandardCharsets;
  */
 public class Game extends Canvas {
 
-    // 인증/DB 세션
+    // 인증/DB 관련 필드
     private static final String API_KEY = "AIzaSyCdY9-wpF3Ad2DXkPTXGcqZEKWBD1qRYKE";
-    public static final String DB_URL = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app/";
+    public static final String DB_URL = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app";
+    // Firebase Admin SDK 용 서비스 키
     private static final String DB_KEYFILE = "src/main/resources/serviceAccountKey.json";
-    public  static String SESSION_UID   = null;
+
+    public static String SESSION_UID   = null;
     public static String SESSION_EMAIL = null;
     public static String SESSION_ID_TOKEN = null;
-	/** The stragey that allows us to use accelerate page flipping */
+
+    // 세션/DB 의존성
+    private final DatabaseClient dbClient = new FirebaseDatabaseClient(DB_URL);
+    private final GameDatabaseService gameDb = new GameDatabaseService(dbClient);
+    private AuthSession session; // 기존 SESSION_UID , EMAIL, ID_TOKEN 대체
+
+    public AuthSession getSession(){ return session; }
+    public DatabaseClient getDbClient(){ return dbClient; }
+    public GameDatabaseService getGameDb(){ return gameDb; }
+    private void setSession(AuthSession session){ this.session = session; }
+    private boolean hasSession(){ return session != null && session.isLoggedIn(); }
+
+	/** 페이지 넘김을 가속화 할 수 있는 전략 */
 	private BufferStrategy strategy;
-	/** True if the game is currently "running", i.e. the game loop is looping */
+	/** 게임이 현재 "실행 중"이라면, 즉 게임 루프가 반복되고 있습니다 */
 	private boolean gameRunning = true;
-    /** The list of all the entities that exist in our game */
+    /** 우리 게임에 존재하는 모든 엔티티 목록 */
     private ArrayList<Entity> entities = new ArrayList<>();
     /** 이 프레임에서 제거할 엔티티 큐 */
     private ArrayList<Entity> removeList = new ArrayList<>();
@@ -138,7 +145,7 @@ public class Game extends Canvas {
 
     // 무한 모드/웨이브/보스
     private boolean infiniteMode = false;
-    int waveCount = 1;
+    private int waveCount = 1;
     private int normalsClearedInCycle = 0;
     private static final double RANGED_ALIEN_RATIO = 0.25;
     private boolean bossActive = false;
@@ -149,12 +156,15 @@ public class Game extends Canvas {
 
     /** 초기 화면·버퍼·입력·BGM·엔티티 설정 */
     public Game() {
+        // 프레임에 띄울 게임 명
         container = new JFrame("Space Invaders 102");
+        // 배경화면 렌더링
         backgroundRenderer = new BackgroundRenderer();
-
+        // 메뉴 스크린 불러오기
         setScreen(new MenuScreen(this)); // 시작 화면
-
+        // 패널
         JPanel panel = (JPanel) container.getContentPane();
+        // 사이즈
         panel.setPreferredSize(new Dimension(800, 600));
         panel.setLayout(null);
 
@@ -401,61 +411,32 @@ public class Game extends Canvas {
         return stageStars.getOrDefault(stageId, 0);
     }
 
-    /** 스테이지 별(★) 기록을 Firebase에 저장 */
-    public void saveStageStars() {
-        if (SESSION_UID == null || SESSION_ID_TOKEN == null) return;
-
-        try {
-            Map<String, Integer> stringKeyMap = new HashMap<>();
-            for (Map.Entry<Integer, Integer> e : stageStars.entrySet()) {
-                stringKeyMap.put("stage" + e.getKey(), e.getValue());
-            }
-
-            String json = new Gson().toJson(stringKeyMap);
-            restSetJson("users/" + SESSION_UID + "/stageStars", SESSION_ID_TOKEN, json);
-
-        } catch (Exception e) {
-            System.err.println("별 기록 업로드 실패 " + e.getMessage());
-        }
+    public void saveStageStars(){
+        gameDb.saveStageStars(session, stageStars);
     }
 
-    /** 로그인 시 스테이지 별(★) 기록 로드 */
-    // [수정] 로그인 시 별 로드 후 재계산 호출
-    public void loadStageStars() {
-        if (SESSION_UID == null || SESSION_ID_TOKEN == null) return;
-        try {
-            String endpoint = DB_URL + "/users/" + SESSION_UID + "/stageStars.json?auth=" + urlEnc(SESSION_ID_TOKEN);
-            String res = httpGet(endpoint);
+    public void loadStageStars(){
+        if (!hasSession()) return;
 
-            java.lang.reflect.Type mapType = new com.google.gson.reflect.TypeToken<Map<String, Integer>>() {}.getType();
-            Map<String, Integer> loaded = new Gson().fromJson(res, mapType);
+        Map<Integer, Integer> loaded = gameDb.loadStageStars(session);
 
-            stageStars.clear();
-            if (loaded != null) {
-                for (Map.Entry<String, Integer> e : loaded.entrySet()) {
-                    if (e.getKey().startsWith("stage")) {
-                        int stageId = Integer.parseInt(e.getKey().substring(5));
-                        stageStars.put(stageId, e.getValue());
-                    }
-                }
-            }
+        stageStars.clear();
+        stageStars.putAll(loaded);
 
-            // 로드가 끝났으니 잠금 재계산
-            rebuildStageUnlocks();
-
-            System.out.println(" 별 기록 불러오기 완료: " + stageStars);
-        } catch (Exception e) {
-            System.err.println(" 별 기록 불러오기 실패: " + e.getMessage());
-        }
+        rebuildStageUnlocks();
+        System.out.println(" 별 기록 불러오기 완료 " + stageStars);
     }
 
     // [수정] 별을 갱신/저장한 직후에도 재계산
     public void setStageStars(int stageId, int stars) {
         int prev = stageStars.getOrDefault(stageId, 0);
-        if (stars > prev) {
+        if(stars > prev){
             stageStars.put(stageId, stars);
-            saveStageStars();
-            // 저장 직후 잠금 재계산
+
+            if (session != null && session.isLoggedIn()){
+                gameDb.saveStageStars(session, stageStars);
+            }
+
             rebuildStageUnlocks();
         }
     }
@@ -535,8 +516,8 @@ public class Game extends Canvas {
         message = "";
         menuIndex = 0;
 
-        if (SESSION_UID != null && SESSION_ID_TOKEN != null) {
-            LevelManager.saveLastLevel(SESSION_UID, SESSION_ID_TOKEN, getPlayerShip().getLevel(), getPlayerShip().getXpIntoLevel());
+        if (!hasSession()) {
+            LevelManager.saveLastLevel(getDbClient(), session.getUid(), session.getIdToken(), getPlayerShip().getLevel(), getPlayerShip().getXpIntoLevel());
         }
 
         setScreen(new GameOverScreen(this));
@@ -567,8 +548,8 @@ public class Game extends Canvas {
 
         }
 
-        if (SESSION_UID != null && SESSION_ID_TOKEN != null) {
-            LevelManager.saveLastLevel(SESSION_UID, SESSION_ID_TOKEN, getPlayerShip().getLevel(), getPlayerShip().getXpIntoLevel());
+        if (!hasSession()) {
+            LevelManager.saveLastLevel(getDbClient(),session.getUid(), session.getIdToken(), getPlayerShip().getLevel(), getPlayerShip().getXpIntoLevel());
         }
         uploadScoreIfLoggedIn();
     }
@@ -583,8 +564,12 @@ public class Game extends Canvas {
         return Math.max(0, timeLeft);
     }
 
-    public java.util.List<Entity> getEntities() {
-        return entities;
+    /** 원래 코드는 public java.util.List<Entity> getEntities() { return entities;}
+     * 이렇게 되면 add(), set() 등 수정메서드를 사용 가능하기때문에 바꿀수 없고 보기만 가능하게 만들었다
+     **/
+
+    public List<Entity> getEntities() {
+        return Collections.unmodifiableList(entities);
     }
 
     public boolean isWaitingForKeyPress() {
@@ -921,100 +906,38 @@ public class Game extends Canvas {
         sm.play(SoundManager.Bgm.MENU);
     }
 
-    // =========================
-    // Backend (Firebase + REST)
-    // =========================
-
-    /** 점수 데이터 모델 */
-    protected static class ScoreEntry {
-        String mode;
-        String email;
-        Integer score;
-        Integer wave;
-        Long durationMs;
-        String timestamp;
-        Integer level;
-    }
-
-    /** 내 상위 점수 조회 */
-    protected static List<ScoreEntry> fetchMyTopScores(int limit) {
-        List<Game.ScoreEntry> list = new ArrayList<>();
-        if (SESSION_UID == null || SESSION_ID_TOKEN == null) return list;
-
-        try {
-            String endpoint = DB_URL + "/users/" + SESSION_UID
-                    + "/scores.json?auth=" + urlEnc(SESSION_ID_TOKEN)
-                    + "&orderBy=%22score%22&limitToLast=" + limit;
-            String res = httpGet(endpoint);
-
-            java.lang.reflect.Type mapType =
-                    new TypeToken<java.util.Map<String, Game.ScoreEntry>>() {}.getType();
-            java.util.Map<String, Game.ScoreEntry> map = new Gson().fromJson(res, mapType);
-            if (map != null) list.addAll(map.values());
-
-            list.sort((a, b) -> Integer.compare(
-                    b.score == null ? 0 : b.score,
-                    a.score == null ? 0 : a.score
-            ));
-        } catch (Exception e) {
-            System.err.println("점수 조회 실패: " + e.getMessage());
-        }
-        return list;
-    }
-
-    /** 글로벌 상위 점수 조회 */
-    protected static List<ScoreEntry> fetchGlobalTopScores(int limit) {
-        List<Game.ScoreEntry> list = new ArrayList<>();
-        if (SESSION_ID_TOKEN == null) return list;
-
-        try {
-            String endpoint = DB_URL + "/globalScores.json?auth=" + urlEnc(SESSION_ID_TOKEN)
-                    + "&orderBy=%22score%22&limitToLast=" + limit;
-            String res = httpGet(endpoint);
-
-            java.lang.reflect.Type mapType =
-                    new com.google.gson.reflect.TypeToken<Map<String, Game.ScoreEntry>>() {}.getType();
-            Map<String, Game.ScoreEntry> map = new com.google.gson.Gson().fromJson(res, mapType);
-            if (map != null) list.addAll(map.values());
-
-            list.sort((a, b) -> Integer.compare(
-                    b.score == null ? 0 : b.score,
-                    a.score == null ? 0 : a.score
-            ));
-        } catch (Exception e) {
-            System.err.println(" 글로벌 점수 조회 실패: " + e.getMessage());
-        }
-
-        return list;
-    }
-
-    /** 로그인된 경우 점수 업로드(개인/글로벌) */
     private void uploadScoreIfLoggedIn() {
-        if (SESSION_UID == null || SESSION_ID_TOKEN == null) return;
+        if (!hasSession()) return;
 
         long durationMs = (runStartedAtMs > 0) ? (System.currentTimeMillis() - runStartedAtMs) : 0L;
         String modeStr = (currentMode == Mode.STAGE) ? "STAGE" : "INFINITE";
 
-        String json = "{"
-                + "\"uid\":" + quote(SESSION_UID) + ","
-                + "\"email\":" + quote(SESSION_EMAIL) + ","
-                + "\"level\":" + ((ShipEntity) ship).getLevel() + ","
-                + "\"mode\":" + quote(modeStr) + ","
-                + "\"score\":" + score + ","
-                + "\"wave\":" + waveCount + ","
-                + "\"durationMs\":" + durationMs + ","
-                + "\"timestamp\":" + quote(now())
-                + "}";
+        ScoreEntry entry = new ScoreEntry();
+        entry.setMode(modeStr);
+        entry.setEmail(session.getEmail());
+        entry.setScore(score);
+        entry.setWave(waveCount);
+        entry.setDurationMs(durationMs);
+        entry.setTimestamp(now());
+        entry.setLevel(((ShipEntity) ship).getLevel());
 
-        try {
-            restPushJson("users/" + SESSION_UID + "/scores", SESSION_ID_TOKEN, json);
-            restPushJson("globalScores", SESSION_ID_TOKEN, json);
-
-            System.out.println("점수 업로드 완료: " + json);
-        } catch (Exception e) {
-            System.err.println("점수 업로드 실패: " + e.getMessage());
-        }
+        gameDb.uploadScore(session, entry);
     }
+
+    public List<ScoreEntry> fetchMyTopScores(int limit) {
+        if (session == null || !session.isLoggedIn()) {
+            return Collections.emptyList();
+        }
+        return gameDb.fetchMyTopScores(session, limit);
+    }
+
+    public List<ScoreEntry> fetchGlobalTopScores(int limit) {
+        if (session == null || !session.isLoggedIn()) {
+            return Collections.emptyList();
+        }
+        return gameDb.fetchGlobalTopScores(session, limit);
+    }
+
 
     /** 간단 로그(Realtime DB) */
     private static void writeLog(String eventType) {
@@ -1052,11 +975,11 @@ public class Game extends Canvas {
     protected static AuthResult restSignUp(String email, String password) throws Exception {
         String endpoint = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" + API_KEY;
         String body = "{"
-                + "\"email\":" + quote(email) + ","
-                + "\"password\":" + quote(password) + ","
+                + "\"email\":" + FirebaseDatabaseClient.quote(email) + ","
+                + "\"password\":" + FirebaseDatabaseClient.quote(password) + ","
                 + "\"returnSecureToken\":true"
                 + "}";
-        String res = httpPostJson(endpoint, body);
+        String res = FirebaseDatabaseClient.httpPostJson(endpoint, body);
         String idToken = jget(res, "idToken");
         String refreshToken = jget(res, "refreshToken");
         String localId = jget(res, "localId");
@@ -1068,11 +991,11 @@ public class Game extends Canvas {
     protected static AuthResult restSignIn(String email, String password) throws Exception {
         String endpoint = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + API_KEY;
         String body = "{"
-                + "\"email\":" + quote(email) + ","
-                + "\"password\":" + quote(password) + ","
+                + "\"email\":" + FirebaseDatabaseClient.quote(email) + ","
+                + "\"password\":" + FirebaseDatabaseClient.quote(password) + ","
                 + "\"returnSecureToken\":true"
                 + "}";
-        String res = httpPostJson(endpoint, body);
+        String res = FirebaseDatabaseClient.httpPostJson(endpoint, body);
         String idToken = jget(res, "idToken");
         String refreshToken = jget(res, "refreshToken");
         String localId = jget(res, "localId");
@@ -1084,69 +1007,9 @@ public class Game extends Canvas {
     // =========================
     // 🗄️ Realtime Database (REST)
     // =========================
-    private static void restLogEvent(String type) {
-        if (SESSION_ID_TOKEN == null || SESSION_UID == null) return;
-        String ts = now();
-        String json = "{"
-                + "\"event\":" + quote(type) + ","
-                + "\"timestamp\":" + quote(ts) + "}";
-        try {
-            restPushJson("users/" + SESSION_UID + "/logs", SESSION_ID_TOKEN, json);
-        } catch (Exception e) {
-            System.err.println("⚠ 로그 저장 실패: " + e.getMessage());
-        }
-    }
 
-    private static String restPushJson(String path, String idToken, String json) throws Exception {
-        String endpoint = DB_URL + "/" + path + ".json?auth=" + urlEnc(idToken);
-        return httpPostJson(endpoint, json);
-    }
-
-    protected static String restSetJson(String path, String idToken, String json) throws Exception {
-        String endpoint = DB_URL + "/" + path + ".json?auth=" + urlEnc(idToken);
-        return httpPutJson(endpoint, json);
-    }
-
+    // 미니 JSON 유틸
     // =========================
-    // 🔧 HTTP & 미니 JSON 유틸
-    // =========================
-    protected static String httpGet(String endpoint) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
-        conn.setRequestMethod("GET");
-        conn.setRequestProperty("Accept", "application/json");
-        return readResp(conn);
-    }
-
-    protected static String httpPostJson(String endpoint, String body) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
-        conn.setRequestMethod("POST");
-        conn.setDoOutput(true);
-        conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-        try (OutputStream os = conn.getOutputStream()) {
-            os.write(body.getBytes(StandardCharsets.UTF_8));
-        }
-        return readResp(conn);
-    }
-
-    protected static String httpPutJson(String endpoint, String body) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
-        conn.setRequestMethod("PUT");
-        conn.setDoOutput(true);
-        conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-        try (OutputStream os = conn.getOutputStream()) {
-            os.write(body.getBytes(StandardCharsets.UTF_8));
-        }
-        return readResp(conn);
-    }
-
-    protected static String readResp(HttpURLConnection conn) throws Exception {
-        int code = conn.getResponseCode();
-        try (InputStream is = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream()) {
-            String txt = readFully(is, "UTF-8");
-            if (code >= 200 && code < 300) return txt;
-            throw new RuntimeException("HTTP " + code + ": " + txt);
-        }
-    }
 
     protected static String readFully(InputStream is, String charset) throws Exception {
         try {
@@ -1163,7 +1026,7 @@ public class Game extends Canvas {
     }
 
     /** 매우 단순한 "키:문자열" 추출(필요 필드만) */
-    protected static String jget(String json, String key) {
+    public static String jget(String json, String key) {
         String k = "\"" + key.replace("\"","\\\"") + "\"";
         int i = json.indexOf(k);
         if (i < 0) return null;
@@ -1205,32 +1068,7 @@ public class Game extends Canvas {
         return sb.toString();
     }
 
-    protected static String quote(String s) {
-        if (s == null) return "null";
-        StringBuilder sb = new StringBuilder("\"");
-        for (int i=0;i<s.length();i++) {
-            char c = s.charAt(i);
-            switch (c) {
-                case '\\': sb.append("\\\\"); break;
-                case '"': sb.append("\\\""); break;
-                case '\b': sb.append("\\b"); break;
-                case '\f': sb.append("\\f"); break;
-                case '\n': sb.append("\\n"); break;
-                case '\r': sb.append("\\r"); break;
-                case '\t': sb.append("\\t"); break;
-                default:
-                    if (c < 0x20) sb.append(String.format("\\u%04x",(int)c));
-                    else sb.append(c);
-            }
-        }
-        sb.append("\"");
-        return sb.toString();
-    }
 
-    protected static String urlEnc(String s) {
-        try { return java.net.URLEncoder.encode(s, "UTF-8"); }
-        catch (Exception e) { return s; }
-    }
 
     protected static String now() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());

@@ -1,4 +1,4 @@
-package org.newdawn.spaceinvaders;
+package org.newdawn.spaceinvaders.Screen;
 
 import java.awt.*;
 

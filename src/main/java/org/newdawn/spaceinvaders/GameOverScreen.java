@@ -1,8 +1,10 @@
 package org.newdawn.spaceinvaders;
 
+import org.newdawn.spaceinvaders.Screen.Screen;
+import org.newdawn.spaceinvaders.Screen.StageSelectScreen;
+
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 public class GameOverScreen implements Screen {

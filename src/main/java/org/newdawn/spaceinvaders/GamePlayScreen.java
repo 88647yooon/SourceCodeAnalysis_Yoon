@@ -1,14 +1,13 @@
 package org.newdawn.spaceinvaders;
 
+import org.newdawn.spaceinvaders.Screen.Screen;
 import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.ShipEntity;
-import org.newdawn.spaceinvaders.PlayerSkills;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 
-public class GamePlayScreen implements Screen{
+public class GamePlayScreen implements Screen {
     private Game game;
     private BackgroundRenderer backgroundRenderer;
     /**HUDRenderer필드 추가**/
@@ -38,7 +37,7 @@ public class GamePlayScreen implements Screen{
     @Override
     public void render(Graphics2D g){
         // 웨이브별 배경 (10 웨이브마다 교체)
-        backgroundRenderer.render(g, game.waveCount, 800, 600);
+        backgroundRenderer.render(g, game.getWaveCount(), 800, 600);
 
         // 엔티티 그리기
         for (Entity e : game.getEntities()) {

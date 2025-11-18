@@ -1,10 +1,13 @@
 package org.newdawn.spaceinvaders;
+import org.newdawn.spaceinvaders.DataBase.ScoreEntry;
+import org.newdawn.spaceinvaders.Screen.Screen;
+
 import java.awt.*;
 import java.util.List;
 
 public class ScoreboardScreen implements Screen {
     private final Game game;
-    private List<Game.ScoreEntry> scores;
+    private List<ScoreEntry> scores;
     private boolean showGlobal = true; //  글로벌/내 점수 전환 플래그
 
     public ScoreboardScreen(Game game) {
@@ -14,9 +17,9 @@ public class ScoreboardScreen implements Screen {
 
     public void reloadScores() {
         if (showGlobal) {
-            this.scores = Game.fetchGlobalTopScores(20);
+            this.scores = game.fetchGlobalTopScores(20);
         } else {
-            this.scores = Game.fetchMyTopScores(20);
+            this.scores = game.fetchMyTopScores(20);
         }
     }
 
@@ -41,20 +44,20 @@ public class ScoreboardScreen implements Screen {
         g.setFont(new Font("Monospaced", Font.PLAIN, 16));
         int y = startY + 30;
         for (int i = 0; i < scores.size(); i++) {
-            Game.ScoreEntry s = scores.get(i);
+            ScoreEntry s = scores.get(i);
 
             // 이메일에서 @앞부분 추출
             String user = "-";
-            if (s.email != null && s.email.contains("@")) {
-                user = s.email.substring(0, s.email.indexOf("@"));
+            if (s.getEmail() != null && s.getEmail().contains("@")) {
+                user = s.getEmail().substring(0, s.getEmail().indexOf("@"));
             }
 
             String line = String.format("%-6s %-12s %-8s %-10s %-20s",
                     (i+1),
                     user,
-                    (s.score==null?0:s.score),
-                    (s.mode==null?"-":s.mode),
-                    ((s.durationMs==null?0:s.durationMs) + " / " + (s.timestamp==null?"-":s.timestamp))
+                    (s.getScore()==null?0:s.getScore()),
+                    (s.getMode()==null?"-":s.getMode()),
+                    ((s.getDurationMs()==null?0:s.getDurationMs()) + " / " + (s.getTimestamp()==null?"-":s.getTimestamp()))
             );
             g.drawString(line, 80, y);
             y += 28;

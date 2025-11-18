@@ -1,7 +1,9 @@
 package org.newdawn.spaceinvaders;
 
+import org.newdawn.spaceinvaders.Screen.Screen;
+import org.newdawn.spaceinvaders.Screen.StageSelectScreen;
+
 import javax.imageio.ImageIO;
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;

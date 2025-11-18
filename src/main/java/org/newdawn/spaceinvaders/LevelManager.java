@@ -5,20 +5,24 @@ import java.io.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.newdawn.spaceinvaders.DataBase.DatabaseClient;
+import org.newdawn.spaceinvaders.DataBase.FirebaseDatabaseClient;
 
 public class LevelManager {
-    public static void saveSkills(String uid, String idToken, PlayerSkills s) {
+
+    public static void saveSkills(DatabaseClient dbClient,String uid, String idToken, PlayerSkills s) {
         if (uid == null || idToken == null || s == null) {
             System.out.println(" saveSkills: uid/token/skills null");
             return;
         }
         try {
             String json = "{"
-                    + "\"atkLv\":"          + s.atkLv        + ","
-                    + "\"rofLv\":"          + s.rofLv        + ","
-                    + "\"dashLv\":"       + s.dashLv       + ","
+                    + "\"atkLv\":" + s.atkLv + ","
+                    + "\"rofLv\":" + s.rofLv + ","
+                    + "\"dashLv\":" + s.dashLv
                     + "}";
-            Game.restSetJson("users/" + uid + "/skills", idToken, json);
+
+            dbClient.put("users/" + uid + "/skills", idToken, json);
             System.out.println("스킬 저장: " + json);
         } catch (Exception e) {
             System.err.println("스킬 저장 실패: " + e.getMessage());
@@ -31,8 +35,8 @@ public class LevelManager {
             return;
         }
         try {
-            String endpoint = dbUrl + "/users/" + uid + "/skills.json?auth=" + Game.urlEnc(idToken);
-            String res = Game.httpGet(endpoint);
+            String endpoint = dbUrl + "/users/" + uid + "/skills.json?auth=" + FirebaseDatabaseClient.urlEnc(idToken);
+            String res = FirebaseDatabaseClient.httpGet(endpoint);
             if (res == null || res.equals("null")) {
                 System.out.println(" 스킬 데이터 없음 → 기본값 사용");
                 return;
@@ -68,8 +72,8 @@ public class LevelManager {
         }
 
         try {
-            String endpoint = dbUrl + "/users/" + uid + "/lastLevel.json?auth=" + Game.urlEnc(idToken);
-            String res = Game.httpGet(endpoint);
+            String endpoint = dbUrl + "/users/" + uid + "/lastLevel.json?auth=" + FirebaseDatabaseClient.urlEnc(idToken);
+            String res = FirebaseDatabaseClient.httpGet(endpoint);
 
             System.out.println("📡 요청 URL: " + endpoint);
             System.out.println("📥 응답 데이터: " + res);
@@ -97,7 +101,7 @@ public class LevelManager {
     }
 
     // 🔹 마지막 레벨 저장
-    public static void saveLastLevel(String uid, String idToken, int level, int xpIntoLevel) {
+    public static void saveLastLevel(DatabaseClient dbClient,String uid, String idToken, int level, int xpIntoLevel) {
         if (uid == null || idToken == null) {
             System.err.println("⚠️ UID 또는 TOKEN이 null → 저장 안 함");
             return;
@@ -107,7 +111,7 @@ public class LevelManager {
                     + "\"level\":" + level + ","
                     + "\"xpIntoLevel\":" + xpIntoLevel
                     + "}";
-            Game.restSetJson("users/" + uid + "/lastLevel", idToken, json);
+            dbClient.put("users/" + uid + "/lastLevel", idToken, json);
             System.out.println("✅ 마지막 레벨 저장 완료 → " + json);
         } catch (Exception e) {
             System.err.println("⚠️ 레벨 저장 실패: " + e.getMessage());

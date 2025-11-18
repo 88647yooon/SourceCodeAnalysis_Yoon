@@ -321,7 +321,7 @@ public class ShipEntity extends Entity {
             return;
         }
         try {
-            LevelManager.saveSkills(Game.SESSION_UID, Game.SESSION_ID_TOKEN, skills);
+            LevelManager.saveSkills(game.getDbClient(), Game.SESSION_UID, Game.SESSION_ID_TOKEN, skills);
         } catch (Exception e) {
             System.err.println(" ShipEntity: 스킬 저장 실패 - " + e.getMessage());
         }

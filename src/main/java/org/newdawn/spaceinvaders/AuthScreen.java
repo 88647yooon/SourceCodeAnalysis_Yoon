@@ -1,8 +1,10 @@
 package org.newdawn.spaceinvaders;
 
+import org.newdawn.spaceinvaders.DataBase.FirebaseDatabaseClient;
+import org.newdawn.spaceinvaders.Screen.Screen;
+
 import java.awt.*;
 import java.awt.event.KeyEvent;
-import java.util.Map;
 
 public class AuthScreen implements Screen {
     private final Game game;
@@ -97,11 +99,12 @@ public class AuthScreen implements Screen {
                 }
                 ar = Game.restSignUp(email.trim(), password);
                 // 기본 프로필 저장
-                Game.restSetJson("users/" + ar.localId + "/profile", ar.idToken,
-                        "{\"email\":" + Game.quote(ar.email) + ",\"createdAt\":" + Game.quote(Game.now()) + "}");
+                String profileJson = "{\"email\":" + FirebaseDatabaseClient.quote(ar.email) + ",\"createdAt\":" + FirebaseDatabaseClient.quote(Game.now()) + "}";
+                game.getDbClient().put("users/" + ar.localId + "/profile", ar.idToken, profileJson);
             } else {
                 ar = Game.restSignIn(email.trim(), password);
             }
+
             //로그인/회원가입 성공 시
             Game.SESSION_UID = ar.localId;
             Game.SESSION_EMAIL = ar.email;

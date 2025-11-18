@@ -1,10 +1,12 @@
-package org.newdawn.spaceinvaders;
+package org.newdawn.spaceinvaders.Screen;
+
+import org.newdawn.spaceinvaders.Game;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 
-public class StageSelectScreen implements Screen{
+public class StageSelectScreen implements Screen {
     private Game game;
 
     private final int MaxStage = 5;
