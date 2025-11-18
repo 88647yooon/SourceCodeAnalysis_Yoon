@@ -66,6 +66,9 @@ public class Game extends Canvas {
     private final GameDatabaseService gameDb = new GameDatabaseService(dbClient);
     private AuthSession session; // 기존 SESSION_UID , EMAIL, ID_TOKEN 대체
 
+    private final FirebaseAuthService authService = new FirebaseAuthService(API_KEY);
+    public FirebaseAuthService getAuthService() { return authService; }
+
     public AuthSession getSession(){ return session; }
     public DatabaseClient getDbClient(){ return dbClient; }
     public GameDatabaseService getGameDb(){ return gameDb; }
@@ -972,41 +975,6 @@ public class Game extends Canvas {
         }
     }
 
-    protected static AuthResult restSignUp(String email, String password) throws Exception {
-        String endpoint = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" + API_KEY;
-        String body = "{"
-                + "\"email\":" + FirebaseDatabaseClient.quote(email) + ","
-                + "\"password\":" + FirebaseDatabaseClient.quote(password) + ","
-                + "\"returnSecureToken\":true"
-                + "}";
-        String res = FirebaseDatabaseClient.httpPostJson(endpoint, body);
-        String idToken = jget(res, "idToken");
-        String refreshToken = jget(res, "refreshToken");
-        String localId = jget(res, "localId");
-        String emailOut = jget(res, "email");
-        if (idToken == null || localId == null) throw new RuntimeException("SignUp parse failed: " + res);
-        return new AuthResult(idToken, refreshToken, localId, emailOut);
-    }
-
-    protected static AuthResult restSignIn(String email, String password) throws Exception {
-        String endpoint = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + API_KEY;
-        String body = "{"
-                + "\"email\":" + FirebaseDatabaseClient.quote(email) + ","
-                + "\"password\":" + FirebaseDatabaseClient.quote(password) + ","
-                + "\"returnSecureToken\":true"
-                + "}";
-        String res = FirebaseDatabaseClient.httpPostJson(endpoint, body);
-        String idToken = jget(res, "idToken");
-        String refreshToken = jget(res, "refreshToken");
-        String localId = jget(res, "localId");
-        String emailOut = jget(res, "email");
-        if (idToken == null || localId == null) throw new RuntimeException("SignIn parse failed: " + res);
-        return new AuthResult(idToken, refreshToken, localId, emailOut);
-    }
-
-    // =========================
-    // 🗄️ Realtime Database (REST)
-    // =========================
 
     // 미니 JSON 유틸
     // =========================
@@ -1024,50 +992,6 @@ public class Game extends Canvas {
             if (is != null) try { is.close(); } catch (Exception ignore) {}
         }
     }
-
-    /** 매우 단순한 "키:문자열" 추출(필요 필드만) */
-    public static String jget(String json, String key) {
-        String k = "\"" + key.replace("\"","\\\"") + "\"";
-        int i = json.indexOf(k);
-        if (i < 0) return null;
-        i = json.indexOf(':', i);
-        if (i < 0) return null;
-        i++;
-        while (i < json.length() && Character.isWhitespace(json.charAt(i))) i++;
-        if (i >= json.length() || json.charAt(i) != '"') return null;
-        i++;
-        StringBuilder sb = new StringBuilder();
-        while (i < json.length()) {
-            char c = json.charAt(i++);
-            if (c == '\\') {
-                if (i >= json.length()) break;
-                char n = json.charAt(i++);
-                switch (n) {
-                    case '\\': sb.append('\\'); break;
-                    case '"':  sb.append('"');  break;
-                    case 'n':  sb.append('\n'); break;
-                    case 'r':  sb.append('\r'); break;
-                    case 't':  sb.append('\t'); break;
-                    case 'b':  sb.append('\b'); break;
-                    case 'f':  sb.append('\f'); break;
-                    case 'u':
-                        if (i+3 < json.length()) {
-                            String hex = json.substring(i, i+4);
-                            try { sb.append((char)Integer.parseInt(hex,16)); } catch (Exception ignore) {}
-                            i += 4;
-                        }
-                        break;
-                    default: sb.append(n); break;
-                }
-            } else if (c == '"') {
-                break;
-            } else {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
-
 
 
     protected static String now() {

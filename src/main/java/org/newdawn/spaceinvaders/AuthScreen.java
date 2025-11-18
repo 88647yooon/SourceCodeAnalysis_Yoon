@@ -1,5 +1,6 @@
 package org.newdawn.spaceinvaders;
 
+import org.newdawn.spaceinvaders.DataBase.FirebaseAuthService;
 import org.newdawn.spaceinvaders.DataBase.FirebaseDatabaseClient;
 import org.newdawn.spaceinvaders.Screen.Screen;
 
@@ -91,18 +92,22 @@ public class AuthScreen implements Screen {
 
     private void tryAuth() {
         try {
-            Game.AuthResult ar;
+            FirebaseAuthService.AuthResult ar;
+
             if (signupMode) {
                 if (!password.equals(password2)) {
                     message = "비밀번호가 일치하지 않습니다!";
                     return;
                 }
-                ar = Game.restSignUp(email.trim(), password);
+                ar = game.getAuthService().signUp(email.trim(), password);
                 // 기본 프로필 저장
-                String profileJson = "{\"email\":" + FirebaseDatabaseClient.quote(ar.email) + ",\"createdAt\":" + FirebaseDatabaseClient.quote(Game.now()) + "}";
+                String profileJson = "{"
+                        + "\"email\":"     + FirebaseDatabaseClient.quote(ar.email) +","
+                        + "\"createdAt\":" + FirebaseDatabaseClient.quote(Game.now())
+                        + "}";
                 game.getDbClient().put("users/" + ar.localId + "/profile", ar.idToken, profileJson);
             } else {
-                ar = Game.restSignIn(email.trim(), password);
+                ar = game.getAuthService().signIn(email.trim(), password);
             }
 
             //로그인/회원가입 성공 시
