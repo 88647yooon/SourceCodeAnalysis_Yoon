@@ -1,5 +1,6 @@
 package org.newdawn.spaceinvaders;
 
+import org.newdawn.spaceinvaders.DataBase.AuthSession;
 import org.newdawn.spaceinvaders.DataBase.FirebaseAuthService;
 import org.newdawn.spaceinvaders.DataBase.FirebaseDatabaseClient;
 import org.newdawn.spaceinvaders.Screen.Screen;
@@ -109,6 +110,9 @@ public class AuthScreen implements Screen {
             } else {
                 ar = game.getAuthService().signIn(email.trim(), password);
             }
+
+            AuthSession s = new AuthSession(ar.localId, ar.email, ar.idToken);
+            game.setSession(s);
 
             //로그인/회원가입 성공 시
             Game.SESSION_UID = ar.localId;

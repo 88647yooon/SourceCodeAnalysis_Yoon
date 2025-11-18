@@ -72,7 +72,7 @@ public class Game extends Canvas {
     public AuthSession getSession(){ return session; }
     public DatabaseClient getDbClient(){ return dbClient; }
     public GameDatabaseService getGameDb(){ return gameDb; }
-    private void setSession(AuthSession session){ this.session = session; }
+    public void setSession(AuthSession session){ this.session = session; }
     private boolean hasSession(){ return session != null && session.isLoggedIn(); }
 
 	/** 페이지 넘김을 가속화 할 수 있는 전략 */
@@ -919,7 +919,7 @@ public class Game extends Canvas {
             }
 
             if (e.getKeyChar() == 27) { // ESC
-                if (score > 0 && SESSION_UID != null && SESSION_ID_TOKEN != null) {
+                if (score > 0 && hasSession()) {
                     System.out.println("[ESC] 중간 점수 업로드: score=" + score);
                     uploadScoreIfLoggedIn();
                 }
