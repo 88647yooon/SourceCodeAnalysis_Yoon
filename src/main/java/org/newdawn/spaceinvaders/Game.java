@@ -199,7 +199,7 @@ public class Game extends Canvas {
         initStageUnlocks();
         initEntities();
 
-        SoundManager.get().setSfxVolume(-15.0f);
+        SoundManager.get().setSfxVolume(-15.0f);// 전체 효과음 볼륨 설정
     }
 
     /**
@@ -638,7 +638,37 @@ public class Game extends Canvas {
      * - 전멸 시 모드/보스 여부에 따라 웨이브/승리 분기
      * - 생존 Alien 수평 속도 2% 가속
      */
-    public void notifyAlienKilled() {
+
+    /**
+     * [리팩토링 - 신규 메소드]
+     * * AlienEntity로부터 외계인이 사망했음을 알림받는 중앙 처리 메소드.
+     * 기존 notifyAlienKilled()의 로직과 ShotEntity에 있던 XP, 엔티티 제거 로직을
+     * 이곳에서 모두 통합하여 처리합니다. (SRP, 캡슐화)
+     *
+     * @param alien 사망한 외계인 엔티티
+     */
+
+    public void onAlienKilled(AlienEntity alien) {
+
+        // --- 1. (구 ShotEntity) XP 계산 및 지급 로직 ---
+        int xp = 5; // 기본 XP
+        if (alien instanceof RangedAlienEntity) {
+            xp = 8;
+        } else if (alien instanceof DiagonalShooterAlienEntity) {
+            xp = 10;
+        }
+
+        ShipEntity player = getPlayerShip();
+        if (player != null) {
+            player.addXp(xp); // 플레이어에게 XP 지급
+        }
+
+        // --- 2. (구 ShotEntity) 엔티티 제거 로직 ---
+        if (entities.contains(alien)) {
+            removeEntity(alien);
+        }
+
+        // --- 3. (구 notifyAlienKilled) 점수 및 카운트 갱신 로직 ---
         score += 100;
         alienCount--;
         if (alienCount < 0) alienCount = 0;
@@ -646,6 +676,7 @@ public class Game extends Canvas {
 
         dangerMode = (getPlayerShip().getCurrentHP() < 2);
 
+        // --- 4. (구 notifyAlienKilled) 다음 웨이브/보스 처리 로직 ---
         if (alienCount == 0) {
             if (infiniteMode) {
                 if (!bossActive) {
@@ -657,21 +688,25 @@ public class Game extends Canvas {
                         spawnAliens();
                     }
                 }
-                return;
+                return; // 보스전 중에는 아래 로직 스킵
             } else {
+                // 스테이지 모드
                 if (!bossActive) {
                     if (currentStageId == 5) {
-                        spawnBoss();
+                        spawnBoss(); // 스테이지 5이고, 잡몹이 다 죽었으면 보스 스폰
                     } else {
-                        notifyWin();
+                        notifyWin(); // 그 외 스테이지는 잡몹 다 잡으면 승리
                     }
                 }
+                // (참고: 보스 사망은 onBossKilled()에서 별도 처리됨)
             }
         }
 
+        // --- 5. (구 notifyAlienKilled) 남은 적 속도 증가 로직 ---
         for (int i = 0; i < entities.size(); i++) {
             Entity entity = entities.get(i);
             if (entity instanceof AlienEntity) {
+                // (보스 제외 - 보스는 AlienEntity가 아님, BossEntity임)
                 entity.setHorizontalMovement(entity.getHorizontalMovement() * 1.02);
             }
         }
@@ -686,7 +721,7 @@ public class Game extends Canvas {
         ShotEntity shot = new ShotEntity(this, "sprites/shot.gif", ship.getX() + 10, ship.getY() - 30);
         entities.add(shot);
 
-        SoundManager.get().playSfx(SoundManager.Sfx.SHOOT);
+        SoundManager.get().playSfx(SoundManager.Sfx.SHOOT); //플레이어 총소리
     }
 
     /** 플레이어 피격 이벤트(로그 출력) */
@@ -906,16 +941,16 @@ public class Game extends Canvas {
 
         if (currentScreen instanceof GamePlayScreen) {
             if (currentMode == Mode.STAGE && currentStageId == 5) {
-                System.out.println("[BGM] BOSS (Stage 5)");
+                System.out.println("[BGM] BOSS (Stage 5)"); //보스전 bgm
                 sm.play(SoundManager.Bgm.BOSS);
             } else {
-                System.out.println("[BGM] STAGE");
+                System.out.println("[BGM] STAGE"); //일반 스테이지 bgm
                 sm.play(SoundManager.Bgm.STAGE);
             }
             return;
         }
 
-        System.out.println("[BGM] MENU (fallback)");
+        System.out.println("[BGM] MENU (fallback)"); //기본값
         sm.play(SoundManager.Bgm.MENU);
     }
 

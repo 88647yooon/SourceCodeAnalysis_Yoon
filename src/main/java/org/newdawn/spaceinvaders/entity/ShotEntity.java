@@ -74,37 +74,18 @@ public class ShotEntity extends Entity {
     public void collidedWith(Entity other) {
         if (used) return;
 
+        //충돌 대상이 AlienEntity인지 확인
         if (other instanceof AlienEntity) {
-            AlienEntity alien = (AlienEntity) other;
+
 
             // 탄은 소모
             used = true;
             game.removeEntity(this);
 
-            // 데미지 1 주고 사망 여부 판정
-            boolean dead = alien.takeDamage(1);
-            if (dead) {
-                // XP는 '실제로 내가 제거하는' 쪽에서만 1번 지급
-                if (game.getEntities().contains(other)) {
-                    // 종류별 XP
-                    int xp = 5; // 기본: 일반
-                    if (other instanceof RangedAlienEntity) {
-                        xp = 8;
-                    } else if (other instanceof DiagonalShooterAlienEntity) {
-                        xp = 10;
-                    }
+            //XP,점수, 외계인 제거 로직은 AlienEntity와 Game의 책임으로 이동
+            AlienEntity alien = (AlienEntity) other;
+            alien.wasHitBy(this);
 
-                    // 플레이어에게 XP 지급
-                    ShipEntity player = game.getPlayerShip();
-                    if (player != null) {
-                        player.addXp(xp);
-                    }
-
-                    // 제거 + 카운트
-                    game.removeEntity(other);
-                    game.notifyAlienKilled();
-                }
-            }
             return;
         }
     }

@@ -3,6 +3,7 @@ package org.newdawn.spaceinvaders.entity;
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * An entity which represents one of our space invader aliens.
@@ -13,7 +14,7 @@ public class AlienEntity extends Entity {
 	/** The speed at which the alient moves horizontally */
 	private final double moveSpeed = 75;
 	/** The game in which the entity exists */
-	private final Game game;
+	protected final Game game;
 	/** The animation frames */
 	private final Sprite[] frames = new Sprite[4];
 	/** The time since the last frame change took place */
@@ -26,10 +27,20 @@ public class AlienEntity extends Entity {
     //최대 체력과 현재 체력
     private int maxHP = 1;
     private int currentHP=1;
-    private boolean dead = false;
     /** 웨이브에 따라 외계인 이동 속도를 키울 때 사용하는 배수 (1.0 = 기본) */
     private double speedMul = 1.0;
 
+    // --- [리팩토링 - 신규 필드 (자식 클래스에서 Pull Up)] ---
+    /** 마지막 발사 시각 (ms) */
+    private long lastShotAt = 0L;
+    /** 기본 발사 쿨다운 (ms) - 기본값은 발사 안 함 */
+    private long baseCooldownMs = Long.MAX_VALUE;
+    /** 쿨다운 랜덤 지터 (ms) */
+    private long cooldownJitterMs = 0;
+    /** 난이도: 발사 속도 배수 (1.0 = 100%) */
+    private double fireRateMul = 1.0;
+    /** 난이도: 탄속 배수 (1.0 = 100%) */
+    private double bulletSpeedMul = 1.0;
 
     /**
 	 * Create a new alien entity
@@ -109,6 +120,9 @@ public class AlienEntity extends Entity {
 		
 		// proceed with normal move
 		super.move(delta);
+
+        checkFire(delta);
+
 	}
 	
 	/**
@@ -158,6 +172,94 @@ public class AlienEntity extends Entity {
 	 */
     @Override
 	public void collidedWith(Entity other) {
-        //플레이어 탄환과의 충돌은 shotEntity에서 처리, 여기서는 아무것도 안함
+        // [리팩토링]
+        // 플레이어 탄환(ShotEntity)과의 충돌은 ShotEntity가 감지하여
+        // 이 클래스의 wasHitBy()를 호출하는 방식으로 변경되었습니다.
+
+        // 이 메소드는 플레이어 함선(ShipEntity) 등 다른 엔티티와의 충돌을 처리합니다.
+        // (현재 ShipEntity가 Alien과 충돌 시 스스로 damage를 입으므로 여기선 비워둡니다)
 	}
+
+    /**
+     * [리팩토링 - 신규 메소드]
+     * ShotEntity로부터 "맞았다"는 알림을 받는 메소드.
+     * 캡슐화 원칙에 따라, 피격 처리는 AlienEntity가 스스로 담당합니다.
+     *
+     * @param shot A-Me-를 맞춘 플레이어의 총알
+     */
+    public void wasHitBy(ShotEntity shot) {
+        // 1. 총알로부터 데미지를 받아와 스스로의 체력을 깎음
+        boolean isDead = this.takeDamage(shot.getDamage());
+
+        // 2. 만약 이 피격으로 인해 죽었다면,
+        if (isDead) {
+            // 3. 'Game' 객체에게 "내가 죽었다"고 알림.
+            //    (점수, XP, 엔티티 제거 등 모든 게임 규칙은 Game 클래스가 처리)
+            game.onAlienKilled(this); // 'this'는 이 AlienEntity 인스턴스 자신
+        }
+    }
+
+    /** 리팩토링
+     * [신규] 자식 클래스가 발사 주기를 설정하기 위한 메소드 (protected)
+     */
+    protected void setFireCooldown(long baseMs, long jitterMs) {
+        this.baseCooldownMs = baseMs;
+        this.cooldownJitterMs = jitterMs;
+    }
+    /**
+     * [신규] 템플릿 메소드: 발사 타이머 로직 (공통)
+     * 이 메소드는 final이므로 자식 클래스가 오버라이드할 수 없습니다.
+     */
+    protected final void checkFire(long delta) {
+        // 쿨다운이 너무 길면 (기본값) 발사 기능이 없는 것으로 간주
+        if (baseCooldownMs > 900000) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+
+        // [중복 코드] 난이도 배수 적용
+        long effectiveCooldown = Math.max(200, (long)(baseCooldownMs / fireRateMul));
+        long effectiveJitter   = Math.max(0,   (long)(cooldownJitterMs / fireRateMul));
+        long nextWindow = lastShotAt
+                + effectiveCooldown
+                + ThreadLocalRandom.current().nextLong(effectiveJitter + 1);
+
+        // [중복 코드] 시간 비교
+        if (now >= nextWindow) {
+            // [분리된 부분] 실제 발사 로직은 자식에게 위임
+            performFire();
+            lastShotAt = now;
+        }
+    }
+
+    /**
+     * [신규] Hook 메소드: 실제 발사 로직 (자식이 오버라이드)
+     * 기본 Alien은 아무것도 하지 않습니다.
+     */
+    protected void performFire() {
+        // Do nothing (Ranged, Diagonal 등이 이 메소드를 오버라이드)
+    }
+
+    /**
+     * [신규] 난이도 설정을 위해 Pull Up (자식 클래스에서 이동)
+     */
+    public void setFireRateMultiplier(double mul) {
+        this.fireRateMul = Math.max(0.25, mul); // 하한 보호
+    }
+
+    /**
+     * [신규] 난이도 설정을 위해 Pull Up (자식 클래스에서 이동)
+     */
+    public void setBulletSpeedMultiplier(double mul) {
+        this.bulletSpeedMul = Math.max(0.5, mul);
+    }
+
+    /**
+     * [신규] 자식 클래스가 탄속 배수를 참조할 수 있도록 getter 제공 (protected)
+     */
+    protected double getBulletSpeedMultiplier() {
+        return this.bulletSpeedMul;
+    }
+    // --- [리팩토링 끝] ---
 }

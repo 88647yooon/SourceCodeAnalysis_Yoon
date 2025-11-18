@@ -18,12 +18,12 @@ public class Sprite {
 	
 	/**
 	 * Create a new sprite based on an image
-	 * 
+	 *
 	 * @param image The image that is this sprite
 	 */
 	public Sprite(Image image) {
-		this.image = image;
-	}
+        this.image = image;
+    }
 	
 	/**
 	 * Get the width of the drawn sprite
