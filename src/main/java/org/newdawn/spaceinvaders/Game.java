@@ -937,12 +937,14 @@ public class Game extends Canvas {
         return gameDb.fetchMyTopScores(session, limit);
     }
 
+
     public List<ScoreEntry> fetchGlobalTopScores(int limit) {
         if (session == null || !session.isLoggedIn()) {
             return Collections.emptyList();
         }
         return gameDb.fetchGlobalTopScores(session, limit);
     }
+
 
 
     /** 간단 로그(Realtime DB) */
@@ -966,34 +968,6 @@ public class Game extends Canvas {
         c.gridx = x; c.gridy = y; c.insets = new java.awt.Insets(5, 5, 5, 5);
         c.anchor = java.awt.GridBagConstraints.WEST; c.fill = java.awt.GridBagConstraints.HORIZONTAL;
         return c;
-    }
-
-    // =========================
-    // 🌐 Firebase Auth (REST)
-    // =========================
-    protected static class AuthResult {
-        final String idToken, refreshToken, localId, email;
-        AuthResult(String idToken, String refreshToken, String localId, String email) {
-            this.idToken = idToken; this.refreshToken = refreshToken; this.localId = localId; this.email = email;
-        }
-    }
-
-
-    // 미니 JSON 유틸
-    // =========================
-
-    protected static String readFully(InputStream is, String charset) throws Exception {
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            byte[] buf = new byte[4096];
-            int len;
-            while ((len = is.read(buf)) != -1) {
-                baos.write(buf, 0, len);
-            }
-            return baos.toString(charset);
-        } finally {
-            if (is != null) try { is.close(); } catch (Exception ignore) {}
-        }
     }
 
 
