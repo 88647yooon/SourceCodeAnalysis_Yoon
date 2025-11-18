@@ -519,8 +519,12 @@ public class Game extends Canvas {
         message = "";
         menuIndex = 0;
 
-        if (!hasSession()) {
-            LevelManager.saveLastLevel(getDbClient(), session.getUid(), session.getIdToken(), getPlayerShip().getLevel(), getPlayerShip().getXpIntoLevel());
+        if (hasSession()) {
+            ShipEntity ship = getPlayerShip();
+            if (ship != null) {
+                LevelManager.saveLastLevel(getDbClient(), session.getUid(), session.getIdToken(), getPlayerShip().getLevel(), getPlayerShip().getXpIntoLevel());
+            }
+
         }
 
         setScreen(new GameOverScreen(this));
@@ -551,8 +555,11 @@ public class Game extends Canvas {
 
         }
 
-        if (!hasSession()) {
-            LevelManager.saveLastLevel(getDbClient(),session.getUid(), session.getIdToken(), getPlayerShip().getLevel(), getPlayerShip().getXpIntoLevel());
+        if (hasSession()) {
+            ShipEntity ship = getPlayerShip();
+            if (ship != null) {
+                LevelManager.saveLastLevel(getDbClient(),session.getUid(), session.getIdToken(), getPlayerShip().getLevel(), getPlayerShip().getXpIntoLevel());
+            }
         }
         uploadScoreIfLoggedIn();
     }
