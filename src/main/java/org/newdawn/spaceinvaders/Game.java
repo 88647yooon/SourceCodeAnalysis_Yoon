@@ -575,6 +575,9 @@ public class Game extends Canvas {
         return Collections.unmodifiableList(entities);
     }
 
+    List<Entity> getMutableEntities() {
+        return entities;
+    }
     public boolean isWaitingForKeyPress() {
         return waitingForKeyPress;
     }

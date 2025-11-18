@@ -16,7 +16,7 @@ public final class StageManager {
     public static void applyStage(int stageNum, Game game) {
         // 1) 기존 엔티티 중 플레이어만 남기고 정리
         ShipEntity ship = game.getPlayerShip();
-        List<Entity> list = game.getEntities();
+        List<Entity> list = game.getMutableEntities();
 
         // 여기서 바로 list.clear() 후 ship만 다시 넣어도 되지만,
         // 혹시 모를 참조 안정성을 위해 removeIf로 정리
