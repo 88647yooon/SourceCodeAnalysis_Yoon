@@ -1,8 +1,5 @@
 package org.newdawn.spaceinvaders;
 
-import org.newdawn.spaceinvaders.DataBase.AuthSession;
-import org.newdawn.spaceinvaders.DataBase.FirebaseAuthService;
-import org.newdawn.spaceinvaders.DataBase.FirebaseDatabaseClient;
 import org.newdawn.spaceinvaders.Screen.Screen;
 
 import java.awt.*;
@@ -10,6 +7,7 @@ import java.awt.event.KeyEvent;
 
 public class AuthScreen implements Screen {
     private final Game game;
+    private AuthController authController;
 
     private boolean signupMode = false; // false=로그인, true=회원가입
     private String email = "";
@@ -17,22 +15,40 @@ public class AuthScreen implements Screen {
     private String password2 = ""; // 회원가입용
     private String message = "";
     private int fieldIndex = 0; // 0=email, 1=password, 2=password2 (회원가입 모드만)
-
     public AuthScreen(Game game) {
         this.game = game;
+        authController = new AuthController(game, this);
+    }
+    public boolean getSignupMode() {
+        return signupMode;
+    }
+    public String getEmail(){
+        return email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public String getPassword2() {
+        return password2;
+    }
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     @Override
     public void render(Graphics2D g) {
+        final String dialog = "Dialog";
         g.setColor(Color.black);
         g.fillRect(0, 0, 800, 600);
 
         g.setColor(Color.white);
-        g.setFont(new Font("Dialog", Font.BOLD, 28));
+        g.setFont(new Font(dialog , Font.BOLD, 28));
         String title = signupMode ? "회원가입" : "로그인";
         g.drawString(title, (800 - g.getFontMetrics().stringWidth(title)) / 2, 100);
 
-        g.setFont(new Font("Dialog", Font.PLAIN, 20));
+        g.setFont(new Font(dialog, Font.PLAIN, 20));
         g.drawString("이메일: " + email + (fieldIndex == 0 ? "_" : ""), 200, 200);
         g.drawString("비밀번호: " + mask(password) + (fieldIndex == 1 ? "_" : ""), 200, 240);
 
@@ -40,7 +56,7 @@ public class AuthScreen implements Screen {
             g.drawString("비밀번호 확인: " + mask(password2) + (fieldIndex == 2 ? "_" : ""), 200, 280);
         }
 
-        g.setFont(new Font("Dialog", Font.PLAIN, 16));
+        g.setFont(new Font(dialog, Font.PLAIN, 16));
         g.drawString("[Enter] 확인 | [Tab] 로그인/회원가입 전환 | ↑↓ 이동 | [ESC] 종료", 120, 360);
 
         if (!message.isEmpty()) {
@@ -70,7 +86,7 @@ public class AuthScreen implements Screen {
             return;
         }
         if (keyCode == KeyEvent.VK_ENTER) {
-            tryAuth();
+            authController.tryAuth();
             return;
         }
         if (keyCode == KeyEvent.VK_ESCAPE) {
@@ -84,58 +100,13 @@ public class AuthScreen implements Screen {
         if (keyCode == KeyEvent.VK_DOWN) {
             int max = signupMode ? 2 : 1;
             fieldIndex = Math.min(max, fieldIndex + 1);
-            return;
         }
     }
 
     @Override
     public void handleKeyRelease(int keyCode) {}
 
-    private void tryAuth() {
-        try {
-            FirebaseAuthService.AuthResult ar;
 
-            if (signupMode) {
-                if (!password.equals(password2)) {
-                    message = "비밀번호가 일치하지 않습니다!";
-                    return;
-                }
-                ar = game.getAuthService().signUp(email.trim(), password);
-                // 기본 프로필 저장
-                String profileJson = "{"
-                        + "\"email\":"     + FirebaseDatabaseClient.quote(ar.email) +","
-                        + "\"createdAt\":" + FirebaseDatabaseClient.quote(Game.now())
-                        + "}";
-                game.getDbClient().put("users/" + ar.localId + "/profile", ar.idToken, profileJson);
-            } else {
-                ar = game.getAuthService().signIn(email.trim(), password);
-            }
-
-            AuthSession s = new AuthSession(ar.localId, ar.email, ar.idToken);
-            game.setSession(s);
-
-            //로그인/회원가입 성공 시
-            Game.SESSION_UID = ar.localId;
-            Game.SESSION_EMAIL = ar.email;
-            Game.SESSION_ID_TOKEN = ar.idToken;
-
-            // 사용자별 별 기록 로드
-            game.loadStageStars();
-
-            int[] saved = LevelManager.loadLastLevel(Game.DB_URL, Game.SESSION_UID, Game.SESSION_ID_TOKEN);
-            game.getPlayerShip().setLevelAndXp(saved[0], saved[1]);
-            game.getPlayerShip().loadSkillsFromCloud();
-            System.out.println(" 로그인 후 레벨 복원 완료: Lv." + saved[0] + " (XP " + saved[1] + ")");
-
-
-            PlayerSkills ps = game.getPlayerShip().getSkills();
-            LevelManager.loadSkills(Game.DB_URL, Game.SESSION_UID, Game.SESSION_ID_TOKEN, ps);
-            message = (signupMode ? "회원가입" : "로그인") + " 성공!";
-            game.setScreen(new MenuScreen(game)); //  메뉴 화면으로 이동
-        } catch (Exception e) {
-            message = "실패: " + e.getMessage();
-        }
-    }
 
     // 키보드 문자 입력 처리 (Game.KeyInputHandler에서 호출해줘야 함)
     public void handleCharTyped(char c) {
