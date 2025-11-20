@@ -728,21 +728,24 @@ public class Game extends Canvas {
         }
     }
 
+    //남은 Alien들 속도 증가
+    private void speedUpAliens() {
+        for(int i=0; i< entities.size(); i++){
+            Entity entity = entities.get(i);
+            if(entity instanceof AlienEntity) {
+                entity.setHorizontalMovement(entity.getHorizontalMovement() + 1.02);
+            }
+        }
+    }
+
     public void onAlienKilled(AlienEntity alien) {
+
         PayXpForKill(alien); //XP 지급, 계산
         removeKilledAlien(alien); // 엔티티 제거
         updateScoreAndCount(); // 점수/카운트, dangerMode 갱신
         aliensCleared(); // 웨이브, 보스, 승리 처리
+        speedUpAliens(); //남은 적 속도 증가
 
-
-        // --- 5. (구 notifyAlienKilled) 남은 적 속도 증가 로직 ---
-        for (int i = 0; i < entities.size(); i++) {
-            Entity entity = entities.get(i);
-            if (entity instanceof AlienEntity) {
-                // (보스 제외 - 보스는 AlienEntity가 아님, BossEntity임)
-                entity.setHorizontalMovement(entity.getHorizontalMovement() * 1.02);
-            }
-        }
     }
 
     /** 발사 쿨다운을 만족하면 탄 1발 발사(SFX 포함) */
