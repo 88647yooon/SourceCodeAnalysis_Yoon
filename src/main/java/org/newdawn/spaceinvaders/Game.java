@@ -11,13 +11,8 @@ import java.awt.event.WindowEvent;
 import java.awt.image.BufferStrategy;
 
 import java.util.*;
-
 import java.text.SimpleDateFormat;
-
-import java.io.InputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
-
 import javax.swing.*;
 
 import org.newdawn.spaceinvaders.DataBase.*;
@@ -30,7 +25,6 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-
 
 /**
  * Game — Space Invaders 메인 오케스트레이션.
@@ -49,10 +43,11 @@ import com.google.firebase.database.FirebaseDatabase;
  *  - 시간: ms, 속도: px/s, 좌표: px
  *  - 싱글 스레드 전제. update/render 동안 블로킹 I/O 금지.
  */
+
 public class Game extends Canvas {
 
     // 인증/DB 관련 필드
-    private static final String API_KEY = "AIzaSyCdY9-wpF3Ad2DXkPTXGcqZEKWBD1qRYKE";
+    private final transient String API_KEY = "AIzaSyCdY9-wpF3Ad2DXkPTXGcqZEKWBD1qRYKE";
     public static final String DB_URL = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app";
     // Firebase Admin SDK 용 서비스 키
     private static final String DB_KEYFILE = "src/main/resources/serviceAccountKey.json";
@@ -62,11 +57,11 @@ public class Game extends Canvas {
     public static String SESSION_ID_TOKEN = null;
 
     // 세션/DB 의존성
-    private final DatabaseClient dbClient = new FirebaseDatabaseClient(DB_URL);
-    private final GameDatabaseService gameDb = new GameDatabaseService(dbClient);
-    private AuthSession session; // 기존 SESSION_UID , EMAIL, ID_TOKEN 대체
+    private final transient DatabaseClient dbClient = new FirebaseDatabaseClient(DB_URL);
+    private final transient GameDatabaseService gameDb = new GameDatabaseService(dbClient);
+    private transient AuthSession session; // 기존 SESSION_UID , EMAIL, ID_TOKEN 대체
 
-    private final FirebaseAuthService authService = new FirebaseAuthService(API_KEY);
+    private final transient FirebaseAuthService authService = new FirebaseAuthService(API_KEY);
     public FirebaseAuthService getAuthService() { return authService; }
 
     public AuthSession getSession(){ return session; }
@@ -76,16 +71,16 @@ public class Game extends Canvas {
     private boolean hasSession(){ return session != null && session.isLoggedIn(); }
 
 	/** 페이지 넘김을 가속화 할 수 있는 전략 */
-	private BufferStrategy strategy;
+	private final transient BufferStrategy strategy;
 	/** 게임이 현재 "실행 중"이라면, 즉 게임 루프가 반복되고 있습니다 */
-	private boolean gameRunning = true;
+	private final transient boolean gameRunning = true;
     /** 우리 게임에 존재하는 모든 엔티티 목록 */
-    private ArrayList<Entity> entities = new ArrayList<>();
+    private final transient ArrayList<Entity> entities = new ArrayList<>();
     /** 이 프레임에서 제거할 엔티티 큐 */
-    private ArrayList<Entity> removeList = new ArrayList<>();
+    private final transient ArrayList<Entity> removeList = new ArrayList<>();
 
     /** 플레이어(Ship) 엔티티 */
-    private Entity ship;
+    private transient Entity ship;
 
     /** Ship 이동 속도(px/s) */
     private double moveSpeed = 300;
@@ -125,9 +120,9 @@ public class Game extends Canvas {
     private JFrame container;
 
     /** 배경 렌더러 */
-    private BackgroundRenderer backgroundRenderer;
+    private transient BackgroundRenderer backgroundRenderer;
     /** 활성 화면 */
-    private Screen currentScreen;
+    private transient Screen currentScreen;
 
     // 모드/점수/스테이지
     private enum Mode { STAGE, INFINITE }
@@ -1019,7 +1014,7 @@ public class Game extends Canvas {
     }
 
     /** 엔트리 포인트: Firebase 초기화 → Game 생성/루프 실행 */
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
         try {
             FileInputStream serviceAccount = new FileInputStream(DB_KEYFILE);
 
