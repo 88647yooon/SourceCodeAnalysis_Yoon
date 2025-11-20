@@ -28,17 +28,14 @@ import com.google.firebase.database.FirebaseDatabase;
 
 /**
  * Game — Space Invaders 메인 오케스트레이션.
- *
  * 역할
  *  - 화면(Screen) 전환, 엔티티(Entity) 생명주기, 게임 루프, 점수/웨이브/스테이지 상태 관리.
- *
  * 프레임 순서(단일 스레드)
  *  1) currentScreen.update(deltaMs)
  *  2) render(g)  // 배경 → Screen 오버레이
  *  3) (레거시 경로인 경우) 엔티티 이동/충돌/doLogic
  *  4) ship 이동 벡터/발사 처리
  *  5) 10ms 슬립
- *
  * 단위/스레드
  *  - 시간: ms, 속도: px/s, 좌표: px
  *  - 싱글 스레드 전제. update/render 동안 블로킹 I/O 금지.
