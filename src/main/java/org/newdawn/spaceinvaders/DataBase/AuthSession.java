@@ -1,9 +1,13 @@
 package org.newdawn.spaceinvaders.DataBase;
 
-public final class AuthSession {
+import java.io.Serializable;
+
+public class AuthSession implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private final String uid;
     private final String email;
-    private final String idToken;
+    private transient final String idToken;
 
     public AuthSession(String uid, String email, String idToken) {
         this.uid = uid;
