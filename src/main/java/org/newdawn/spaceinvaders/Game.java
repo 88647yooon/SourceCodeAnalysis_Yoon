@@ -734,31 +734,6 @@ public class Game extends Canvas {
         updateScoreAndCount(); // 점수/카운트, dangerMode 갱신
         aliensCleared(); // 웨이브, 보스, 승리 처리
 
-        // --- 4. (구 notifyAlienKilled) 다음 웨이브/보스 처리 로직 ---
-        if (alienCount == 0) {
-            if (infiniteMode) {
-                if (!bossActive) {
-                    normalsClearedInCycle++;
-                    if (normalsClearedInCycle >= 3) {
-                        normalsClearedInCycle = 0;
-                        spawnBoss();
-                    } else {
-                        spawnAliens();
-                    }
-                }
-                return; // 보스전 중에는 아래 로직 스킵
-            } else {
-                // 스테이지 모드
-                if (!bossActive) {
-                    if (currentStageId == 5) {
-                        spawnBoss(); // 스테이지 5이고, 잡몹이 다 죽었으면 보스 스폰
-                    } else {
-                        notifyWin(); // 그 외 스테이지는 잡몹 다 잡으면 승리
-                    }
-                }
-                // (참고: 보스 사망은 onBossKilled()에서 별도 처리됨)
-            }
-        }
 
         // --- 5. (구 notifyAlienKilled) 남은 적 속도 증가 로직 ---
         for (int i = 0; i < entities.size(); i++) {
