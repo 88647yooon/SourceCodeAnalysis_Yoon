@@ -154,6 +154,10 @@ public class AlienEntity extends Entity {
         return currentHP <= 0;
     }
 
+    public int getCurrentHP() {
+        return currentHP;
+    }
+
     /** 수평 이동 속도 배수 적용 (좌/우 방향은 유지) */
     public void applySpeedMultiplier(double mul) {
         if (mul <= 0) return;
