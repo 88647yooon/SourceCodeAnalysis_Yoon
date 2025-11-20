@@ -643,20 +643,27 @@ public class Game extends Canvas {
      * @param alien 사망한 외계인 엔티티
      */
 
-    public void onAlienKilled(AlienEntity alien) {
 
-        // --- 1. (구 ShotEntity) XP 계산 및 지급 로직 ---
-        int xp = 5; // 기본 XP
-        if (alien instanceof RangedAlienEntity) {
-            xp = 8;
-        } else if (alien instanceof DiagonalShooterAlienEntity) {
-            xp = 10;
-        }
+    private void PayXpForKill(AlienEntity alien) {
+        int xp = calculateXpForAlien(alien);
 
         ShipEntity player = getPlayerShip();
-        if (player != null) {
-            player.getStats().addXp(xp); // 플레이어에게 XP 지급
+        if(player != null) {
+            player.getStats().addXp(xp);
         }
+    }
+
+    private int calculateXpForAlien(AlienEntity alien) {
+        if(alien instanceof RangedAlienEntity) {
+            return 8;
+        }
+        if(alien instanceof DiagonalShooterAlienEntity){
+            return 5;
+        }
+        return 5; // 기본 지급 xp
+    }
+
+    public void onAlienKilled(AlienEntity alien) {
 
         // --- 2. (구 ShotEntity) 엔티티 제거 로직 ---
         if (entities.contains(alien)) {
