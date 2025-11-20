@@ -42,6 +42,7 @@ public class BossEntity extends AlienEntity {
         private long phaseIntroMs = 1500;    // 전환 후 쉬는시간
         private long phaseHoldUntil = 0;     // 이 시각 전까지는 어떤 공격 패턴도 실행하지 않음
 
+        private long now;
 
         //  내부 지연 실행용 태스크 큐
         private static class Task {
@@ -71,50 +72,61 @@ public class BossEntity extends AlienEntity {
             //초기 페이즈 설정
             enterPhase(0);
         }
-    //보스 이동 로직
     @Override
     public void move(long delta) {
-        long now = System.currentTimeMillis();
+        this.now = System.currentTimeMillis(); // 공유 시간 업데이트
 
-        // 1.내부 태스트 실행
+        processTasks();                 // 1. 예약된 태스크 실행
+        updateAnimation();              // 2. 애니메이션 프레임 업데이트
+        handleMovementAndBoundaries();  // 3. 이동 및 화면 경계 처리
+        checkPhaseTransition();         // 4. HP 기반 페이즈 전환 체크
+        executeStrategy(delta);         // 5. 현재 공격 패턴 실행
+
+        super.move(delta);              // 6. 물리 이동 적용 (AlienEntity)
+    }
+
+    private void processTasks() {
         while (!tasks.isEmpty() && tasks.peek().executeAt <= now) {
             tasks.poll().r.run();
         }
+    }
 
-        // 2.애니메이션 프레임 전환
+    private void updateAnimation() {
         if (now - lastFrameChange > frameDuration) {
             lastFrameChange = now;
             frameNumber = (frameNumber + 1) % frames.length;
             sprite = frames[frameNumber];
         }
+    }
 
-        // 3.Y경계 유지
+    private void handleMovementAndBoundaries() {
+        // Y축 경계 (위아래로 튕기기)
         if (getY() > 140) {
             setVerticalMovement(-40);
         } else if (getY() < 40) {
             setVerticalMovement(40);
         }
 
-        // 4. X경계 반전
+        // X축 경계 (좌우 반전)
         double vx = getHorizontalMovement();
-        if (x <= minX && vx < 0) {
-            setHorizontalMovement(Math.abs(vx));
-        } else if (x >= maxX && vx > 0) {
-            setHorizontalMovement(-Math.abs(vx));
+        if ((x <= minX && vx < 0) || (x >= maxX && vx > 0)) {
+            setHorizontalMovement(-vx); // 부호 반전으로 간단히 처리
         }
+    }
 
-        // 5.페이즈 전환 체크(HP기준)
-        if (phase == 0 && getCurrentHP() <= (BOSS_MAX_HP * 2) / 3) enterPhase(1);
-        if (phase == 1 && getCurrentHP() <= BOSS_MAX_HP / 3)     enterPhase(2);
+    private void checkPhaseTransition() {
+        if (phase == 0 && getCurrentHP() <= (BOSS_MAX_HP * 2) / 3) {
+            enterPhase(1);
+        } else if (phase == 1 && getCurrentHP() <= BOSS_MAX_HP / 3) {
+            enterPhase(2);
+        }
+    }
 
-        // 6. 페이즈 실행 위임
+    private void executeStrategy(long delta) {
         boolean phaseUnlocked = now >= phaseHoldUntil;
         if (phaseUnlocked && currentStrategy != null) {
-            currentStrategy.update(this,delta);
+            currentStrategy.update(this, delta);
         }
-
-        // 7.실제 이동
-        super.move(delta);
     }
 
     //페이즈 전환 로직

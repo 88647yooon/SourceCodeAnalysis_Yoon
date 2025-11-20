@@ -68,24 +68,36 @@ public class ShipDashComponent {
 
     //매 프레임 업데이트
     public void update(long delta, long now){
+        // 1. 대시 중일 때의 처리
         if (dashing) {
-            ship.setHorizontalMovement(0); // 수직 대시이므로 항상 0
-
-            // 잔상 생성
-            if (now - lastTrailAt >= 22) {
-                dashTrail.addFirst(new Trail(ship.getX(), ship.getY(), now));
-                while (dashTrail.size() > 8) dashTrail.removeLast(); // 개수 제한
-                lastTrailAt = now;
-            }
-
-            // 대시 종료 체크
-            if (now - dashStartAt >= dashDurationMs) {
-                StopDash(now);
-            }
+            processDashing(now);
         }
 
-        // 경계 도달 시 강제
-        if(ship.getY() <TOP_MARGIN && ship.getVerticalMovement() < 0){
+        // 2. 화면 위아래 경계 처리
+        enforceBoundaries(now);
+
+        // 3. 잔상 정리
+        cleanUpTrails(now);
+    }
+    // 대시 진행 로직 분리
+    private void processDashing(long now) {
+        ship.setHorizontalMovement(0);
+
+        // 잔상 생성
+        if (now - lastTrailAt >= 22) {
+            dashTrail.addFirst(new Trail(ship.getX(), ship.getY(), now));
+            while (dashTrail.size() > 8) dashTrail.removeLast();
+            lastTrailAt = now;
+        }
+
+        // 대시 종료 체크
+        if (now - dashStartAt >= dashDurationMs) {
+            StopDash(now);
+        }
+    }
+    // 경계 처리 분리
+    private void enforceBoundaries(long now) {
+        if(ship.getY() < TOP_MARGIN && ship.getVerticalMovement() < 0){
             ship.setY(TOP_MARGIN);
             if(dashing) StopDash(now);
         }
@@ -93,8 +105,10 @@ public class ShipDashComponent {
             ship.setY(568);
             if(dashing) StopDash(now);
         }
+    }
 
-        // 오래된 잔상 제거
+    // 잔상 정리 분리
+    private void cleanUpTrails(long now) {
         while (!dashTrail.isEmpty() && now - dashTrail.getLast().t > 220) {
             dashTrail.removeLast();
         }

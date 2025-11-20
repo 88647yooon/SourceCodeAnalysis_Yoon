@@ -33,16 +33,11 @@ public class EnemyShotEntity extends Entity {
         this.speed = speed;
         setHorizontalMovement(dx);
         setVerticalMovement(dy);
-
-        // 디버그 로그
-        //System.out.println("🟢 Bullet created: vx=" + dx + ", vy=" + dy + ", speed=" + speed);
     }
 
 
     /** 호밍 활성화 (보스 전용) */
     public EnemyShotEntity enableHoming(ShipEntity target, long delayMs, double accel, double maxSpeed) {
-        System.err.println(" enableHoming called! bullet@(" + x + "," + y + ")");
-        Thread.dumpStack(); // 호출 지점 추적
         this.homing = true;
         this.target = target;
         this.homingDelayMs = Math.max(0, delayMs);
@@ -55,52 +50,83 @@ public class EnemyShotEntity extends Entity {
     public void move(long delta) {
         ageMs += delta;
 
-        // 직선 잠금일 때는 유도 완전 차단
-        if (!forceNoHoming && homing && ageMs >= homingDelayMs && target != null) {
-            double tx = target.getX() - this.x;
-            double ty = target.getY() - this.y;
-            double len = Math.sqrt(tx * tx + ty * ty);
-            if (len > 1e-4) {
-                tx /= len;
-                ty /= len;
-                double vx = getHorizontalMovement();
-                double vy = getVerticalMovement();
-                double targetVx = tx * maxHomingSpeed;
-                double targetVy = ty * maxHomingSpeed;
-                vx = vx + (targetVx - vx) * homingAccel;
-                vy = vy + (targetVy - vy) * homingAccel;
-                setHorizontalMovement(vx);
-                setVerticalMovement(vy);
-            }
+        // 1. 제거 조건 체크 (수명 다함 or 화면 밖)
+        if (checkExpiredOrOutOfBounds()) {
+            return; // 제거되었으면 이동 로직 수행 안 함
         }
 
-        // 감속
-        if (friction > 0) {
-            double vx = getHorizontalMovement();
-            double vy = getVerticalMovement();
-            double v = Math.sqrt(vx * vx + vy * vy);
-            if (v > 0) {
-                double dec = friction * (delta / 1000.0);
-                v = Math.max(0, v - dec);
-                if (v == 0) {
-                    setHorizontalMovement(0);
-                    setVerticalMovement(0);
-                } else {
-                    double nx = vx / Math.sqrt(vx * vx + vy * vy);
-                    double ny = vy / Math.sqrt(vx * vx + vy * vy);
-                    setHorizontalMovement(nx * v);
-                    setVerticalMovement(ny * v);
-                }
-            }
-        }
+        // 2. 유도탄(호밍) 로직 처리
+        updateHomingLogic();
 
-        // 수명 & 화면 밖 제거
-        if (ageMs > lifeTimeMs || y < -64 || y > game.getHeight() + 64 || x < -64 || x > game.getWidth() + 64) {
+        // 3. 마찰력(감속) 처리
+        updateFrictionLogic(delta);
+
+        // 4. 실제 이동 적용
+        super.move(delta);
+    }
+    // 제거 조건 체크 및 처리
+    private boolean checkExpiredOrOutOfBounds() {
+        boolean expired = ageMs > lifeTimeMs;
+        boolean outOfBounds = y < -64 || y > game.getHeight() + 64 || x < -64 || x > game.getWidth() + 64;
+
+        if (expired || outOfBounds) {
             game.removeEntity(this);
+            return true; // 제거됨
+        }
+        return false; // 살아있음
+    }
+
+    // 호밍 계산 로직
+    private void updateHomingLogic() {
+        if (forceNoHoming || !homing || ageMs < homingDelayMs || target == null) {
             return;
         }
 
-        super.move(delta);
+        double tx = target.getX() - this.x;
+        double ty = target.getY() - this.y;
+        double len = Math.sqrt(tx * tx + ty * ty);
+
+        if (len > 1e-4) {
+            tx /= len;
+            ty /= len;
+
+            double vx = getHorizontalMovement();
+            double vy = getVerticalMovement();
+
+            double targetVx = tx * maxHomingSpeed;
+            double targetVy = ty * maxHomingSpeed;
+
+            vx = vx + (targetVx - vx) * homingAccel;
+            vy = vy + (targetVy - vy) * homingAccel;
+
+            setHorizontalMovement(vx);
+            setVerticalMovement(vy);
+        }
+    }
+
+    // 마찰력 계산 로직
+    private void updateFrictionLogic(long delta) {
+        if (friction <= 0) return;
+
+        double vx = getHorizontalMovement();
+        double vy = getVerticalMovement();
+        double v = Math.sqrt(vx * vx + vy * vy);
+
+        if (v > 0) {
+            double dec = friction * (delta / 1000.0);
+            v = Math.max(0, v - dec);
+
+            if (v == 0) {
+                setHorizontalMovement(0);
+                setVerticalMovement(0);
+            } else {
+                // 방향 유지하며 속도만 줄임
+                double nx = vx / Math.sqrt(vx * vx + vy * vy); // 현재 속도가 0이 아님을 위에서 확인했으므로 안전
+                double ny = vy / Math.sqrt(vx * vx + vy * vy);
+                setHorizontalMovement(nx * v);
+                setVerticalMovement(ny * v);
+            }
+        }
     }
 
     @Override
