@@ -643,7 +643,7 @@ public class Game extends Canvas {
      * @param alien 사망한 외계인 엔티티
      */
 
-
+    //XP 지급
     private void PayXpForKill(AlienEntity alien) {
         int xp = calculateXpForAlien(alien);
 
@@ -653,30 +653,86 @@ public class Game extends Canvas {
         }
     }
 
+    //Xp 계산
     private int calculateXpForAlien(AlienEntity alien) {
         if(alien instanceof RangedAlienEntity) {
-            return 8;
+            return 8; //RangedAlienEntity 처치시 8
         }
         if(alien instanceof DiagonalShooterAlienEntity){
-            return 5;
+            return 10; //DiagonalShooterAlienEntity 처치시 10 지급
         }
-        return 5; // 기본 지급 xp
+        return 5; // 기본Alien 지급 xp
     }
 
-    public void onAlienKilled(AlienEntity alien) {
-
-        // --- 2. (구 ShotEntity) 엔티티 제거 로직 ---
-        if (entities.contains(alien)) {
+    //엔티티 제거
+    private void removeKilledAlien(AlienEntity alien) {
+        if(entities.contains(alien)){
             removeEntity(alien);
         }
+    }
 
-        // --- 3. (구 notifyAlienKilled) 점수 및 카운트 갱신 로직 ---
+    //점수/카운트, dangerMode 갱신
+    private void updateScoreAndCount(){
         score += 100;
         alienCount--;
         if (alienCount < 0) alienCount = 0;
+
+        //디버깅 메시지
         System.out.println("[DEBUG] Alien killed! alienCount=" + alienCount + " stage=" + currentStageId + " bossActive=" + bossActive);
 
-        dangerMode = (getPlayerShip().getStats().getCurrentHP() < 2);
+        ShipEntity player = getPlayerShip();
+        if(player != null) {
+            dangerMode = (player.getStats().getCurrentHP() < 1); //원래 2였는데 1로 변경함.
+        }
+    }
+
+    //Alien을 전부 처리하였는지에 따른 처리(웨이브 / 보스 / 승리 통합 처리)
+    private void aliensCleared() {
+        if(alienCount != 0) {
+            return;
+        }
+
+        if(infiniteMode) {
+            aliensClearedInInfiniteMode();
+        } else {
+            aliensClearedInStageMode();
+        }
+    }
+
+    //무한모드일때
+    private void aliensClearedInInfiniteMode() {
+        if(bossActive) {
+            return; //보스전에는 해당 없음
+        }
+
+        normalsClearedInCycle++;
+        if(normalsClearedInCycle >= 3){
+
+            normalsClearedInCycle = 0;
+            spawnBoss();
+
+        } else {
+            spawnAliens();
+        }
+    }
+
+    private void aliensClearedInStageMode() {
+        if(bossActive) {
+            return; // 보스 처리는 onBossKilled 에서 처리
+        }
+
+        if(currentStageId == 5) {
+            spawnBoss();
+        } else {
+            notifyWin();
+        }
+    }
+
+    public void onAlienKilled(AlienEntity alien) {
+        PayXpForKill(alien); //XP 지급, 계산
+        removeKilledAlien(alien); // 엔티티 제거
+        updateScoreAndCount(); // 점수/카운트, dangerMode 갱신
+        aliensCleared(); // 웨이브, 보스, 승리 처리
 
         // --- 4. (구 notifyAlienKilled) 다음 웨이브/보스 처리 로직 ---
         if (alienCount == 0) {
