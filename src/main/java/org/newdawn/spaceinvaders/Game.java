@@ -28,17 +28,14 @@ import com.google.firebase.database.FirebaseDatabase;
 
 /**
  * Game — Space Invaders 메인 오케스트레이션.
- *
  * 역할
  *  - 화면(Screen) 전환, 엔티티(Entity) 생명주기, 게임 루프, 점수/웨이브/스테이지 상태 관리.
- *
  * 프레임 순서(단일 스레드)
  *  1) currentScreen.update(deltaMs)
  *  2) render(g)  // 배경 → Screen 오버레이
  *  3) (레거시 경로인 경우) 엔티티 이동/충돌/doLogic
  *  4) ship 이동 벡터/발사 처리
  *  5) 10ms 슬립
- *
  * 단위/스레드
  *  - 시간: ms, 속도: px/s, 좌표: px
  *  - 싱글 스레드 전제. update/render 동안 블로킹 I/O 금지.
@@ -643,68 +640,109 @@ public class Game extends Canvas {
      * @param alien 사망한 외계인 엔티티
      */
 
-    public void onAlienKilled(AlienEntity alien) {
-
-        // --- 1. (구 ShotEntity) XP 계산 및 지급 로직 ---
-        int xp = 5; // 기본 XP
-        if (alien instanceof RangedAlienEntity) {
-            xp = 8;
-        } else if (alien instanceof DiagonalShooterAlienEntity) {
-            xp = 10;
-        }
+    //XP 지급
+    private void PayXpForKill(AlienEntity alien) {
+        int xp = calculateXpForAlien(alien);
 
         ShipEntity player = getPlayerShip();
-        if (player != null) {
-            player.getStats().addXp(xp); // 플레이어에게 XP 지급
+        if(player != null) {
+            player.getStats().addXp(xp);
         }
+    }
 
-        // --- 2. (구 ShotEntity) 엔티티 제거 로직 ---
-        if (entities.contains(alien)) {
+    //Xp 계산
+    private int calculateXpForAlien(AlienEntity alien) {
+        if(alien instanceof RangedAlienEntity) {
+            return 8; //RangedAlienEntity 처치시 8
+        }
+        if(alien instanceof DiagonalShooterAlienEntity){
+            return 10; //DiagonalShooterAlienEntity 처치시 10 지급
+        }
+        return 5; // 기본Alien 지급 xp
+    }
+
+    //엔티티 제거
+    private void removeKilledAlien(AlienEntity alien) {
+        if(entities.contains(alien)){
             removeEntity(alien);
         }
+    }
 
-        // --- 3. (구 notifyAlienKilled) 점수 및 카운트 갱신 로직 ---
+    //점수/카운트, dangerMode 갱신
+    private void updateScoreAndCount(){
         score += 100;
         alienCount--;
         if (alienCount < 0) alienCount = 0;
+
+        //디버깅 메시지
         System.out.println("[DEBUG] Alien killed! alienCount=" + alienCount + " stage=" + currentStageId + " bossActive=" + bossActive);
 
-        dangerMode = (getPlayerShip().getStats().getCurrentHP() < 2);
+        ShipEntity player = getPlayerShip();
+        if(player != null) {
+            dangerMode = (player.getStats().getCurrentHP() < 1); //원래 2였는데 1로 변경함.
+        }
+    }
 
-        // --- 4. (구 notifyAlienKilled) 다음 웨이브/보스 처리 로직 ---
-        if (alienCount == 0) {
-            if (infiniteMode) {
-                if (!bossActive) {
-                    normalsClearedInCycle++;
-                    if (normalsClearedInCycle >= 3) {
-                        normalsClearedInCycle = 0;
-                        spawnBoss();
-                    } else {
-                        spawnAliens();
-                    }
-                }
-                return; // 보스전 중에는 아래 로직 스킵
-            } else {
-                // 스테이지 모드
-                if (!bossActive) {
-                    if (currentStageId == 5) {
-                        spawnBoss(); // 스테이지 5이고, 잡몹이 다 죽었으면 보스 스폰
-                    } else {
-                        notifyWin(); // 그 외 스테이지는 잡몹 다 잡으면 승리
-                    }
-                }
-                // (참고: 보스 사망은 onBossKilled()에서 별도 처리됨)
-            }
+    //Alien을 전부 처리하였는지에 따른 처리(웨이브 / 보스 / 승리 통합 처리)
+    private void aliensCleared() {
+        if(alienCount != 0) {
+            return;
         }
 
-        // --- 5. (구 notifyAlienKilled) 남은 적 속도 증가 로직 ---
-        for (int i = 0; i < entities.size(); i++) {
+        if(infiniteMode) {
+            aliensClearedInInfiniteMode();
+        } else {
+            aliensClearedInStageMode();
+        }
+    }
+
+    //무한모드일때
+    private void aliensClearedInInfiniteMode() {
+        if(bossActive) {
+            return; //보스전에는 해당 없음
+        }
+
+        normalsClearedInCycle++;
+        if(normalsClearedInCycle >= 3){
+
+            normalsClearedInCycle = 0;
+            spawnBoss();
+
+        } else {
+            spawnAliens();
+        }
+    }
+
+    private void aliensClearedInStageMode() {
+        if(bossActive) {
+            return; // 보스 처리는 onBossKilled 에서 처리
+        }
+
+        if(currentStageId == 5) {
+            spawnBoss();
+        } else {
+            notifyWin();
+        }
+    }
+
+    //남은 Alien들 속도 증가
+    private void speedUpAliens() {
+        for(int i=0; i< entities.size(); i++){
             Entity entity = entities.get(i);
-            if (entity instanceof AlienEntity) {
-                // (보스 제외 - 보스는 AlienEntity가 아님, BossEntity임)
-                entity.setHorizontalMovement(entity.getHorizontalMovement() * 1.02);
+            if(entity instanceof AlienEntity) {
+                entity.setHorizontalMovement(entity.getHorizontalMovement() + 1.02);
             }
         }
+    }
+
+    public void onAlienKilled(AlienEntity alien) {
+
+        PayXpForKill(alien); //XP 지급, 계산
+        removeKilledAlien(alien); // 엔티티 제거
+        updateScoreAndCount(); // 점수/카운트, dangerMode 갱신
+        aliensCleared(); // 웨이브, 보스, 승리 처리
+        speedUpAliens(); //남은 적 속도 증가
+
     }
 
     /** 발사 쿨다운을 만족하면 탄 1발 발사(SFX 포함) */
