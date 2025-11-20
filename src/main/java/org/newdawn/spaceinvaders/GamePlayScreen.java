@@ -67,7 +67,7 @@ public class GamePlayScreen implements Screen {
         ShipEntity ship = game.getPlayerShip();
 
         // 포인트가 있고, 아직 오버레이가 안 떠 있으면 오픈
-        if (ship.hasUnspentLevelUp() && !levelUpActive) {
+        if (ship.getStats().hasUnspentLevelUp() && !levelUpActive) {
             openLevelUpOverlay();
             // (선택) game.setPaused(true); 가 있다면 호출
         }
@@ -113,9 +113,9 @@ public class GamePlayScreen implements Screen {
             }
             if (keyCode == java.awt.event.KeyEvent.VK_ENTER || keyCode == java.awt.event.KeyEvent.VK_Z) {
                 applyLevelUpChoice(ship, levelUpIndex); // ★ 실제 스탯 증가
-                ship.spendLevelUpPoint();
+                ship.getStats().spendLevelUpPoint();
 
-                if (ship.hasUnspentLevelUp()) {
+                if (ship.getStats().hasUnspentLevelUp()) {
                     // 포인트가 남아 있으면 오버레이 유지 (연속 업그레이드)
                     levelUpIndex = 0;
                 } else {
@@ -124,15 +124,15 @@ public class GamePlayScreen implements Screen {
                 return;
             }
             // 숫자 1~3으로도 바로 선택 가능
-            if (keyCode == java.awt.event.KeyEvent.VK_1) { levelUpIndex = 0; applyLevelUpChoice(ship, 0); ship.spendLevelUpPoint(); finishOrStay(ship); return; }
-            if (keyCode == java.awt.event.KeyEvent.VK_2) { levelUpIndex = 1; applyLevelUpChoice(ship, 1); ship.spendLevelUpPoint(); finishOrStay(ship); return; }
-            if (keyCode == java.awt.event.KeyEvent.VK_3) { levelUpIndex = 2; applyLevelUpChoice(ship, 2); ship.spendLevelUpPoint(); finishOrStay(ship); return; }
+            if (keyCode == java.awt.event.KeyEvent.VK_1) { levelUpIndex = 0; applyLevelUpChoice(ship, 0); ship.getStats().spendLevelUpPoint(); finishOrStay(ship); return; }
+            if (keyCode == java.awt.event.KeyEvent.VK_2) { levelUpIndex = 1; applyLevelUpChoice(ship, 1); ship.getStats().spendLevelUpPoint(); finishOrStay(ship); return; }
+            if (keyCode == java.awt.event.KeyEvent.VK_3) { levelUpIndex = 2; applyLevelUpChoice(ship, 2); ship.getStats().spendLevelUpPoint(); finishOrStay(ship); return; }
 
             return; // ★ 오버레이 중엔 아래 플레이 입력 차단
         }
 
         if (keyCode == KeyEvent.VK_SHIFT) {
-            ship.tryDash();   // ← 방금 만든 대시 호출
+            ship.getDash().tryDash();   // ← 방금 만든 대시 호출
         }
         if (keyCode == KeyEvent.VK_LEFT) {
             game.setLeftPressed(true);
@@ -152,7 +152,7 @@ public class GamePlayScreen implements Screen {
     }
 
     private void finishOrStay(ShipEntity ship) {
-        if (ship.hasUnspentLevelUp()) {
+        if (ship.getStats().hasUnspentLevelUp()) {
             levelUpIndex = 0;
         } else {
             closeLevelUpOverlay();
@@ -160,7 +160,7 @@ public class GamePlayScreen implements Screen {
     }
 
     private void applyLevelUpChoice(ShipEntity ship, int index) {
-        PlayerSkills s = ship.getSkills();
+        PlayerSkills s = ship.getStats().getSkills();
         switch (index) {
             case 0: // 공격력
                 s.atkLv = Math.min(5, s.atkLv + 1);
@@ -216,7 +216,7 @@ public class GamePlayScreen implements Screen {
 
         // 현재 레벨 표기(선택)
         g2.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 14));
-        g2.drawString("남은 포인트: " + (ship.hasUnspentLevelUp()? "1+" : "0"), px + 24, py + 62);
+        g2.drawString("남은 포인트: " + (ship.getStats().hasUnspentLevelUp()? "1+" : "0"), px + 24, py + 62);
 
         // 옵션 리스트
         int oy = py + 90;

@@ -43,7 +43,7 @@ public class ShipDashComponent {
     //대시 시도
     public void tryDash() {
         long now = System.currentTimeMillis();
-        long cooldown = (long)Math.round(baseDashCooldownMs*ship.getSkills().dashCdMul());
+        long cooldown = (long)Math.round(baseDashCooldownMs*ship.getStats().getSkills().dashCdMul());
         if (now - lastDashAt < cooldown) return;
 
         lastDashAt = now;
@@ -57,7 +57,7 @@ public class ShipDashComponent {
         ship.setVerticalMovement(vy);
 
         // 대시 무적 (skills가 반영된 currentDashIframes() 사용)
-        int bonus = ship.getSkills().dashIframesBonusMs();
+        int bonus = ship.getStats().getSkills().dashIframesBonusMs();
         invulnUntil = now + baseDashIframesMs + bonus;
 
         // 첫 잔상 추가
@@ -80,18 +80,18 @@ public class ShipDashComponent {
 
             // 대시 종료 체크
             if (now - dashStartAt >= dashDurationMs) {
-                endDash(now);
+                StopDash(now);
             }
         }
 
         // 경계 도달 시 강제
         if(ship.getY() <TOP_MARGIN && ship.getVerticalMovement() < 0){
             ship.setY(TOP_MARGIN);
-            if(dashing) endDash(now);
+            if(dashing) StopDash(now);
         }
         if(ship.getY() > 568 && ship.getVerticalMovement() > 0){
             ship.setY(568);
-            if(dashing) endDash(now);
+            if(dashing) StopDash(now);
         }
 
         // 오래된 잔상 제거
@@ -100,10 +100,13 @@ public class ShipDashComponent {
         }
     }
 
-    private void endDash(long now){
+    public void StopDash(long now){
         dashing = false;
         ship.setVerticalMovement(0);
         spawnArrivalEchoes(now);
+    }
+    public void StopDash(){
+        StopDash(System.currentTimeMillis());
     }
 
     private void spawnArrivalEchoes(long now){

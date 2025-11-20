@@ -22,8 +22,8 @@ public class HUDRenderer {
         Image heart      = SpriteStore.get().getSprite("sprites/heart.png").getImage();
         Image emptyHeart = SpriteStore.get().getSprite("sprites/emptyheart.png").getImage();
 
-        for (int i = 0; i < player.getMaxHP(); i++) {
-            Image img = (i < player.getCurrentHP()) ? heart : emptyHeart;
+        for (int i = 0; i < player.getStats().getMaxHP(); i++) {
+            Image img = (i < player.getStats().getCurrentHP()) ? heart : emptyHeart;
             g.drawImage(img, x + i * (heartSize + heartGap), y, heartSize, heartSize, null);
         }
 
@@ -56,7 +56,7 @@ public class HUDRenderer {
 
         // 레벨 텍스트(바 위에 살짝)
         g.setColor(Color.WHITE);
-        g.drawString("Lv." + player.getLevel(), barX, barY - 6);
+        g.drawString("Lv." + player.getStats().getLevel(), barX, barY - 6);
 
 
     }
@@ -81,7 +81,7 @@ public class HUDRenderer {
         final int gap = 3;
         int segW = (width - gap * (segments - 1)) / segments;
 
-        int pct = p.getXpPercent();           // 0~100
+        int pct = p.getStats().getXpPercent();           // 0~100
         double unit = 100.0 / segments;
         int fullSegs = (int)Math.floor(pct / unit);
         double lastFrac = Math.max(0.0, (pct / unit) - fullSegs); // 0~1
@@ -107,7 +107,7 @@ public class HUDRenderer {
 
         // XP 수치(바 바로 아래, 화면 아래쪽이라 가독성 좋음)
         g.setColor(Color.WHITE);
-        String xpTxt = p.getXpIntoLevel() + " / " + p.getXpToNextLevel();
+        String xpTxt = p.getStats().getXpIntoLevel() + " / " + p.getStats().getXpToNextLevel();
         g.drawString(xpTxt, x, y + height + 14);
     }
 }

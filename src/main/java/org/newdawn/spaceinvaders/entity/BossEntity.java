@@ -241,11 +241,7 @@ public class BossEntity extends AlienEntity {
         tasks.add(new Task(System.currentTimeMillis() + delayMs, r));
     }
 
-    public void teleportTo(int nx, int ny) {
-        this.x = nx; this.y = ny;
-        setHorizontalMovement(0);
-        setVerticalMovement(0);
-    }
+
 
     // 플레이어 각도 계산
     public double angleTo(ShipEntity target) {

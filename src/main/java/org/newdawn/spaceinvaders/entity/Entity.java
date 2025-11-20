@@ -151,7 +151,15 @@ public abstract class Entity {
 
 		return me.intersects(him);
 	}
-	
+
+    public void teleportTo(double x, double y){
+        this.x =x;
+        this.y = y;
+
+        setHorizontalMovement(0);
+        setVerticalMovement(0);
+    }
+
 	/**
 	 * Notification that this entity collided with another.
 	 * 

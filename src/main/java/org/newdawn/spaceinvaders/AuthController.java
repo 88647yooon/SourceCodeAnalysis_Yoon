@@ -48,9 +48,9 @@ public class AuthController {
 
             int[] saved = LevelManager.loadLastLevel(Game.DB_URL, Game.SESSION_UID, Game.SESSION_ID_TOKEN);
             /// 과한 의존 시작
-            game.getPlayerShip().setLevelAndXp(saved[0], saved[1]);
-            game.getPlayerShip().loadSkillsFromCloud();
-            PlayerSkills ps = game.getPlayerShip().getSkills();
+            game.getPlayerShip().getStats().setLevelAndXp(saved[0], saved[1]);
+            PlayerSkills ps = game.getPlayerShip().getStats().getSkills();
+            game.getPlayerShip().getPersistence().loadSkills(ps);
             LevelManager.loadSkills(Game.DB_URL, Game.SESSION_UID, Game.SESSION_ID_TOKEN, ps);
             /// 과한 의존 끝
             authScreen.setMessage((authScreen.getSignupMode() ? "회원가입" : "로그인") + " 성공!");

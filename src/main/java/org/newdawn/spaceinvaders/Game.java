@@ -227,7 +227,7 @@ public class Game extends Canvas {
         ship = new ShipEntity(this, "sprites/ship.gif", 370, 550);
         entities.add(ship);
 
-        ((ShipEntity) ship).setInvulnerable(false);
+        ((ShipEntity) ship).getStats().setInvulnerable(false);
 
         alienCount = 0;
         if (infiniteMode) {
@@ -474,7 +474,7 @@ public class Game extends Canvas {
 
         startGame();
 
-        stageStartHP = getPlayerShip().getCurrentHP();
+        stageStartHP = getPlayerShip().getStats().getCurrentHP();
         stageStarScoreRequirements();
 
         StageManager.applyStage(StageNum, this);
@@ -522,7 +522,7 @@ public class Game extends Canvas {
         if (hasSession()) {
             ShipEntity ship = getPlayerShip();
             if (ship != null) {
-                LevelManager.saveLastLevel(getDbClient(), session.getUid(), session.getIdToken(), getPlayerShip().getLevel(), getPlayerShip().getXpIntoLevel());
+                LevelManager.saveLastLevel(getDbClient(), session.getUid(), session.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
             }
 
         }
@@ -547,7 +547,7 @@ public class Game extends Canvas {
             int damageTaken = 0;
             ShipEntity p = getPlayerShip();
             if (p != null) {
-                damageTaken = Math.max(0, stageStartHP - p.getCurrentHP());
+                damageTaken = Math.max(0, stageStartHP - p.getStats().getCurrentHP());
             }
             evaluateStageResult(currentStageId, timeLeft, damageTaken, score);
             //조건 충족시 다음 스테이지 해제
@@ -558,7 +558,7 @@ public class Game extends Canvas {
         if (hasSession()) {
             ShipEntity ship = getPlayerShip();
             if (ship != null) {
-                LevelManager.saveLastLevel(getDbClient(),session.getUid(), session.getIdToken(), getPlayerShip().getLevel(), getPlayerShip().getXpIntoLevel());
+                LevelManager.saveLastLevel(getDbClient(),session.getUid(), session.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
             }
         }
         uploadScoreIfLoggedIn();
@@ -660,7 +660,7 @@ public class Game extends Canvas {
 
         ShipEntity player = getPlayerShip();
         if (player != null) {
-            player.addXp(xp); // 플레이어에게 XP 지급
+            player.getStats().addXp(xp); // 플레이어에게 XP 지급
         }
 
         // --- 2. (구 ShotEntity) 엔티티 제거 로직 ---
@@ -674,7 +674,7 @@ public class Game extends Canvas {
         if (alienCount < 0) alienCount = 0;
         System.out.println("[DEBUG] Alien killed! alienCount=" + alienCount + " stage=" + currentStageId + " bossActive=" + bossActive);
 
-        dangerMode = (getPlayerShip().getCurrentHP() < 2);
+        dangerMode = (getPlayerShip().getStats().getCurrentHP() < 2);
 
         // --- 4. (구 notifyAlienKilled) 다음 웨이브/보스 처리 로직 ---
         if (alienCount == 0) {
@@ -968,7 +968,7 @@ public class Game extends Canvas {
         entry.setWave(waveCount);
         entry.setDurationMs(durationMs);
         entry.setTimestamp(now());
-        entry.setLevel(((ShipEntity) ship).getLevel());
+        entry.setLevel(((ShipEntity) ship).getStats().getLevel());
 
         gameDb.uploadScore(session, entry);
     }
