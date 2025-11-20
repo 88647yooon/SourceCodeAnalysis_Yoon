@@ -242,7 +242,6 @@ public class BossEntity extends AlienEntity {
     }
 
 
-
     // 플레이어 각도 계산
     public double angleTo(ShipEntity target) {
         double px = target.getX() + target.getWidth() / 2.0;
