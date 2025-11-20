@@ -912,6 +912,7 @@ public class Game extends Canvas {
             }
         }
 
+        @Override
         public void keyTyped(KeyEvent e) {
             if (currentScreen instanceof AuthScreen) {
                 ((AuthScreen) currentScreen).handleCharTyped(e.getKeyChar());
