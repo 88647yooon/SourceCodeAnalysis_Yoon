@@ -67,17 +67,13 @@ public class LevelManager {
     // 마지막 레벨 불러오기
     public static int[] loadLastLevel(String dbUrl, String uid, String idToken) {
         if (uid == null || idToken == null) {
-            System.err.println("⚠️ UID 또는 TOKEN이 null → 로그인 전 호출됨");
+            System.err.println("UID 또는 TOKEN이 null → 로그인 전 호출됨");
             return new int[]{1, 0};
         }
 
         try {
             String endpoint = dbUrl + "/users/" + uid + "/lastLevel.json?auth=" + FirebaseDatabaseClient.urlEnc(idToken);
             String res = FirebaseDatabaseClient.httpGet(endpoint);
-
-            System.out.println("📡 요청 URL: " + endpoint);
-            System.out.println("📥 응답 데이터: " + res);
-
             if (res != null && !res.equals("null")) {
                 int level = 1, xp = 0;
 

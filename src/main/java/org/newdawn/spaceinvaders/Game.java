@@ -1063,12 +1063,11 @@ public class Game extends Canvas {
 
             FirebaseApp.initializeApp(options);
 
-            System.out.println("Firebase 초기화");
             writeLog("gamestart");
 
             Game g = new Game();
             g.setScreen(new AuthScreen(g));
-            g.loadStageStars();
+            LevelManager.loadLastLevel(DB_URL,SESSION_UID, SESSION_ID_TOKEN);
 
             ScoreboardScreen ss = new ScoreboardScreen(g);
 

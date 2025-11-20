@@ -1,30 +1,28 @@
 package org.newdawn.spaceinvaders;
-import org.newdawn.spaceinvaders.Game;
-import org.newdawn.spaceinvaders.AuthScreen;
 import org.newdawn.spaceinvaders.DataBase.AuthSession;
 import org.newdawn.spaceinvaders.DataBase.FirebaseAuthService;
 import org.newdawn.spaceinvaders.DataBase.FirebaseDatabaseClient;
 
 
-public class AuthController {
+public class LoginFlowCoordinator {
     Game game;
-    AuthScreen authScreen;
+    AuthFormState authFormState;
 
-    public AuthController(Game game, AuthScreen authScreen) {
+    public LoginFlowCoordinator(Game game, AuthFormState authFormState) {
         this.game = game;
-        this.authScreen = authScreen;
+        this.authFormState = authFormState;
     }
 
     public void tryAuth() {
 
         try {
             FirebaseAuthService.AuthResult ar;
-            if (authScreen.getSignupMode()) {
-                if (!authScreen.getPassword().equals(authScreen.getPassword2())) {
-                    authScreen.setMessage("비밀번호가 일치하지 않습니다!");
+            if (authFormState.isSignupMode()) {
+                if (!authFormState.getPassword().equals(authFormState.getPassword2())) {
+                    authFormState.setMessage("비밀번호가 일치하지 않습니다!");
                     return;
                 }
-                ar = game.getAuthService().signUp(authScreen.getEmail().trim(), authScreen.getPassword());
+                ar = game.getAuthService().signUp(authFormState.getEmail().trim(), authFormState.getPassword());
                 // 기본 프로필 저장
                 String profileJson = "{"
                         + "\"email\":" + FirebaseDatabaseClient.quote(ar.email) + ","
@@ -32,7 +30,7 @@ public class AuthController {
                         + "}";
                 game.getDbClient().put("users/" + ar.localId + "/profile", ar.idToken, profileJson);
             } else {
-                ar = game.getAuthService().signIn(authScreen.getEmail().trim(), authScreen.getPassword());
+                ar = game.getAuthService().signIn(authFormState.getEmail().trim(), authFormState.getPassword());
             }
 
             AuthSession s = new AuthSession(ar.localId, ar.email, ar.idToken);
@@ -45,7 +43,6 @@ public class AuthController {
 
             // 사용자별 별 기록 로드
             game.loadStageStars();
-
             int[] saved = LevelManager.loadLastLevel(Game.DB_URL, Game.SESSION_UID, Game.SESSION_ID_TOKEN);
             /// 과한 의존 시작
             game.getPlayerShip().getStats().setLevelAndXp(saved[0], saved[1]);
@@ -53,10 +50,10 @@ public class AuthController {
             game.getPlayerShip().getPersistence().loadSkills(ps);
             LevelManager.loadSkills(Game.DB_URL, Game.SESSION_UID, Game.SESSION_ID_TOKEN, ps);
             /// 과한 의존 끝
-            authScreen.setMessage((authScreen.getSignupMode() ? "회원가입" : "로그인") + " 성공!");
+            authFormState.setMessage((authFormState.isSignupMode() ? "회원가입" : "로그인") + " 성공!");
             game.setScreen(new MenuScreen(game)); //  메뉴 화면으로 이동
         } catch (Exception e) {
-            authScreen.setMessage("실패: " + e.getMessage());
+            authFormState.setMessage("실패: " + e.getMessage());
         }
     }
 }
