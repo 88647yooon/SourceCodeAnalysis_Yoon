@@ -41,22 +41,6 @@ package org.newdawn.spaceinvaders;
         }
 
 
-        public void handleCharTyped(char c) {
-            if (c == '\b') { // BACKSPACE
-                if (fieldIndex == 0 && !email.isEmpty())
-                    email = email.substring(0, email.length() - 1);
-                else if (fieldIndex == 1 && !password.isEmpty())
-                    password = password.substring(0, password.length() - 1);
-                else if (fieldIndex == 2 && !password2.isEmpty())
-                    password2 = password2.substring(0, password2.length() - 1);
-                return;
-            }
-            if (Character.isISOControl(c)) return;
-
-            if (fieldIndex == 0)      email     += c;
-            else if (fieldIndex == 1) password  += c;
-            else if (fieldIndex == 2) password2 += c;
-        }
 
     }
 
