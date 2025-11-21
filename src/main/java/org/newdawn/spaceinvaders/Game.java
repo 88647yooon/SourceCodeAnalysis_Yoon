@@ -29,7 +29,6 @@ import org.newdawn.spaceinvaders.entity.base.Entity;
 import org.newdawn.spaceinvaders.entity.enemy.DiagonalShooterAlienEntity;
 import org.newdawn.spaceinvaders.entity.enemy.HostageEntity;
 import org.newdawn.spaceinvaders.entity.enemy.RangedAlienEntity;
-import org.newdawn.spaceinvaders.entity.boss.BossEntity;
 import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 import org.newdawn.spaceinvaders.entity.projectile.ShotEntity;
@@ -253,15 +252,84 @@ public class Game extends Canvas {
      * 무한 모드 웨이브 스폰:
      * - 난이도 계산/적용, Diagonal/Ranged/기본 적 배치, 인질 일부 추가, waveCount 증가
      */
-    private void spawnAliens() {
-        if (infiniteMode) {
-            for (java.util.Iterator<Entity> it = entities.iterator(); it.hasNext(); ) {
-                Entity e = it.next();
-                if (e instanceof HostageEntity) {
-                    it.remove();
-                }
+
+    //무한모드일 때 기존 인질 제거
+    private void clearHostagesForInfiniteMode() {
+        if (!infiniteMode) {
+            return;
+        }
+
+        for (Iterator<Entity> it = entities.iterator(); it.hasNext(); ) {
+            Entity e = it.next();
+            if(e instanceof HostageEntity) it.remove();
+        }
+    }
+
+    //alien 그리드 생성
+    private void spawnAlienGrid(Difficulty diff, int rows, int cols, int startX, int startY, int gapX, int gapY) {
+        for (int row = 0; row < rows; row++) {
+            for (int c = 0; c < cols; c++) {
+                int x = startX + (c * gapX);
+                int y = startY + (row * gapY);
+
+                Entity alien = createAlienForPosition(x, y);
+                applyDifficultyToAlien(alien, diff);
+
+                entities.add(alien);
+                alienCount++;
             }
         }
+    }
+
+    //위치별 외계인 타입 결정
+    private Entity createAlienForPosition(int x, int y) {
+        double diagonalProb = Math.min(0.05 + (waveCount -1) * 0.02, 0.25);
+        double rangedProb = RANGED_ALIEN_RATIO;
+
+        double r = Math.random();
+
+        if(r < diagonalProb) {
+            return new DiagonalShooterAlienEntity(this, x, y);
+        }
+        if(r > diagonalProb+ rangedProb) {
+            return new RangedAlienEntity(this, x, y ,getPlayerShip());
+        }
+        return new AlienEntity(this, x, y);
+    }
+
+    //무한모드일때 인질 스폰
+    private void spawnHostages(int cols, int startX, int startY, int gapX) {
+        int hostageNum = 1 + (int)(Math.random()*2);
+        if (hostageNum <=0){
+            return;
+        }
+
+        Set<Integer> usedCols = new HashSet<>();
+
+        for(int i=0; i< hostageNum; i++){
+            int c = chooseHostageColumn(cols, usedCols);
+            usedCols.add(c);
+
+            int x = startX + (c *gapX);
+            int y = startY - 40;
+            Entity hostage = new HostageEntity(this, x, y);
+            entities.add(hostage);
+        }
+    }
+
+    //인질이 설 위치 컬럼 선택 로직
+    private int chooseHostageColumn(int cols, Set<Integer> usedCols) {
+        int guard = 0;
+        int c;
+        do{
+            c = (int)(Math.random() * cols);
+        } while(usedCols.contains(c) && ++ guard < 10);
+        return c;
+    }
+
+    private void spawnAliens() {
+
+        clearHostagesForInfiniteMode(); // 기존 인질 정리
         Difficulty diff = computeDifficultyForWave(waveCount);
 
         int rows = 3 + (waveCount % 3);   // 3~5
@@ -270,50 +338,12 @@ public class Game extends Canvas {
 
         int startX = 100, startY = 50, gapX = 50, gapY = 30;
 
-        for (int row = 0; row < rows; row++) {
-            for (int c = 0; c < cols; c++) {
-                int x = startX + (c * gapX);
-                int y = startY + (row * gapY);
+        spawnAlienGrid(diff, rows, cols, startX, startY, gapX, gapY); //외계인 배치
 
-                double diagonalProb = Math.min(0.05 + (waveCount - 1) * 0.02, 0.25);
-                double rangedProb = RANGED_ALIEN_RATIO;
-
-                double r = Math.random();
-                Entity alien;
-                if (r < diagonalProb) {
-                    alien = new DiagonalShooterAlienEntity(this, x, y);
-                } else if (r < diagonalProb + rangedProb) {
-                    alien = new RangedAlienEntity(this, x, y, getPlayerShip());
-                } else {
-                    alien = new AlienEntity(this, x, y);
-                }
-
-                applyDifficultyToAlien(alien, diff);
-
-                entities.add(alien);
-                alienCount++;
-            }
+        if(infiniteMode) {
+            spawnHostages(cols, startX, startY, gapX); // 인질 배치
         }
 
-        if (infiniteMode) {
-            int hostageNum = 1 + (int) (Math.random() * 2);
-            if (hostageNum > 0) {
-                java.util.Set<Integer> usedCols = new java.util.HashSet<>();
-                for (int i = 0; i < hostageNum; i++) {
-                    int c;
-                    int guard = 0;
-                    do {
-                        c = (int) (Math.random() * cols);
-                    } while (usedCols.contains(c) && ++guard < 10);
-                    usedCols.add(c);
-
-                    int x = startX + (c * gapX);
-                    int y = startY - 40;
-                    Entity hostage = new HostageEntity(this, x, y);
-                    entities.add(hostage);
-                }
-            }
-        }
         waveCount++;
     }
 
@@ -738,7 +768,7 @@ public class Game extends Canvas {
         for(int i=0; i< entities.size(); i++){
             Entity entity = entities.get(i);
             if(entity instanceof AlienEntity) {
-                entity.setHorizontalMovement(entity.getHorizontalMovement() + 1.02);
+                entity.setHorizontalMovement(entity.getHorizontalMovement() + 1.04);
             }
         }
     }
