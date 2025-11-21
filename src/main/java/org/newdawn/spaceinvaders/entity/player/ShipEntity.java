@@ -1,8 +1,12 @@
-package org.newdawn.spaceinvaders.entity;
+package org.newdawn.spaceinvaders.entity.player;
 
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.LevelManager;
 import org.newdawn.spaceinvaders.PlayerSkills;
+import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
+import org.newdawn.spaceinvaders.entity.projectile.EnemyShotEntity;
+
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 

@@ -1,7 +1,8 @@
-package org.newdawn.spaceinvaders.entity;
+package org.newdawn.spaceinvaders.entity.boss;
 
 import java.awt.*;
 import java.util.concurrent.ThreadLocalRandom;
+import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 
 public class BossStrategyTeleport implements BossAttackStrategy {
     private final long teleportCooldown = 2400;
@@ -51,6 +52,6 @@ public class BossStrategyTeleport implements BossAttackStrategy {
 
     @Override
     public void draw(Graphics2D g, BossEntity boss){
-
+        // 텔레포트는 순간 이동이므로 별도의 지속적인 그래픽 표시가 없음.
     }
 }

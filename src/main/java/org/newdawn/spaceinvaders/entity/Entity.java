@@ -36,6 +36,8 @@ public abstract class Entity {
 	private final Rectangle him = new Rectangle();
 
 
+
+
 	/**
 	 * Construct a entity based on a sprite image and a location.
 	 * 
@@ -130,13 +132,6 @@ public abstract class Entity {
 	public int getY() {
 		return (int) y;
 	}
-	
-	/**
-	 * Check if this entity collised with another.
-	 * 
-	 * @param other The other entity to check collision against
-	 * @return True if the entities collide with each other
-	 */
 
     public int getWidth() {
         return sprite.getWidth();
@@ -145,6 +140,15 @@ public abstract class Entity {
     public int getHeight() {
         return sprite.getHeight();
     }
+	
+	/**
+	 * Check if this entity collised with another.
+	 * 
+	 * @param other The other entity to check collision against
+	 * @return True if the entities collide with each other
+	 */
+
+
 	public boolean collidesWith(Entity other) {
 		me.setBounds((int) x,(int) y,sprite.getWidth(),sprite.getHeight());
 		him.setBounds((int) other.x,(int) other.y,other.sprite.getWidth(),other.sprite.getHeight());

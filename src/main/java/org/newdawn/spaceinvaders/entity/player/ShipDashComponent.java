@@ -1,4 +1,4 @@
-package org.newdawn.spaceinvaders.entity;
+package org.newdawn.spaceinvaders.entity.player;
 
 import org.newdawn.spaceinvaders.Sprite;
 import java.awt.*;

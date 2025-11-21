@@ -1,4 +1,4 @@
-package org.newdawn.spaceinvaders.entity;
+package org.newdawn.spaceinvaders.util;
 
 public class GeometryUtils {
     private GeometryUtils(){}

@@ -1,9 +1,11 @@
-package org.newdawn.spaceinvaders.entity;
+package org.newdawn.spaceinvaders.entity.enemy;
 
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
 import java.util.concurrent.ThreadLocalRandom;
+import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.projectile.ShotEntity;
 
 /**
  * An entity which represents one of our space invader aliens.
@@ -185,7 +187,6 @@ public class AlienEntity extends Entity {
 	}
 
     /**
-     * [리팩토링 - 신규 메소드]
      * ShotEntity로부터 "맞았다"는 알림을 받는 메소드.
      * 캡슐화 원칙에 따라, 피격 처리는 AlienEntity가 스스로 담당합니다.
      *
@@ -204,14 +205,14 @@ public class AlienEntity extends Entity {
     }
 
     /** 리팩토링
-     * [신규] 자식 클래스가 발사 주기를 설정하기 위한 메소드 (protected)
+     * 자식 클래스가 발사 주기를 설정하기 위한 메소드 (protected)
      */
     protected void setFireCooldown(long baseMs, long jitterMs) {
         this.baseCooldownMs = baseMs;
         this.cooldownJitterMs = jitterMs;
     }
     /**
-     * [신규] 템플릿 메소드: 발사 타이머 로직 (공통)
+     * 템플릿 메소드: 발사 타이머 로직 (공통)
      * 이 메소드는 final이므로 자식 클래스가 오버라이드할 수 없습니다.
      */
     protected final void checkFire(long delta) {
@@ -222,7 +223,7 @@ public class AlienEntity extends Entity {
 
         long now = System.currentTimeMillis();
 
-        // [중복 코드] 난이도 배수 적용
+        // 난이도 배수 적용
         long effectiveCooldown = Math.max(200, (long)(baseCooldownMs / fireRateMul));
         long effectiveJitter   = Math.max(0,   (long)(cooldownJitterMs / fireRateMul));
         long nextWindow = lastShotAt
@@ -238,29 +239,29 @@ public class AlienEntity extends Entity {
     }
 
     /**
-     * [신규] Hook 메소드: 실제 발사 로직 (자식이 오버라이드)
-     * 기본 Alien은 아무것도 하지 않습니다.
+     * Hook 메소드: 실제 발사 로직 (자식이 오버라이드)
+     * 기본 Alien은 아무것도 하지 않음
      */
     protected void performFire() {
         // Do nothing (Ranged, Diagonal 등이 이 메소드를 오버라이드)
     }
 
     /**
-     * [신규] 난이도 설정을 위해 Pull Up (자식 클래스에서 이동)
+     * 난이도 설정을 위해 Pull Up (자식 클래스에서 이동)
      */
     public void setFireRateMultiplier(double mul) {
         this.fireRateMul = Math.max(0.25, mul); // 하한 보호
     }
 
     /**
-     * [신규] 난이도 설정을 위해 Pull Up (자식 클래스에서 이동)
+     * 난이도 설정을 위해 Pull Up (자식 클래스에서 이동)
      */
     public void setBulletSpeedMultiplier(double mul) {
         this.bulletSpeedMul = Math.max(0.5, mul);
     }
 
     /**
-     * [신규] 자식 클래스가 탄속 배수를 참조할 수 있도록 getter 제공 (protected)
+     * 자식 클래스가 탄속 배수를 참조할 수 있도록 getter 제공 (protected)
      */
     protected double getBulletSpeedMultiplier() {
         return this.bulletSpeedMul;

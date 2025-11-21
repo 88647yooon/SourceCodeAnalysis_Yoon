@@ -1,4 +1,4 @@
-package org.newdawn.spaceinvaders.entity;
+package org.newdawn.spaceinvaders.entity.player;
 
 import org.newdawn.spaceinvaders.PlayerSkills;
 public class ShipStatsComponent {
@@ -44,9 +44,7 @@ public class ShipStatsComponent {
         // 다음 레벨업 경험치 재계산
         this.xpToNext = reqFor(this.level);
 
-        // static 공유 변수(스테이지 간 유지용) 동기화
-        S_LEVEL = this.level;
-        S_XP_INTO_LEVEL = this.xpIntoLevel;
+        updateSharedState(this.level,this.xpToNext);
     }
 
     //체력 관련
@@ -81,6 +79,11 @@ public class ShipStatsComponent {
         return 200+50*L*(L-1);
     }
 
+    private static void updateSharedState(int level,int xp){
+        S_LEVEL = level;
+        S_XP_INTO_LEVEL = xp;
+    }
+
     public void addXp(int amount){
         if(amount <=0) return;
         xpIntoLevel += amount;
@@ -90,8 +93,7 @@ public class ShipStatsComponent {
             xpToNext = reqFor(level);
             levelUpPoints++;
         }
-        S_LEVEL = level;
-        S_XP_INTO_LEVEL = xpIntoLevel;
+        updateSharedState(S_LEVEL,xpIntoLevel);
     }
 
     public boolean hasUnspentLevelUp() {

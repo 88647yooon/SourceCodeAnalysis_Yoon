@@ -1,6 +1,6 @@
 package org.newdawn.spaceinvaders;
 
-import org.newdawn.spaceinvaders.entity.ShipEntity;
+import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 import java.awt.*;
 
 public class HUDRenderer {

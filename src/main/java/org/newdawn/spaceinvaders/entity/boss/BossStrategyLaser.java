@@ -1,4 +1,8 @@
-package org.newdawn.spaceinvaders.entity;
+package org.newdawn.spaceinvaders.entity.boss;
+
+import org.newdawn.spaceinvaders.entity.player.ShipEntity;
+import org.newdawn.spaceinvaders.entity.boss.BossEntity;
+import org.newdawn.spaceinvaders.util.GeometryUtils;
 
 import java.awt.*;
 

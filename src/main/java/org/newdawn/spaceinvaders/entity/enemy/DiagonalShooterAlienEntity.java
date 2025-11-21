@@ -1,6 +1,8 @@
-package org.newdawn.spaceinvaders.entity;
+package org.newdawn.spaceinvaders.entity.enemy;
 
 import org.newdawn.spaceinvaders.Game;
+import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.projectile.EnemyShotEntity;
 
 public class DiagonalShooterAlienEntity extends AlienEntity{
     private double bulletSpeed = 240;     // px/s

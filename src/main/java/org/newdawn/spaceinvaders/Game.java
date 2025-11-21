@@ -25,6 +25,13 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import org.newdawn.spaceinvaders.entity.enemy.DiagonalShooterAlienEntity;
+import org.newdawn.spaceinvaders.entity.enemy.HostageEntity;
+import org.newdawn.spaceinvaders.entity.enemy.RangedAlienEntity;
+import org.newdawn.spaceinvaders.entity.boss.BossEntity;
+import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
+import org.newdawn.spaceinvaders.entity.player.ShipEntity;
+import org.newdawn.spaceinvaders.entity.projectile.ShotEntity;
 
 /**
  * Game — Space Invaders 메인 오케스트레이션.
@@ -318,7 +325,7 @@ public class Game extends Canvas {
             }
         }
 
-        Entity boss = new org.newdawn.spaceinvaders.entity.BossEntity(this, 360, 60, getPlayerShip());
+        Entity boss = new org.newdawn.spaceinvaders.entity.boss.BossEntity(this, 360, 60, getPlayerShip());
         entities.add(boss);
         bossActive = true;
     }

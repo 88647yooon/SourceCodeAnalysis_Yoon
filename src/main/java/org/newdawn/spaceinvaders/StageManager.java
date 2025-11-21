@@ -1,6 +1,13 @@
 package org.newdawn.spaceinvaders;
 
 import org.newdawn.spaceinvaders.entity.*;
+import org.newdawn.spaceinvaders.entity.boss.BossEntity;
+import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
+import org.newdawn.spaceinvaders.entity.enemy.DiagonalShooterAlienEntity;
+import org.newdawn.spaceinvaders.entity.enemy.HostageEntity;
+import org.newdawn.spaceinvaders.entity.enemy.RangedAlienEntity;
+import org.newdawn.spaceinvaders.entity.player.ShipEntity;
+
 import java.util.List;
 import java.util.ArrayList;
 

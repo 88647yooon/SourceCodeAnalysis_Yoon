@@ -1,6 +1,8 @@
-package org.newdawn.spaceinvaders.entity;
+package org.newdawn.spaceinvaders.entity.projectile;
 
 import org.newdawn.spaceinvaders.Game;
+import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 
 /**
  * An entity representing a shot fired by the player's ship
@@ -56,7 +58,7 @@ public class ShotEntity extends Entity {
             java.awt.Rectangle me  = new java.awt.Rectangle(sx, sy, w, h);
             java.awt.Rectangle him = new java.awt.Rectangle(
                     other.getX(), other.getY(),
-                    other.sprite.getWidth(), other.sprite.getHeight()
+                    other.getWidth(), other.getHeight()
             );
             return me.intersects(him);
         }

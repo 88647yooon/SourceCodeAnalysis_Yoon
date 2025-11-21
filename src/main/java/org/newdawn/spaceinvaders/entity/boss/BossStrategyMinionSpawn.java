@@ -1,6 +1,8 @@
-package org.newdawn.spaceinvaders.entity;
+package org.newdawn.spaceinvaders.entity.boss;
 
 import org.newdawn.spaceinvaders.Game;
+import org.newdawn.spaceinvaders.entity.player.ShipEntity;
+import org.newdawn.spaceinvaders.entity.enemy.*;
 
 import java.awt.Graphics2D;
 
@@ -40,6 +42,6 @@ public class BossStrategyMinionSpawn implements BossAttackStrategy {
 
     @Override
     public void draw(Graphics2D g, BossEntity boss){
-
+        //미니언 소환은 즉발성 이벤트이므로 ,별도의 지속적인 그래픽을 그리지 않음
     }
 }

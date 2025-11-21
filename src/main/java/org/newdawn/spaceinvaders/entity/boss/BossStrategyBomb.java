@@ -1,4 +1,6 @@
-package org.newdawn.spaceinvaders.entity;
+package org.newdawn.spaceinvaders.entity.boss;
+
+import org.newdawn.spaceinvaders.entity.Entity;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -8,7 +10,6 @@ public class BossStrategyBomb implements BossAttackStrategy{
     private long intervalMs = 1600;
     private long lastBombAt = 0;
     private int bombsPerVolley = 2;
-    private double fallSpeed = 120;
 
     //그림자 이펙트 관리를 위한 내부 클래스
     private static class Shadow{
@@ -49,17 +50,11 @@ public class BossStrategyBomb implements BossAttackStrategy{
             double startY = boss.getY() + boss.getHeight()/2.0;
 
             double fallSpeed = 120;
-            double distY = Math.max(0,explodeY - startY);
+            double distY = Math.max(0.0001,explodeY - startY);
 
             double timeSec = distY /fallSpeed;
-            double dx;
 
-            if (timeSec < 0.01) { // 낙하 시간이 0이 되는 것을 방지
-                timeSec = 0.01;
-                dx = 0;
-            } else {
-                dx = (tx - (boss.getX() + boss.getWidth()/2.0))/timeSec;
-            }
+            double dx = (tx - (boss.getX() + boss.getWidth()/2.0)) / timeSec;
 
             long explodeDelay = (long)(timeSec*1000.0);
 

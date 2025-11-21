@@ -1,9 +1,11 @@
-package org.newdawn.spaceinvaders.entity;
+package org.newdawn.spaceinvaders.entity.projectile;
 
 import java.awt.Graphics;
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
+import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 
 public class EnemyShotEntity extends Entity {
     private final Game game;
