@@ -228,6 +228,19 @@ public class Game extends Canvas {
         entities.add(ship);
 
         ((ShipEntity) ship).getStats().setInvulnerable(false);
+        if (hasSession()) {
+            ShipEntity s = getPlayerShip();
+
+            // 레벨
+            int[] saved = LevelManager.loadLastLevel(DB_URL,
+                    session.getUid(),
+                    session.getIdToken());
+            s.getStats().setLevelAndXp(saved[0], saved[1]);
+
+            // 스킬
+            PlayerSkills ps = s.getStats().getSkills();
+            s.getPersistence().loadSkills(ps);
+        }
 
         alienCount = 0;
         if (infiniteMode) {
