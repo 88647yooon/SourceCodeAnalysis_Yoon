@@ -2,25 +2,29 @@ package org.newdawn.spaceinvaders;
 
 import org.newdawn.spaceinvaders.Screen.Screen;
 import org.newdawn.spaceinvaders.Screen.StageSelectScreen;
-
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
+
 
 public class GameOverScreen implements Screen {
     private final Game game;
     private int sel = 0;
     private final String[] items = {"재도전", "타이틀로"};
+    private static final String TITLE = "GAME OVER";
+    private static final String PRESSKEYMESSAGE  = "Press any Key";
 
     public GameOverScreen(Game game) {
         this.game = game;
     }
 
+
+
+
     @Override
     public void render(Graphics2D g) {
         g.setColor(Color.white);
-        String title = "GAME OVER";
-        g.drawString(title, (800 - g.getFontMetrics().stringWidth(title)) / 2, 220);
+        g.drawString(TITLE, (800 - g.getFontMetrics().stringWidth(TITLE)) / 2, 220);
 
         for (int i = 0; i < items.length; i++) {
             String line = (i == sel ? "> " : "  ") + items[i];
@@ -30,8 +34,7 @@ public class GameOverScreen implements Screen {
         g.drawString(help, (800 - g.getFontMetrics().stringWidth(help)) / 2, 360);
 
         if(game.isWaitingForKeyPress()){
-            String pressKeyMassage = "Press any Key";
-            g.drawString(pressKeyMassage, 800 - g.getFontMetrics().stringWidth(pressKeyMassage) / 2, 400);
+            g.drawString(PRESSKEYMESSAGE, 800 - g.getFontMetrics().stringWidth(PRESSKEYMESSAGE) / 2, 400);
         }
     }
 
@@ -55,16 +58,8 @@ public class GameOverScreen implements Screen {
             sel = (sel + 1) % items.length;
         } else if (keyCode == KeyEvent.VK_ENTER) {
             if (sel == 0) { // 재도전
-                // 이전 모드로 재시작 (리플렉션 사용: Game에 isInfiniteMode() 게터 없을 때)
-                try {
-                    java.lang.reflect.Field f = Game.class.getDeclaredField("infiniteMode");
-                    f.setAccessible(true);
-                    boolean wasInfinite = f.getBoolean(game);
-                    if (wasInfinite) game.startInfiniteMode(); else game.startStageMode(1);
-                } catch (Exception ignore) {
-                    game.startInfiniteMode(); // 실패하면 무한모드로 재시작
-                }
-            } else if (sel == 1) { // 타이틀로
+                game.restartLastMode();
+            } else if (sel == 1) {
                 game.setScreen(new MenuScreen(game));
             }
         }
