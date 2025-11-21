@@ -1,6 +1,6 @@
 package org.newdawn.spaceinvaders.entity.boss;
 
-import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.base.Entity;
 
 import java.awt.*;
 import java.util.ArrayList;

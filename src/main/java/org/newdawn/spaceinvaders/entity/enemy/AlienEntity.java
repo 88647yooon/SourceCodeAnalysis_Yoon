@@ -4,7 +4,8 @@ import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
 import java.util.concurrent.ThreadLocalRandom;
-import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.base.Entity;
+import org.newdawn.spaceinvaders.entity.base.EnemyEntity;
 import org.newdawn.spaceinvaders.entity.projectile.ShotEntity;
 
 /**
@@ -12,27 +13,17 @@ import org.newdawn.spaceinvaders.entity.projectile.ShotEntity;
  * 
  * @author Kevin Glass
  */
-public class AlienEntity extends Entity {
-	/** The speed at which the alient moves horizontally */
+public class AlienEntity extends EnemyEntity {
 	private final double moveSpeed = 75;
-	/** The game in which the entity exists */
 	protected final Game game;
-	/** The animation frames */
 	private final Sprite[] frames = new Sprite[4];
-	/** The time since the last frame change took place */
 	private long lastFrameChange;
-	/** The frame duration in milliseconds, i.e. how long any given frame of animation lasts */
 	private final long frameDuration = 250;
-	/** The current frame of animation being displayed */
 	private int frameNumber;
 
-    //최대 체력과 현재 체력
-    private int maxHP = 1;
-    private int currentHP=1;
     /** 웨이브에 따라 외계인 이동 속도를 키울 때 사용하는 배수 (1.0 = 기본) */
     private double speedMul = 1.0;
 
-    // --- [리팩토링 - 신규 필드 (자식 클래스에서 Pull Up)] ---
     /** 마지막 발사 시각 (ms) */
     private long lastShotAt = 0L;
     /** 기본 발사 쿨다운 (ms) - 기본값은 발사 안 함 */
@@ -93,29 +84,19 @@ public class AlienEntity extends Entity {
 		// by we can use it to drive the animation, however
 		// its the not the prettiest solution
 		lastFrameChange += delta;
-		
-		// if we need to change the frame, update the frame number
-		// and flip over the sprite in use
+
 		if (lastFrameChange > frameDuration) {
-			// reset our frame change time counter
 			lastFrameChange = 0;
-			
-			// update the frame
 			frameNumber++;
 			if (frameNumber >= frames.length) {
 				frameNumber = 0;
 			}
-			
 			sprite = frames[frameNumber];
 		}
-		
-		// if we have reached the left hand side of the screen and
-		// are moving left then request a logic update 
+
 		if ((dx < 0) && (x < 10)) {
 			game.updateLogic();
 		}
-		// and vice vesa, if we have reached the right hand side of 
-		// the screen and are moving right, request a logic update
 		if ((dx > 0) && (x > 750)) {
 			game.updateLogic();
 		}
@@ -135,30 +116,12 @@ public class AlienEntity extends Entity {
 		// screen a bit
 		dx = -dx;
 		y += 10;
-		
-		// if we've reached the bottom of the screen then the player
-		// dies
+
 		if (y > 570) {
 			game.notifyDeath();
 		}
 	}
 
-    // 최대 체력 증가 메소드
-    public void setMaxHP(int hp) {
-        this.maxHP = Math.max(1, hp);
-        this.currentHP = this.maxHP;
-    }
-
-    /** @return true면 사망 처리 필요 */
-    //적 체력 감소 메소드
-    public boolean takeDamage(int dmg) {
-        currentHP -= Math.max(1, dmg);
-        return currentHP <= 0;
-    }
-
-    public int getCurrentHP() {
-        return currentHP;
-    }
 
     /** 수평 이동 속도 배수 적용 (좌/우 방향은 유지) */
     public void applySpeedMultiplier(double mul) {
@@ -170,42 +133,28 @@ public class AlienEntity extends Entity {
         double dir = (dx < 0) ? -1.0 : 1.0;
         setHorizontalMovement(dir * base * speedMul);
     }
-  	/*
-  	*
-	 * Notification that this alien has collided with another entity
-	 * 
-	 * @param other The other entity
-	 */
+
     @Override
 	public void collidedWith(Entity other) {
-        // [리팩토링]
-        // 플레이어 탄환(ShotEntity)과의 충돌은 ShotEntity가 감지하여
-        // 이 클래스의 wasHitBy()를 호출하는 방식으로 변경되었습니다.
-
-        // 이 메소드는 플레이어 함선(ShipEntity) 등 다른 엔티티와의 충돌을 처리합니다.
-        // (현재 ShipEntity가 Alien과 충돌 시 스스로 damage를 입으므로 여기선 비워둡니다)
+        // 충돌 처리는 ShotEntity와 wasHitBy에서 담당하므로 비워둠
 	}
 
     /**
-     * ShotEntity로부터 "맞았다"는 알림을 받는 메소드.
-     * 캡슐화 원칙에 따라, 피격 처리는 AlienEntity가 스스로 담당합니다.
-     *
-     * @param shot A-Me-를 맞춘 플레이어의 총알
+     * 부모 (EnemyEntity)의 추상 메소드 구현
+     * ShotEntity로부터 피격 알림을 받았을 때 호출됨
      */
     public void wasHitBy(ShotEntity shot) {
-        // 1. 총알로부터 데미지를 받아와 스스로의 체력을 깎음
+        // 1. 부모의 takeDamage 호출(체력 감소)
         boolean isDead = this.takeDamage(shot.getDamage());
 
-        // 2. 만약 이 피격으로 인해 죽었다면,
+        // 2. 사망 시 Game에 알림
         if (isDead) {
-            // 3. 'Game' 객체에게 "내가 죽었다"고 알림.
-            //    (점수, XP, 엔티티 제거 등 모든 게임 규칙은 Game 클래스가 처리)
-            game.onAlienKilled(this); // 'this'는 이 AlienEntity 인스턴스 자신
+            game.onAlienKilled(this);
         }
     }
 
-    /** 리팩토링
-     * 자식 클래스가 발사 주기를 설정하기 위한 메소드 (protected)
+    /**
+     * 자식 클래스가 발사 주기를 설정하기 위한 메소드
      */
     protected void setFireCooldown(long baseMs, long jitterMs) {
         this.baseCooldownMs = baseMs;
@@ -230,9 +179,9 @@ public class AlienEntity extends Entity {
                 + effectiveCooldown
                 + ThreadLocalRandom.current().nextLong(effectiveJitter + 1);
 
-        // [중복 코드] 시간 비교
+        // [ 시간 비교
         if (now >= nextWindow) {
-            // [분리된 부분] 실제 발사 로직은 자식에게 위임
+            // 실제 발사 로직은 자식에게 위임
             performFire();
             lastShotAt = now;
         }
@@ -266,5 +215,4 @@ public class AlienEntity extends Entity {
     protected double getBulletSpeedMultiplier() {
         return this.bulletSpeedMul;
     }
-    // --- [리팩토링 끝] ---
 }

@@ -3,7 +3,8 @@ package org.newdawn.spaceinvaders.entity.boss;
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
-import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.base.EnemyEntity;
+import org.newdawn.spaceinvaders.entity.base.Entity;
 import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 import org.newdawn.spaceinvaders.entity.projectile.EnemyShotEntity;
@@ -19,7 +20,7 @@ import java.util.PriorityQueue;
  * - 내부 태스크 큐 기반 지연 실행(스레드 미사용)
  * - 레이저를 유한 길이 선분 판정으로 변경
  */
-public class BossEntity extends AlienEntity {
+public class BossEntity extends EnemyEntity {
         private final Game game;
         private final ShipEntity player;
 
@@ -59,7 +60,7 @@ public class BossEntity extends AlienEntity {
                 new PriorityQueue<>(Comparator.comparingLong(t -> t.executeAt));
 
         public BossEntity(Game game, int x, int y, ShipEntity player) {
-            super(game,"sprites/boss1.png",x, y);
+            super("sprites/boss1.png",x, y);
             this.game = game;
             this.player = player;
 
@@ -180,58 +181,61 @@ public class BossEntity extends AlienEntity {
     }
     @Override
     public void draw(Graphics g) {
-        // 1.보스 본체 그리기
-        g.drawImage(sprite.getImage(), (int)x,(int)y,BOSS_W,BOSS_H,null);
+        // 1. 보스 본체
+        g.drawImage(sprite.getImage(), (int)x, (int)y, BOSS_W, BOSS_H, null);
 
-        // 2.HP 바
-        int w = BOSS_W;
-        int h = 6;
-        int bw = (int)Math.max(0, Math.round((getCurrentHP()/(double)BOSS_MAX_HP)*w));
-        g.setColor(Color.RED);
-        g.fillRect((int)x,(int)y-10,bw,h);
-        g.setColor(Color.DARK_GRAY);
-        g.drawRect((int)x,(int)y-10,w,h);
+        // 2. HP 바 (헬퍼 메소드 분리)
+        drawHealthBar(g);
 
-        //3. 패턴 특수 그래픽 그리기 위임(그림자, 레이저)
-        if(currentStrategy !=null){
-            currentStrategy.draw((Graphics2D)g,this);
+        // 3. 패턴 그래픽
+        if (currentStrategy != null) {
+            currentStrategy.draw((Graphics2D)g, this);
         }
 
-        //4. 페이즈 전환 중 보스 테두리 깜빡임
-        long now = System.currentTimeMillis();
-        if(now < phaseHoldUntil) {
-            Graphics2D g2 = (Graphics2D)g;
-            Stroke oldS = g2.getStroke();
-            float a = 0.4f + 0.6f * (float)Math.abs(Math.sin((now % 600) / 600.0 * Math.PI * 2));
-            g2.setColor(new Color(255, 255, 0, (int)(a * 255)));
-            g2.setStroke(new BasicStroke(3f));
-            g2.drawRect((int)x, (int)y, BOSS_W, BOSS_H);
-            g2.setStroke(oldS);
+        // 4. 페이즈 전환 깜빡임 (헬퍼 메소드 분리)
+        if (now < phaseHoldUntil) {
+            drawBlinkEffect((Graphics2D)g);
         }
     }
 
-    //피격 로직
+    private void drawHealthBar(Graphics g) {
+        int w = BOSS_W;
+        int h = 6;
+        int bw = (int)Math.max(0, Math.round((getCurrentHP() / (double)BOSS_MAX_HP) * w));
+        g.setColor(Color.RED);
+        g.fillRect((int)x, (int)y - 10, bw, h);
+        g.setColor(Color.DARK_GRAY);
+        g.drawRect((int)x, (int)y - 10, w, h);
+    }
+
+    private void drawBlinkEffect(Graphics2D g2) {
+        Stroke oldS = g2.getStroke();
+        float a = 0.4f + 0.6f * (float)Math.abs(Math.sin((now % 600) / 600.0 * Math.PI * 2));
+        g2.setColor(new Color(255, 255, 0, (int)(a * 255)));
+        g2.setStroke(new BasicStroke(3f));
+        g2.drawRect((int)x, (int)y, BOSS_W, BOSS_H);
+        g2.setStroke(oldS);
+    }
+
+    @Override
+    public void wasHitBy(ShotEntity shot){
+            //페이즈 전환 중 무적
+        if(System.currentTimeMillis() < phaseHoldUntil){
+            return;
+        }
+        // 데미지 적용(EnemyEntity의 takeDamage 사용)
+        boolean isDead = takeDamage(shot.getDamage());
+
+        //사망 처리
+        if(isDead){
+            game.removeEntity(this);;
+            game.onBossKilled(); //보스 전용 사망 처리 호출
+        }
+    }
+
     @Override
     public void collidedWith(Entity other) {
-        if (other instanceof ShotEntity) {
-            ShotEntity shot = (ShotEntity) other;
-
-            // 탄은 제거
-            game.removeEntity(other);
-
-            // 페이즈 전환 무적 (데미지 무시)
-            if (System.currentTimeMillis() < phaseHoldUntil) {
-                return;
-            }
-
-            // 데미지 적용
-            boolean dead = takeDamage(shot.getDamage());
-
-            if (dead) {
-                game.removeEntity(this);
-                game.onBossKilled();
-            }
-        }
+        //ShotEntity와의 충돌 로직은 wasHitBy로 이동했으므로 제거
     }
 
     //전략 클래스가 사용할 수 있도록 탄환 생성로직을 public으로 공개

@@ -25,6 +25,7 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import org.newdawn.spaceinvaders.entity.base.Entity;
 import org.newdawn.spaceinvaders.entity.enemy.DiagonalShooterAlienEntity;
 import org.newdawn.spaceinvaders.entity.enemy.HostageEntity;
 import org.newdawn.spaceinvaders.entity.enemy.RangedAlienEntity;

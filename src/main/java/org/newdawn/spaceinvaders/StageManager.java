@@ -1,6 +1,7 @@
 package org.newdawn.spaceinvaders;
 
 import org.newdawn.spaceinvaders.entity.*;
+import org.newdawn.spaceinvaders.entity.base.Entity;
 import org.newdawn.spaceinvaders.entity.boss.BossEntity;
 import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 import org.newdawn.spaceinvaders.entity.enemy.DiagonalShooterAlienEntity;

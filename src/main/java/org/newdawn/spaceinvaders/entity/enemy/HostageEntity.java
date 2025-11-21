@@ -3,7 +3,7 @@ package org.newdawn.spaceinvaders.entity.enemy;
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
-import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.base.Entity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 import org.newdawn.spaceinvaders.entity.projectile.ShotEntity;
 

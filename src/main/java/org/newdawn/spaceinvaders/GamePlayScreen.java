@@ -1,7 +1,7 @@
 package org.newdawn.spaceinvaders;
 
 import org.newdawn.spaceinvaders.Screen.Screen;
-import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.base.Entity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 
 import java.awt.*;

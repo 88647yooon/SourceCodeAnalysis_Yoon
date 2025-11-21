@@ -1,8 +1,8 @@
 package org.newdawn.spaceinvaders.entity.projectile;
 
 import org.newdawn.spaceinvaders.Game;
-import org.newdawn.spaceinvaders.entity.Entity;
-import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
+import org.newdawn.spaceinvaders.entity.base.Entity;
+import org.newdawn.spaceinvaders.entity.base.EnemyEntity;
 
 /**
  * An entity representing a shot fired by the player's ship
@@ -10,11 +10,8 @@ import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
  * @author Kevin Glass
  */
 public class ShotEntity extends Entity {
-    /** The vertical speed at which the players shot moves */
     private final double moveSpeed = -300;
-    /** The game in which this entity exists */
     private final Game game;
-    /** True if this shot has been "used", i.e. its hit something */
     private boolean used = false;
     //기본 데미지
     private int damage = 1;
@@ -77,16 +74,13 @@ public class ShotEntity extends Entity {
         if (used) return;
 
         //충돌 대상이 AlienEntity인지 확인
-        if (other instanceof AlienEntity) {
-
-
+        if (other instanceof EnemyEntity) {
             // 탄은 소모
             used = true;
             game.removeEntity(this);
 
             //XP,점수, 외계인 제거 로직은 AlienEntity와 Game의 책임으로 이동
-            AlienEntity alien = (AlienEntity) other;
-            alien.wasHitBy(this);
+            ((EnemyEntity) other).wasHitBy(this);
 
             return;
         }
