@@ -4,8 +4,6 @@ import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferStrategy;
@@ -72,7 +70,7 @@ public class Game extends Canvas {
     public DatabaseClient getDbClient(){ return dbClient; }
     public GameDatabaseService getGameDb(){ return gameDb; }
     public void setSession(AuthSession session){ this.session = session; }
-    private boolean hasSession(){ return session != null && session.isLoggedIn(); }
+    public boolean hasSession(){ return session != null && session.isLoggedIn(); }
 
 	/** 페이지 넘김을 가속화 할 수 있는 전략 */
 	private final transient BufferStrategy strategy;
@@ -186,7 +184,7 @@ public class Game extends Canvas {
             }
         });
 
-        addKeyListener(new KeyInputHandler());
+        addKeyListener(new GameKeyInputHandler(this));
         setFocusable(true);
         setFocusTraversalKeysEnabled(false);
         SwingUtilities.invokeLater(this::requestFocusInWindow);
@@ -244,9 +242,8 @@ public class Game extends Canvas {
         alienCount = 0;
         if (infiniteMode) {
             spawnAliens();
-        } else {
-            // 스테이지 모드는 StageManager.applyStage(...)에서 배치
         }
+
     }
 
     public ShipEntity getPlayerShip() {
@@ -336,7 +333,7 @@ public class Game extends Canvas {
         int c;
         do{
             c = (int)(Math.random() * cols);
-        } while(usedCols.contains(c) && ++ guard < 10);
+        } while (usedCols.contains(c) && ++ guard < 10);
         return c;
     }
 
@@ -627,9 +624,6 @@ public class Game extends Canvas {
 
     List<Entity> getMutableEntities() {
         return entities;
-    }
-    public boolean isWaitingForKeyPress() {
-        return waitingForKeyPress;
     }
 
     public void setLeftPressed(boolean value) { leftPressed = value; }
@@ -974,44 +968,27 @@ public class Game extends Canvas {
     }
 
     /**
-     * 키 입력: Screen에 위임.
-     * - keyTyped: AuthScreen이면 문자 전달, ESC는 메뉴 복귀 및 점수 업로드
+     * GameKeyInputHandler의 getter
+     * 헬퍼 메서드 필드
      */
-    private class KeyInputHandler extends KeyAdapter {
-        @Override
-        public void keyPressed(KeyEvent e) {
-            if (currentScreen != null) {
-                currentScreen.handleKeyPress(e.getKeyCode());
-            }
-            if (waitingForKeyPress) {
-                waitingForKeyPress = false;
-                setScreen(new StageSelectScreen(Game.this));
-            }
-        }
 
-        @Override
-        public void keyReleased(KeyEvent e) {
-            if (currentScreen != null) {
-                currentScreen.handleKeyRelease(e.getKeyCode());
-            }
-        }
+    //현재 스크린의 상태 조회하기
+    public Screen getCurrentScreen() { return currentScreen; }
 
-        @Override
-        public void keyTyped(KeyEvent e) {
-            if (currentScreen instanceof AuthScreen) {
-                ((AuthScreen) currentScreen).handleCharTyped(e.getKeyChar());
-                return;
-            }
+    //아무 키나 누르기
+    public boolean isWaitingForKeyPress() { return waitingForKeyPress; }
+    public void setWaitingForKeyPress(boolean value) { this.waitingForKeyPress = value; }
 
-            if (e.getKeyChar() == 27) { // ESC
-                if (score > 0 && hasSession()) {
-                    System.out.println("[ESC] 중간 점수 업로드: score=" + score);
-                    uploadScoreIfLoggedIn();
-                }
-                state = GameState.MENU;
-                setScreen(new MenuScreen(Game.this));
-            }
-        }
+    //점수 조회(ESC 업로드용)
+    public int getScore(){ return score; }
+
+    //스테이지 선택 화면으로 이동
+    public void goToStageSelectScreen(){ setScreen(new StageSelectScreen(this)); }
+
+    //메뉴 화면으로 돌아가기(ESC 눌렀을때)
+    public void goToMenuScreen(){
+        state = GameState.MENU;
+        setScreen(new MenuScreen(this));
     }
 
     /** 화면 컨텍스트에 맞춰 BGM 선택/재생 */
@@ -1039,7 +1016,7 @@ public class Game extends Canvas {
         sm.play(SoundManager.Bgm.MENU);
     }
 
-    private void uploadScoreIfLoggedIn() {
+    public void uploadScoreIfLoggedIn() {
         if (!hasSession()) return;
 
         long durationMs = (runStartedAtMs > 0) ? (System.currentTimeMillis() - runStartedAtMs) : 0L;
