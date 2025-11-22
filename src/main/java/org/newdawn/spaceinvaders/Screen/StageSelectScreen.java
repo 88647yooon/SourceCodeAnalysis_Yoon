@@ -7,25 +7,23 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 
 public class StageSelectScreen implements Screen {
-    private Game game;
+    private final Game game;
 
-    private final int MaxStage = 5;
+    private static final int MAXSTAGE = 5;
 
     //스테이지 이미지
-    private final Image[] stageImages = new Image[MaxStage];
+    private final Image[] stageImages = new Image[MAXSTAGE];
 
     //별 이미지
-    private Image starFilled;
-    private Image starEmpty;
+    private final Image starFilled;
+    private final Image starEmpty;
 
     // 애니메이션용 오프셋
-    private int Baseicon = 120;
     private int selectedSize = 200;
 
     private float currentIndex = 0;   // 현재 인덱스 (부드럽게 이동)
     private int SelectIndex = 0;
-    private float slideSpeed = 0.2f;  // 보간 속도
-    private int spacing = 220;        // 카드 간격
+        
 
     //잠긴 스테이지 안내 메시지 관련
     private String lockMessage ="";
@@ -36,7 +34,7 @@ public class StageSelectScreen implements Screen {
         this.game = game;
 
         // 스테이지 이미지 로드 (없으면 기본 사각형)
-        for (int i = 0; i < MaxStage; i++) {
+        for (int i = 0; i < MAXSTAGE; i++) {
             String path = "/sprites/stage" + (i + 1) + ".png";
             java.net.URL url = getClass().getResource(path);
             if (url != null) {
@@ -56,21 +54,22 @@ public class StageSelectScreen implements Screen {
 
     @Override
     public void render(Graphics2D g) {
+        int spacing = 220; // 카드 간격
         g.setColor(Color.black);
         g.fillRect(0, 0, 800, 600);
         int centerX = 400;
         int y = 300;
 
         // 부드러운 효과
-        currentIndex += (SelectIndex - currentIndex) * slideSpeed;
+        currentIndex += (SelectIndex - currentIndex) * 0.2f;
 
-        for (int i = 0; i < MaxStage; i++) {
+        for (int i = 0; i < MAXSTAGE; i++) {
             float relative = i - currentIndex;
 
             // x 좌표 (중앙에서 relativeIndex만큼 간격 이동)
             int x = centerX + Math.round(relative * spacing);
             // 선택된 스테이지는 크게, 나머지는 작게
-            int size = (Math.round(currentIndex) == i) ? selectedSize : Baseicon;
+            int size = (Math.round(currentIndex) == i) ? selectedSize : 120;
 
             int drawX = x - size / 2;
             int drawY = y - size / 2;
@@ -156,7 +155,7 @@ public class StageSelectScreen implements Screen {
         if (keyCode == KeyEvent.VK_LEFT && SelectIndex > 0) {
                 SelectIndex--;
         }
-        if (keyCode == KeyEvent.VK_RIGHT && SelectIndex < MaxStage - 1) {
+        if (keyCode == KeyEvent.VK_RIGHT && SelectIndex < MAXSTAGE - 1) {
                 SelectIndex++;
         }
 

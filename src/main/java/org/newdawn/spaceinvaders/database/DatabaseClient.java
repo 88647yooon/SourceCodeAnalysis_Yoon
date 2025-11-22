@@ -1,4 +1,4 @@
-package org.newdawn.spaceinvaders.DataBase;
+package org.newdawn.spaceinvaders.database;
 
 public interface DatabaseClient {
 

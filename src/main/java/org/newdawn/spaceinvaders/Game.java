@@ -11,7 +11,7 @@ import java.io.FileInputStream;
 import java.util.List;
 import javax.swing.*;
 
-import org.newdawn.spaceinvaders.DataBase.*;
+import org.newdawn.spaceinvaders.database.*;
 import org.newdawn.spaceinvaders.Manager.EntityManager;
 import org.newdawn.spaceinvaders.Manager.SoundManager;
 import org.newdawn.spaceinvaders.Manager.StageManager;
@@ -54,9 +54,6 @@ public class Game extends Canvas {
     // Firebase Admin SDK 용 서비스 키
     private static final String DB_KEYFILE = "src/main/resources/serviceAccountKey.json";
 
-    public static String SESSION_UID   = null;
-    public static String SESSION_EMAIL = null;
-    public static String SESSION_ID_TOKEN = null;
 
     // 세션/DB 의존성
     private final transient DatabaseClient dbClient = new FirebaseDatabaseClient(DB_URL);

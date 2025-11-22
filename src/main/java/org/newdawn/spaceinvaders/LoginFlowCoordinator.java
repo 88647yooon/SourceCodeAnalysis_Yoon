@@ -1,7 +1,7 @@
 package org.newdawn.spaceinvaders;
-import org.newdawn.spaceinvaders.DataBase.AuthSession;
-import org.newdawn.spaceinvaders.DataBase.FirebaseAuthService;
-import org.newdawn.spaceinvaders.DataBase.FirebaseDatabaseClient;
+import org.newdawn.spaceinvaders.database.AuthSession;
+import org.newdawn.spaceinvaders.database.FirebaseAuthService;
+import org.newdawn.spaceinvaders.database.FirebaseDatabaseClient;
 
 
 public class LoginFlowCoordinator {

@@ -1,4 +1,4 @@
-package org.newdawn.spaceinvaders.DataBase;
+package org.newdawn.spaceinvaders.database;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -7,9 +7,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class GameDatabaseService {
     private final DatabaseClient db;
+    private final Logger logger = Logger.getLogger(GameDatabaseService.class.getName());
+    private static final  String STIRNGFORPATHING= "user/";
 
     public GameDatabaseService(DatabaseClient db) {
         this.db = db;
@@ -28,10 +31,10 @@ public class GameDatabaseService {
 
             String json = new Gson().toJson(stringKeyMap);
 
-            db.put("user/"+ session.getUid() + "/stageStars", session.getIdToken(), json);
+            db.put(STIRNGFORPATHING+ session.getUid() + "/stageStars", session.getIdToken(), json);
 
         } catch (Exception e) {
-            System.err.println("별 기록 업로드 실패 " + e.getMessage());
+            logger.warning("별 기록 업로드 실패 " + e.getMessage());
         }
     }
 
@@ -42,7 +45,7 @@ public class GameDatabaseService {
         if (session == null || !session.isLoggedIn()) return result;
 
         try {
-            String res = db.get("users/" + session.getUid() + "/stageStars", session.getIdToken());
+            String res = db.get(STIRNGFORPATHING + session.getUid() + "/stageStars", session.getIdToken());
 
             java.lang.reflect.Type mapType = new TypeToken<Map<String, Integer>>() {
             }.getType();
@@ -57,7 +60,7 @@ public class GameDatabaseService {
                 }
             }
         } catch (Exception e) {
-            System.err.println(" 별 기록 불러오기 실패: " + e.getMessage());
+            logger.warning(" 별 기록 불러오기 실패: " + e.getMessage());
         }
         return result;
     }
@@ -76,12 +79,12 @@ public class GameDatabaseService {
                     + "\"timestamp\":" + FirebaseDatabaseClient.quote(entry.getTimestamp())
                     + "}";
 
-            db.post("users/" + session.getUid() + "/scores", session.getIdToken(), json);
+            db.post(STIRNGFORPATHING + session.getUid() + "/scores", session.getIdToken(), json);
             db.post("globalScores", session.getIdToken(), json);
 
-            System.out.println("점수 업로드 완료: " + json);
+            logger.info("점수 업로드 완료:");
         } catch (Exception e) {
-            System.err.println("점수 업로드 실패: " + e.getMessage());
+            logger.info("점수 업로드 실패: " + e.getMessage());
         }
     }
 
@@ -104,7 +107,7 @@ public class GameDatabaseService {
                     a.getScore() == null ? 0 : a.getScore()
             ));
         } catch (Exception e) {
-            System.err.println("점수 조회 실패: " + e.getMessage());
+            logger.warning("점수 조회 실패: " + e.getMessage());
         }
         return list;
     }
@@ -127,7 +130,7 @@ public class GameDatabaseService {
                     a.getScore() == null ? 0 : a.getScore()
             ));
         } catch (Exception e) {
-            System.err.println(" 글로벌 점수 조회 실패: " + e.getMessage());
+            logger.warning(" 글로벌 점수 조회 실패: " + e.getMessage());
         }
 
         return list;
@@ -143,7 +146,7 @@ public class GameDatabaseService {
         try {
             db.post("users/" + session.getUid() + "/logs", session.getIdToken(), json);
         } catch (Exception e) {
-            System.err.println("⚠ 로그 저장 실패: " + e.getMessage());
+            logger.warning("로그 저장 실패: " + e.getMessage());
         }
     }
 

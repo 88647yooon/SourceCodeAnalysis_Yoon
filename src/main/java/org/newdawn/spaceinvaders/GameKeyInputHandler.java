@@ -1,16 +1,17 @@
 package org.newdawn.spaceinvaders;
 
 import org.newdawn.spaceinvaders.Screen.Screen;
-import org.newdawn.spaceinvaders.Screen.StageSelectScreen;
 
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
+import java.util.logging.Logger;
 /*
     게임에서 키 입력 처리를 담당하는 클래스
  */
 public class GameKeyInputHandler extends KeyAdapter {
     private final Game game;
+    private Logger logger = Logger.getLogger(GameKeyInputHandler.class.getName());
 
     public GameKeyInputHandler(Game game) {
         this.game = game;
@@ -45,7 +46,7 @@ public class GameKeyInputHandler extends KeyAdapter {
 
         if (e.getKeyChar() == 27) { // ESC
             if (game.getScore() > 0 && game.hasSession()) {
-                System.out.println("[ESC] 중간 점수 업로드: score=" + game.getScore());
+                logger.info("[ESC] 중간 점수 업로드: score=" + game.getScore());
                 game.uploadScoreIfLoggedIn();
             }
             game.goToMenuScreen();
