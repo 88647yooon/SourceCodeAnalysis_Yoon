@@ -30,7 +30,7 @@ public class ShipEntity extends Entity {
         // 컴포넌트 조립
         this.stats = new ShipStatsComponent();
         this.dash = new ShipDashComponent(this); // 대시는 이동을 위해 Entity 참조 필요
-        this.persistence = new ShipPersistenceComponent();
+        this.persistence = new ShipPersistenceComponent(game);
     }
 
     //컴포넌트 Getter추가

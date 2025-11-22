@@ -151,7 +151,7 @@ public class GamePlayScreen implements Screen {
             default:
                 break;
         }
-        ship.getPersistence().saveSkills(s, game);
+        ship.getPersistence().saveSkills(s);
 
     }
 

@@ -1,73 +1,63 @@
 package org.newdawn.spaceinvaders;
-import java.util.*;
-import java.net.*;
-import java.io.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.logging.Logger;
 
+import com.google.gson.GsonBuilder;
 import org.newdawn.spaceinvaders.DataBase.DatabaseClient;
 import org.newdawn.spaceinvaders.DataBase.FirebaseDatabaseClient;
 
+import com.google.gson.Gson;
 public class LevelManager {
+    private static final Gson GSON = new GsonBuilder().create();
+    private  static final Logger logger  = Logger.getLogger(LevelManager.class.getName());
+    private static final String MESSAGE1 = "UID 또는 TOKEN이 null";
+    private static final String MESSAGE2 = "UID, TOKEN, SKILLS가 null";
+
+    private LevelManager(){
+
+    }
 
     public static void saveSkills(DatabaseClient dbClient,String uid, String idToken, PlayerSkills s) {
         if (uid == null || idToken == null || s == null) {
-            System.out.println(" saveSkills: uid/token/skills null");
+            logger.info(" saveSkills: uid/token/skills null");
             return;
         }
         try {
-            String json = "{"
-                    + "\"atkLv\":" + s.atkLv + ","
-                    + "\"rofLv\":" + s.rofLv + ","
-                    + "\"dashLv\":" + s.dashLv
-                    + "}";
-
+            String json = GSON.toJson(s);
             dbClient.put("users/" + uid + "/skills", idToken, json);
-            System.out.println("스킬 저장: " + json);
+            logger.info("스킬 저장: " + json);
         } catch (Exception e) {
-            System.err.println("스킬 저장 실패: " + e.getMessage());
+            logger.warning("스킬 저장 실패: " + e.getMessage());
         }
     }
 
     public static void loadSkills(String dbUrl, String uid, String idToken, PlayerSkills s) {
         if (uid == null || idToken == null || s == null) {
-            System.out.println("️ loadSkills: uid/token/skills null");
+            logger.info(MESSAGE2);
             return;
         }
         try {
             String endpoint = dbUrl + "/users/" + uid + "/skills.json?auth=" + FirebaseDatabaseClient.urlEnc(idToken);
             String res = FirebaseDatabaseClient.httpGet(endpoint);
             if (res == null || res.equals("null")) {
-                System.out.println(" 스킬 데이터 없음 → 기본값 사용");
+                logger.info("스킬 데이터 없음 -> 기본값 사용");
+                return;
+            }
+            PlayerSkills loaded = GSON.fromJson(res, PlayerSkills.class);
+            if (loaded == null) {
+                logger.warning("스킬 JSON 파싱 결과가 null. 기존 값 유지");
                 return;
             }
 
-            s.atkLv         = extractInt(res, "atkLv", 0);
-            s.rofLv        = extractInt(res, "rofLv", 0);
-            s.dashLv      = extractInt(res, "dashLv", 0);
-
-            System.out.println(" 스킬 불러오기 완료: atk=" + s.atkLv + ", rof=" + s.rofLv + ", dashLv=" + s.dashLv );
+            logger.info("스킬 불러오기 완료: atk=" + s.atkLv + ", rof=" + s.rofLv + ", dashLv=" + s.dashLv);
         } catch (Exception e) {
-            System.err.println(" 스킬 불러오기 실패: " + e.getMessage());
+            logger.warning(" 스킬 불러오기 실패: " + e.getMessage());
         }
     }
-
-    private static int extractInt(String json, String key, int def) {
-        String pattern = "\""+Pattern.quote(key)+"\"\\s*:\\s*(-?\\d+)";
-        Matcher m = Pattern.compile(pattern).matcher(json);
-        if (m.find()) {
-            try { return Integer.parseInt(m.group(1)); } catch (Exception ignore) {}
-        }
-        return def;
-    }
-
-
-
 
     // 마지막 레벨 불러오기
     public static int[] loadLastLevel(String dbUrl, String uid, String idToken) {
         if (uid == null || idToken == null) {
-            System.err.println("UID 또는 TOKEN이 null → 로그인 전 호출됨");
+            logger.warning(MESSAGE1);
             return new int[]{1, 0};
         }
 
@@ -75,7 +65,8 @@ public class LevelManager {
             String endpoint = dbUrl + "/users/" + uid + "/lastLevel.json?auth=" + FirebaseDatabaseClient.urlEnc(idToken);
             String res = FirebaseDatabaseClient.httpGet(endpoint);
             if (res != null && !res.equals("null")) {
-                int level = 1, xp = 0;
+                int level = 1;
+                int xp = 0;
 
                 if (res.contains("\"level\"")) {
                     String lvStr = res.replaceAll(".*\"level\"\\s*:\\s*\"?(\\d+)\"?.*", "$1");
@@ -86,11 +77,11 @@ public class LevelManager {
                     xp = Integer.parseInt(xpStr);
                 }
 
-                System.out.println("✅ 불러온 레벨: " + level + ", 경험치: " + xp);
+                logger.info("불러온 레벨: " + level + ", 경험치: " + xp);
                 return new int[]{level, xp};
             }
         } catch (Exception e) {
-            System.err.println("⚠️ 레벨 불러오기 실패: " + e.getMessage());
+            logger.warning("레벨 불러오기 실패: " + e.getMessage());
         }
 
         return new int[]{1, 0};
@@ -99,7 +90,7 @@ public class LevelManager {
     // 🔹 마지막 레벨 저장
     public static void saveLastLevel(DatabaseClient dbClient,String uid, String idToken, int level, int xpIntoLevel) {
         if (uid == null || idToken == null) {
-            System.err.println("⚠️ UID 또는 TOKEN이 null → 저장 안 함");
+            logger.warning(MESSAGE1);
             return;
         }
         try {
@@ -108,9 +99,9 @@ public class LevelManager {
                     + "\"xpIntoLevel\":" + xpIntoLevel
                     + "}";
             dbClient.put("users/" + uid + "/lastLevel", idToken, json);
-            System.out.println("✅ 마지막 레벨 저장 완료 → " + json);
+            logger.info("마지막 레벨 저장 완료 →" + json);
         } catch (Exception e) {
-            System.err.println("⚠️ 레벨 저장 실패: " + e.getMessage());
+            logger.warning("레벨 저장 실패: " + e.getMessage());
         }
     }
 }
