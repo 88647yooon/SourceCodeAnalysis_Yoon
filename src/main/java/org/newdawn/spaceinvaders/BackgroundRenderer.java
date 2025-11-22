@@ -4,11 +4,9 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
-import java.util.logging.Logger;
 
 class BackgroundRenderer {
     private BufferedImage[] backgrounds;
-    private static final Logger logger = Logger.getLogger(BackgroundRenderer.class.getName());
 
     public BackgroundRenderer() {
         // 리소스 경로는 클래스패스 기준. 실제 파일은 src/main/resources/sprites/ 아래에 있어야 함.
@@ -22,7 +20,7 @@ class BackgroundRenderer {
         boolean any = false;
         for (BufferedImage bg : backgrounds) if (bg != null) { any = true; break; }
         if (!any) {
-           logger.warning("Background loading failed");
+            System.err.println(" Background images not found on classpath. Using gradient fallback.");
         }
     }
 
@@ -30,10 +28,12 @@ class BackgroundRenderer {
     private BufferedImage load(String path) {
         try (InputStream is = getClass().getResourceAsStream(path)) {
             if (is == null) {
+                System.err.println(" Missing resource: " + path);
                 return null;
             }
             return ImageIO.read(is);
         } catch (Exception e) {
+            System.err.println(" Failed to load " + path + " : " + e.getMessage());
             return null;
         }
     }
