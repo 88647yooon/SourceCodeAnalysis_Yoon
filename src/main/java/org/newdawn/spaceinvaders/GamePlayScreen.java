@@ -16,7 +16,6 @@ public class GamePlayScreen implements Screen {
     //스탯 상승 관련 오버레이
     private boolean levelUpActive = false; // 오버레이 열렸는지
     private int levelUpIndex = 0;          // 0:공격력, 1:연사속도, 2:대시쿨
-         // (선택) 약간의 진입 애니메이션용
 
     public GamePlayScreen(Game game) {
         this.game = game;
@@ -28,7 +27,6 @@ public class GamePlayScreen implements Screen {
     public Game getGame(){
         return this.game;
     }
-
     public ShipEntity getShip(){
         return this.ship;
     }
@@ -50,6 +48,8 @@ public class GamePlayScreen implements Screen {
 
     @Override
     public void render(Graphics2D g){
+        Font uiFont;
+        uiFont = new Font("맑은 고딕", Font.BOLD, 20);
         // 웨이브별 배경 (10 웨이브마다 교체)
         backgroundRenderer.render(g, game.getWaveCount(), 800, 600);
 
@@ -64,7 +64,16 @@ public class GamePlayScreen implements Screen {
         // "Press any key" 상태 표시
         if (game.isWaitingForKeyPress()) {
             g.setColor(Color.white);
-            String msg = "Press any key";
+            g.setFont(uiFont);
+
+            String winMsg = game.getMessage();
+            String msg = "아무 키나 누르세요";
+
+            int cx = 800;
+            if(winMsg != null && !winMsg.isEmpty()){
+                int winX = (cx - g.getFontMetrics().stringWidth(winMsg)) / 2;
+                g.drawString(winMsg, winX, 260);
+            }
             g.drawString(msg, (800 - g.getFontMetrics().stringWidth(msg)) / 2, 300);
         }
         if (levelUpActive) {

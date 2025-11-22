@@ -69,7 +69,7 @@ public class Game extends Canvas {
     public GameDatabaseService getGameDb(){ return gameDb; }
     public void setSession(AuthSession session){ this.session = session; }
     public boolean hasSession(){ return session != null && session.isLoggedIn(); }
-
+    public String getMessage(){ return message; }
 	/** 페이지 넘김을 가속화 할 수 있는 전략 */
 	private final transient BufferStrategy strategy;
 	/** 게임이 현재 "실행 중"이라면, 즉 게임 루프가 반복되고 있습니다 */
@@ -94,9 +94,6 @@ public class Game extends Canvas {
 
     /** HP가 낮은 등 위험 상태 표시 */
     private boolean dangerMode = false;
-
-    /** “아무 키나 누르기” 메시지 */
-    private String message = "";
     /** 아무 키 대기 중인지 여부 */
     private boolean waitingForKeyPress = true;
 
@@ -116,6 +113,8 @@ public class Game extends Canvas {
     private int fps;
     /** 윈도우 타이틀 기본값 */
     private String windowTitle = "Space Invaders 102";
+    /** 메시지 호출 */
+    private String message = "";
     /** 게임 윈도우 */
     private JFrame container;
 
@@ -140,7 +139,7 @@ public class Game extends Canvas {
     private Map<Integer, Integer> stageStars = new HashMap<>();
     private String[] menuItems = {"스테이지 모드", "무한 모드", "스코어보드", "게임 종료"};
     private int menuIndex = 0;
-    private final Font uiFont;
+
     // 무한 모드/웨이브/보스
     private boolean infiniteMode = false;
     private int waveCount = 1;
@@ -165,8 +164,7 @@ public class Game extends Canvas {
         // 사이즈
         panel.setPreferredSize(new Dimension(800, 600));
         panel.setLayout(null);
-        //한글 지원 폰트 설정
-        uiFont = new Font("맑은 고딕", Font.PLAIN, 20);
+
         setBounds(0, 0, 800, 600);
         panel.add(this);
 
