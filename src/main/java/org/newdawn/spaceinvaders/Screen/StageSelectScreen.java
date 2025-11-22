@@ -7,7 +7,7 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 
 public class StageSelectScreen implements Screen {
-    private final Game game;
+    private Game game;
 
     private static final int MAXSTAGE = 5;
 

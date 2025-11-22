@@ -12,9 +12,9 @@ import java.util.List;
 import javax.swing.*;
 
 import org.newdawn.spaceinvaders.database.*;
-import org.newdawn.spaceinvaders.Manager.EntityManager;
-import org.newdawn.spaceinvaders.Manager.SoundManager;
-import org.newdawn.spaceinvaders.Manager.StageManager;
+import org.newdawn.spaceinvaders.manager.EntityManager;
+import org.newdawn.spaceinvaders.manager.SoundManager;
+import org.newdawn.spaceinvaders.manager.StageManager;
 import org.newdawn.spaceinvaders.Screen.Screen;
 import org.newdawn.spaceinvaders.Screen.StageSelectScreen;
 

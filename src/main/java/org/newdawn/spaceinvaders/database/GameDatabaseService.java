@@ -12,7 +12,6 @@ import java.util.logging.Logger;
 public class GameDatabaseService {
     private final DatabaseClient db;
     private final Logger logger = Logger.getLogger(GameDatabaseService.class.getName());
-    private static final  String STIRNGFORPATHING= "user/";
 
     public GameDatabaseService(DatabaseClient db) {
         this.db = db;
@@ -31,7 +30,7 @@ public class GameDatabaseService {
 
             String json = new Gson().toJson(stringKeyMap);
 
-            db.put(STIRNGFORPATHING+ session.getUid() + "/stageStars", session.getIdToken(), json);
+            db.put("user/"+ session.getUid() + "/stageStars", session.getIdToken(), json);
 
         } catch (Exception e) {
             logger.warning("별 기록 업로드 실패 " + e.getMessage());
@@ -42,26 +41,56 @@ public class GameDatabaseService {
     // [수정] 로그인 시 별 로드 후 재계산 호출
     public Map<Integer, Integer> loadStageStars(AuthSession session) {
         Map<Integer, Integer> result = new HashMap<>();
-        if (session == null || !session.isLoggedIn()) return result;
+        if (session == null || !session.isLoggedIn()) {
+            // 세션도 없는데 굳이 로그까지 남길 필요는 없음
+            return result;
+        }
 
         try {
-            String res = db.get(STIRNGFORPATHING + session.getUid() + "/stageStars", session.getIdToken());
+            String path = "users/" + session.getUid() + "/stageStars";
+            String res  = db.get(path, session.getIdToken());
 
-            java.lang.reflect.Type mapType = new TypeToken<Map<String, Integer>>() {
-            }.getType();
-            Map<String, Integer> loaded = new Gson().fromJson(res, mapType);
+            // 데이터 자체가 없을 때 (신규 유저 등)
+            if (res == null || res.isEmpty() || "null".equals(res.trim())) {
+                return result;
+            }
 
-            if (loaded != null) {
-                for (Map.Entry<String, Integer> e : loaded.entrySet()) {
-                    if (e.getKey().startsWith("stage")) {
-                        int stageId = Integer.parseInt(e.getKey().substring(5));
-                        result.put(stageId, e.getValue());
-                    }
+            // 권한 문제는 그래도 한 번은 경고 남겨두는 게 좋음
+            if (res.contains("Permission denied")) {
+                logger.warning("loadStageStars: Permission denied");
+                return result;
+            }
+
+            // 최소한의 파싱만
+            java.lang.reflect.Type mapType =
+                    new com.google.gson.reflect.TypeToken<Map<String, Integer>>() {}.getType();
+            Map<String, Integer> loaded =
+                    new com.google.gson.Gson().fromJson(res, mapType);
+
+            if (loaded == null) {
+                return result;
+            }
+
+            for (Map.Entry<String, Integer> e : loaded.entrySet()) {
+                String key = e.getKey();
+                if (!key.startsWith("stage")) {
+                    continue;
+                }
+                String numPart = key.substring("stage".length());
+                if (!numPart.matches("\\d+")) {
+                    continue;
+                }
+                int stageId = Integer.parseInt(numPart);
+                Integer stars = e.getValue();
+                if (stars != null) {
+                    result.put(stageId, stars);
                 }
             }
         } catch (Exception e) {
-            logger.warning(" 별 기록 불러오기 실패: " + e.getMessage());
+            // 진짜 문제 있을 때만 한 줄
+            logger.warning("loadStageStars 실패: " + e.getMessage());
         }
+
         return result;
     }
 
@@ -79,7 +108,7 @@ public class GameDatabaseService {
                     + "\"timestamp\":" + FirebaseDatabaseClient.quote(entry.getTimestamp())
                     + "}";
 
-            db.post(STIRNGFORPATHING + session.getUid() + "/scores", session.getIdToken(), json);
+            db.post("user/" + session.getUid() + "/scores", session.getIdToken(), json);
             db.post("globalScores", session.getIdToken(), json);
 
             logger.info("점수 업로드 완료:");

@@ -5,7 +5,6 @@ import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
 import org.newdawn.spaceinvaders.entity.base.EnemyEntity;
 import org.newdawn.spaceinvaders.entity.base.Entity;
-import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 import org.newdawn.spaceinvaders.entity.projectile.EnemyShotEntity;
 import org.newdawn.spaceinvaders.entity.projectile.ShotEntity;
@@ -28,10 +27,8 @@ public class BossEntity extends EnemyEntity {
         private BossAttackStrategy currentStrategy;
 
         // 스프라이트/렌더
-        private Sprite sprite;
         private Sprite[] frames = new Sprite[3];
         private long lastFrameChange = 0;
-        private long frameDuration = 120;
         private int frameNumber = 0;
 
         // 체력/페이즈
@@ -41,8 +38,7 @@ public class BossEntity extends EnemyEntity {
         // 화면 경계
         private static final int BOSS_W = 120;
         private static final int BOSS_H = 120;
-        private final int minX =20;
-        private final int maxX = 780 - BOSS_W; //화면폭 - 보스폭 - 여유
+         //화면폭 - 보스폭 - 여유
 
         //페이즈 전환 공통인프라
         private long phaseIntroMs = 1500;    // 전환 후 쉬는시간
@@ -98,6 +94,7 @@ public class BossEntity extends EnemyEntity {
     }
 
     private void updateAnimation() {
+        long frameDuration = 120;
         if (now - lastFrameChange > frameDuration) {
             lastFrameChange = now;
             frameNumber = (frameNumber + 1) % frames.length;
@@ -106,6 +103,8 @@ public class BossEntity extends EnemyEntity {
     }
 
     private void handleMovementAndBoundaries() {
+        int minX =20;
+        int maxX = 780 - BOSS_W;
         // Y축 경계 (위아래로 튕기기)
         if (getY() > 140) {
             setVerticalMovement(-40);
@@ -228,7 +227,7 @@ public class BossEntity extends EnemyEntity {
 
         //사망 처리
         if(isDead){
-            game.removeEntity(this);;
+            game.removeEntity(this);
             game.onBossKilled(); //보스 전용 사망 처리 호출
         }
     }

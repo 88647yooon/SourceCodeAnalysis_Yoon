@@ -1,19 +1,20 @@
-package org.newdawn.spaceinvaders.Manager;
+package org.newdawn.spaceinvaders.manager;
 
 import javax.sound.sampled.*;
 import java.io.InputStream;
 import java.io.BufferedInputStream;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.EnumMap;
+import java.util.logging.Logger;
 
 public final class SoundManager {
     // ===== BGM =====
     public enum Bgm { MENU, STAGE, BOSS }
 
     private static final SoundManager I = new SoundManager();
+    private static final Logger logger = Logger.getLogger(SoundManager.class.getName());
     public static SoundManager get() { return I; }
 
-    private final Map<Bgm, Clip> bgmClips = new HashMap<>();
+    private final EnumMap<Bgm, Clip> bgmClips = new EnumMap<>(Bgm.class);
     private Bgm currentBgm;
 
     private float sfxGainDb = 0f;
@@ -72,7 +73,7 @@ public final class SoundManager {
     public enum Sfx { SHOOT }
 
     private static final int SFX_POOL_SIZE = 8;
-    private final Map<Sfx, Clip[]> sfxPools = new HashMap<>();
+    private final EnumMap<Sfx, Clip[]> sfxPools = new EnumMap<>(Sfx.class);
 
     private Clip loadSfx(String classpath) {
         return loadClip(classpath); // 동일 로더 사용
@@ -82,12 +83,11 @@ public final class SoundManager {
         Clip[] pool = sfxPools.get(s);
         if (pool != null) return pool;
 
-        String p;
-        switch (s) {
-            case SHOOT: p = "/sounds/shoot.wav"; break;
-            default:    p = null;                break;
-        }
+        String p = null;
 
+        if (s == Sfx.SHOOT) {
+            p = "/sounds/shoot.wav";
+        }
         pool = new Clip[SFX_POOL_SIZE];
         for (int i = 0; i < SFX_POOL_SIZE; i++) {
             pool[i] = loadSfx(p);
@@ -99,18 +99,18 @@ public final class SoundManager {
 
     /** 짧은 효과음 재생(겹쳐 재생 지원) */
     public void playSfx(Sfx s) {
-        Clip[] pool = ensureSfxPool(s);
-        if (pool == null) return;
+        Clip[] pool = ensureSfxPool(s);  // null 아님
 
-        for (int i = 0; i < pool.length; i++) {
-            Clip c = pool[i];
+        for (Clip c : pool) {
             if (c == null) continue;
             if (!c.isRunning()) {
                 try {
                     applyGain(c);
                     c.setFramePosition(0);
                     c.start();
-                } catch (Exception ignore) {}
+                } catch (Exception ignore) {
+                    logger.warning("Failed to play sfx");
+                }
                 return;
             }
         }
@@ -122,7 +122,9 @@ public final class SoundManager {
                 c0.stop();
                 c0.setFramePosition(0);
                 c0.start();
-            } catch (Exception ignore) {}
+            } catch (Exception ignore){
+                logger.info("Failed to play sfx");
+            }
         }
     }
 
@@ -136,7 +138,9 @@ public final class SoundManager {
                 try {
                     FloatControl gain = (FloatControl) c.getControl(FloatControl.Type.MASTER_GAIN);
                     gain.setValue(db);
-                } catch (Exception ignore) {}
+                } catch (Exception ignore) {
+                    logger.warning("Failed to set volume for sfx");
+                }
             }
         }
     }
@@ -150,7 +154,9 @@ public final class SoundManager {
             float max = gain.getMaximum();
             float val = Math.max(min, Math.min(max, sfxGainDb));
             gain.setValue(val);
-        } catch (Exception ignore) {}
+        } catch (Exception ignore) {
+            logger.warning("Failed to apply Gain");
+        }
     }
 
 

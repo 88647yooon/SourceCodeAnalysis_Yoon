@@ -13,57 +13,47 @@ import java.util.logging.Logger;
 
 public class SpriteStore {
 
-	private static SpriteStore single = new SpriteStore();
-    private static Logger logger = Logger.getLogger(SpriteStore.class.getName());
+	private static final SpriteStore single = new SpriteStore();
+    private static final Logger logger = Logger.getLogger(SpriteStore.class.getName());
 
 	public static SpriteStore get() {
 		return single;
 	}
 	
 
-	private HashMap<String, Sprite> sprites = new HashMap<>();
+	private final HashMap<String, Sprite> sprites = new HashMap<>();
 	
 
 	public Sprite getSprite(String ref) {
-
-		if (sprites.get(ref) != null) {
+        if (sprites.get(ref) != null) {
 			return sprites.get(ref);
 		}
-		
 
-		BufferedImage sourceImage = null;
+        BufferedImage sourceImage = null;
 		
 		try {
-
-			URL url = this.getClass().getClassLoader().getResource(ref);
-			
-			if (url == null) {
+            URL url = this.getClass().getClassLoader().getResource(ref);
+            if (url == null) {
 				fail("Can't find ref: "+ref);
 			}
-			
-
-			sourceImage = ImageIO.read(url);
+            sourceImage = ImageIO.read(url);
 		} catch (IOException e) {
 			fail("Failed to load: "+ref);
 		}
 		
-
-		GraphicsConfiguration gc = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration();
+        GraphicsConfiguration gc = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration();
 		Image image = gc.createCompatibleImage(sourceImage.getWidth(),sourceImage.getHeight(),Transparency.BITMASK);
 		
-
-		image.getGraphics().drawImage(sourceImage,0,0,null);
+        image.getGraphics().drawImage(sourceImage,0,0,null);
 		
-
-		Sprite sprite = new Sprite(image);
+        Sprite sprite = new Sprite(image);
 		sprites.put(ref,sprite);
 
 		return sprite;
 	}
 	
-
-	private void fail(String message) {
+    private void fail(String message) {
 		logger.warning(message);
-		System.exit(0);
+        throw new IllegalStateException(message);
 	}
 }

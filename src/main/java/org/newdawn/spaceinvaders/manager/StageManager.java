@@ -1,4 +1,4 @@
-package org.newdawn.spaceinvaders.Manager;
+package org.newdawn.spaceinvaders.manager;
 
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.entity.base.Entity;
