@@ -1,9 +1,6 @@
 package org.newdawn.spaceinvaders;
 
-import java.awt.Canvas;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
+import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferStrategy;
@@ -11,6 +8,7 @@ import java.awt.image.BufferStrategy;
 import java.util.*;
 import java.text.SimpleDateFormat;
 import java.io.FileInputStream;
+import java.util.List;
 import javax.swing.*;
 
 import org.newdawn.spaceinvaders.DataBase.*;
@@ -142,7 +140,7 @@ public class Game extends Canvas {
     private Map<Integer, Integer> stageStars = new HashMap<>();
     private String[] menuItems = {"스테이지 모드", "무한 모드", "스코어보드", "게임 종료"};
     private int menuIndex = 0;
-
+    private final Font uiFont;
     // 무한 모드/웨이브/보스
     private boolean infiniteMode = false;
     private int waveCount = 1;
@@ -167,7 +165,8 @@ public class Game extends Canvas {
         // 사이즈
         panel.setPreferredSize(new Dimension(800, 600));
         panel.setLayout(null);
-
+        //한글 지원 폰트 설정
+        uiFont = new Font("맑은 고딕", Font.PLAIN, 20);
         setBounds(0, 0, 800, 600);
         panel.add(this);
 
@@ -177,12 +176,7 @@ public class Game extends Canvas {
         container.pack();
         container.setResizable(false);
         container.setVisible(true);
-
-        container.addWindowListener(new WindowAdapter() {
-            public void windowClosing(WindowEvent e) {
-                System.exit(0);
-            }
-        });
+        container.addWindowListener(new WindowAdapter() { public void windowClosing(WindowEvent e) { System.exit(0); } });
 
         addKeyListener(new GameKeyInputHandler(this));
         setFocusable(true);
@@ -577,7 +571,7 @@ public class Game extends Canvas {
 
     /** 플레이어 승리 처리(별 평가/저장 포함) */
     public void notifyWin() {
-        message = "모든 적을 처치하셨습니다! 승리!";
+        message = "Player Win!";
         waitingForKeyPress = true;
 
         if (currentMode == Mode.STAGE) {
@@ -775,7 +769,7 @@ public class Game extends Canvas {
         for(int i=0; i< entities.size(); i++){
             Entity entity = entities.get(i);
             if(entity instanceof AlienEntity) {
-                entity.setHorizontalMovement(entity.getHorizontalMovement() * 1.04);
+                entity.setHorizontalMovement(entity.getHorizontalMovement() * 1.01);
             }
         }
     }
@@ -836,9 +830,6 @@ public class Game extends Canvas {
                 updateEntities(delta);
             }
 
-
-            PressAnyKeyOverlayRender(g); //"아무 키나 누르세요" 메시지
-
             endFrame(g, lastLoopTime); //dispose + show +sleep
             ShipKeyInputHandler(); // Ship의 방향키 및 발사 처리
         }
@@ -876,25 +867,6 @@ public class Game extends Canvas {
 
     private boolean doesScreenDriveGame(){
         return currentScreen != null;
-    }
-
-    //PressAnyKey 오버레이 렌더
-    private void PressAnyKeyOverlayRender(Graphics2D g){
-        if(state == GameState.PLAYING && waitingForKeyPress){
-            g.setColor(Color.white);
-
-            String msg = message;
-            String pressAnyKey = "아무 키나 누르세요";
-
-            int cx = 800;
-            int msgX = (cx - g.getFontMetrics().stringWidth(msg)) / 2;
-            int keyX = (cx - g.getFontMetrics().stringWidth(pressAnyKey)) / 2;
-
-            g.drawString(msg, keyX, 250);
-            g.drawString(pressAnyKey, keyX, 250);
-        }
-
-
     }
 
     //플레이어 입력 로직
@@ -1111,7 +1083,7 @@ public class Game extends Canvas {
 
             FirebaseApp.initializeApp(options);
 
-            writeLog("gamestart");
+            writeLog("game Start");
 
             Game g = new Game();
             g.setScreen(new AuthScreen(g));
@@ -1122,7 +1094,7 @@ public class Game extends Canvas {
             g.gameLoop();
 
             ss.reloadScores();
-            writeLog("game over");
+            writeLog("game Over");
 
         } catch (Exception e) {
             e.printStackTrace();
