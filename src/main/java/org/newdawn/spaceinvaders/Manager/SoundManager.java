@@ -1,4 +1,4 @@
-package org.newdawn.spaceinvaders;
+package org.newdawn.spaceinvaders.Manager;
 
 import javax.sound.sampled.*;
 import java.io.InputStream;
