@@ -577,7 +577,7 @@ public class Game extends Canvas {
 
     /** 플레이어 승리 처리(별 평가/저장 포함) */
     public void notifyWin() {
-        message = "Well done! You Win!";
+        message = "모든 적을 처치하셨습니다! 승리!";
         waitingForKeyPress = true;
 
         if (currentMode == Mode.STAGE) {
@@ -775,7 +775,7 @@ public class Game extends Canvas {
         for(int i=0; i< entities.size(); i++){
             Entity entity = entities.get(i);
             if(entity instanceof AlienEntity) {
-                entity.setHorizontalMovement(entity.getHorizontalMovement() + 1.04);
+                entity.setHorizontalMovement(entity.getHorizontalMovement() * 1.04);
             }
         }
     }
@@ -817,96 +817,108 @@ public class Game extends Canvas {
         long lastLoopTime = SystemTimer.getTime();
 
         while (gameRunning) {
-            long delta = SystemTimer.getTime() - lastLoopTime;
-            lastLoopTime = SystemTimer.getTime();
+            long currentTime = SystemTimer.getTime();
+            long delta = currentTime - lastLoopTime;
+            lastLoopTime = currentTime;
 
-            lastFpsTime += delta;
-            fps++;
+            updateFps(delta);
+            updateScreen(delta);
 
-            if (lastFpsTime >= 1000) {
-                container.setTitle(windowTitle + " (FPS: " + fps + ")");
-                lastFpsTime = 0;
-                fps = 0;
-            }
-
-            if (currentScreen != null) {
-                currentScreen.update(delta);
-            }
-
-            Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
+            Graphics2D g = beginFrame();
             render(g);
 
             if (state == GameState.MENU) {
-                g.dispose();
-                strategy.show();
-                SystemTimer.sleep(lastLoopTime + 10 - SystemTimer.getTime());
+                endFrame(g, lastLoopTime);
                 continue;
             }
 
-            boolean screenDrivesGame = (currentScreen != null);
-            if (!screenDrivesGame) {
-                if (!waitingForKeyPress) {
-                    for (int i = 0; i < entities.size(); i++) {
-                        Entity entity = entities.get(i);
-                        entity.move(delta);
-                    }
-                }
-
-                for (int p = 0; p < entities.size(); p++) {
-                    for (int s = p + 1; s < entities.size(); s++) {
-                        Entity me = entities.get(p);
-                        Entity him = entities.get(s);
-
-                        if (me.collidesWith(him)) {
-                            me.collidedWith(him);
-                            him.collidedWith(me);
-                        }
-                    }
-                }
-
-                entities.removeAll(removeList);
-                removeList.clear();
-
-                if (logicRequiredThisLoop) {
-                    for (int i = 0; i < entities.size(); i++) {
-                        Entity entity = entities.get(i);
-                        entity.doLogic();
-                    }
-                    logicRequiredThisLoop = false;
-                }
+            if (!doesScreenDriveGame()) {
+                updateEntities(delta);
             }
 
-            if (state == GameState.PLAYING && waitingForKeyPress) {
-                g.setColor(Color.white);
-                g.drawString(message, (800 - g.getFontMetrics().stringWidth(message)) / 2, 250);
-                g.drawString("Press any key", (800 - g.getFontMetrics().stringWidth("Press any key")) / 2, 300);
-            }
 
-            g.dispose();
-            strategy.show();
+            PressAnyKeyOverlayRender(g); //"아무 키나 누르세요" 메시지
 
-            ship.setHorizontalMovement(0);
-            ship.setVerticalMovement(0);
-
-            if ((UpPressed) && (!DownPressed)) {
-                ship.setVerticalMovement(-moveSpeed);
-            } else if ((DownPressed) && (!UpPressed)) {
-                ship.setVerticalMovement(moveSpeed);
-            }
-
-            if ((leftPressed) && (!rightPressed)) {
-                ship.setHorizontalMovement(-moveSpeed);
-            } else if ((rightPressed) && (!leftPressed)) {
-                ship.setHorizontalMovement(moveSpeed);
-            }
-
-            if (firePressed) {
-                tryToFire();
-            }
-
-            SystemTimer.sleep(lastLoopTime + 10 - SystemTimer.getTime());
+            endFrame(g, lastLoopTime); //dispose + show +sleep
+            ShipKeyInputHandler(); // Ship의 방향키 및 발사 처리
         }
     }
+    // FPS업데이트
+    private void updateFps(long delta) {
+        lastFpsTime += delta;
+        fps++;
+
+        if (lastFpsTime >= 1000) {
+            container.setTitle(windowTitle + " (FPS: " + fps + ")");
+            lastFpsTime = 0;
+            fps = 0;
+        }
+
+    }
+
+    //Screen업데이트
+    private void updateScreen(long delta){
+        if (currentScreen != null) {
+            currentScreen.update(delta);
+        }
+    }
+    //화면 그리기 시작
+    private Graphics2D beginFrame(){
+        return (Graphics2D) strategy.getDrawGraphics();
+    }
+
+    //화면 그리기 종료
+    private void endFrame(Graphics2D g, long lastLoopTime){
+        g.dispose();
+        strategy.show();
+        SystemTimer.sleep(lastLoopTime + 10 - SystemTimer.getTime());
+    }
+
+    private boolean doesScreenDriveGame(){
+        return currentScreen != null;
+    }
+
+    //PressAnyKey 오버레이 렌더
+    private void PressAnyKeyOverlayRender(Graphics2D g){
+        if(state == GameState.PLAYING && waitingForKeyPress){
+            g.setColor(Color.white);
+
+            String msg = message;
+            String pressAnyKey = "아무 키나 누르세요";
+
+            int cx = 800;
+            int msgX = (cx - g.getFontMetrics().stringWidth(msg)) / 2;
+            int keyX = (cx - g.getFontMetrics().stringWidth(pressAnyKey)) / 2;
+
+            g.drawString(msg, keyX, 250);
+            g.drawString(pressAnyKey, keyX, 250);
+        }
+
+
+    }
+
+    //플레이어 입력 로직
+    private void ShipKeyInputHandler(){
+        ship.setHorizontalMovement(0);
+        ship.setVerticalMovement(0);
+
+        if ((UpPressed) && (!DownPressed)) {
+            ship.setVerticalMovement(-moveSpeed);
+        } else if ((DownPressed) && (!UpPressed)) {
+            ship.setVerticalMovement(moveSpeed);
+        }
+
+        if ((leftPressed) && (!rightPressed)) {
+            ship.setHorizontalMovement(-moveSpeed);
+        } else if ((rightPressed) && (!leftPressed)) {
+            ship.setHorizontalMovement(moveSpeed);
+        }
+
+        if (firePressed) {
+            tryToFire();
+        }
+    }
+
 
     /** Screen 교체 및 컨텍스트에 맞춘 BGM 갱신 */
     void setScreen(Screen screen) {
