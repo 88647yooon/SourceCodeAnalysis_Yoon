@@ -1047,6 +1047,10 @@ public class Game extends Canvas {
         }
     }
 
+    public void requestExit(){
+        System.exit(0);
+    }
+
     /** 엔트리 포인트: Firebase 초기화 → Game 생성/루프 실행 */
     public static void main(String[] argv) {
         try {
