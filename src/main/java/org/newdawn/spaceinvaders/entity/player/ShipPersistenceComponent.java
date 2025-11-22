@@ -1,32 +1,61 @@
 package org.newdawn.spaceinvaders.entity.player;
 
+import org.newdawn.spaceinvaders.DataBase.AuthSession;
+import org.newdawn.spaceinvaders.DataBase.DatabaseClient;
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.LevelManager;
 import org.newdawn.spaceinvaders.PlayerSkills;
+
+import java.util.logging.Logger;
+
 public class ShipPersistenceComponent {
-    // 저장
-    public void saveSkills(PlayerSkills skills, Game game) {
-        if (Game.SESSION_UID == null || Game.SESSION_ID_TOKEN == null) {
-            System.out.println(" [Persistence] 로그인 필요: 스킬 저장 불가");
+    private static final Logger logger =
+            Logger.getLogger(ShipPersistenceComponent.class.getName());
+
+    private final Game game;
+
+    public ShipPersistenceComponent(Game game) {
+        this.game = game;
+    }
+
+    /** 스킬 저장 */
+    public void saveSkills(PlayerSkills skills) {
+        AuthSession session = game.getSession();
+        if (session == null || !session.isLoggedIn()) {
+            logger.info("[Persistence] 로그인 필요: 스킬 저장 불가");
             return;
         }
+
         try {
-            LevelManager.saveSkills(game.getDbClient(), Game.SESSION_UID, Game.SESSION_ID_TOKEN, skills);
+            DatabaseClient db = game.getDbClient();
+            LevelManager.saveSkills(
+                    db,
+                    session.getUid(),
+                    session.getIdToken(),
+                    skills
+            );
         } catch (Exception e) {
-            System.err.println(" [Persistence] 스킬 저장 실패: " + e.getMessage());
+            logger.warning("[Persistence] 스킬 저장 실패: " + e.getMessage());
         }
     }
 
-    // 로드
+    /** 스킬 로드 */
     public void loadSkills(PlayerSkills skills) {
-        if (Game.SESSION_UID == null || Game.SESSION_ID_TOKEN == null) {
-            System.out.println(" [Persistence] 로그인 필요: 스킬 로드 불가");
+        AuthSession session = game.getSession();
+        if (session == null || !session.isLoggedIn()) {
+            logger.info("[Persistence] 로그인 필요: 스킬 로드 불가");
             return;
         }
+
         try {
-            LevelManager.loadSkills(Game.DB_URL, Game.SESSION_UID, Game.SESSION_ID_TOKEN, skills);
+            LevelManager.loadSkills(
+                    Game.DB_URL,
+                    session.getUid(),
+                    session.getIdToken(),
+                    skills
+            );
         } catch (Exception e) {
-            System.err.println(" [Persistence] 스킬 로드 실패: " + e.getMessage());
+            logger.warning("[Persistence] 스킬 로드 실패: " + e.getMessage());
         }
     }
 }

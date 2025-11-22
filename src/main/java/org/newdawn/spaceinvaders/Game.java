@@ -1,9 +1,6 @@
 package org.newdawn.spaceinvaders;
 
-import java.awt.Canvas;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
+import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferStrategy;
@@ -11,6 +8,7 @@ import java.awt.image.BufferStrategy;
 import java.util.*;
 import java.text.SimpleDateFormat;
 import java.io.FileInputStream;
+import java.util.List;
 import javax.swing.*;
 
 import org.newdawn.spaceinvaders.DataBase.*;
@@ -71,7 +69,7 @@ public class Game extends Canvas {
     public GameDatabaseService getGameDb(){ return gameDb; }
     public void setSession(AuthSession session){ this.session = session; }
     public boolean hasSession(){ return session != null && session.isLoggedIn(); }
-
+    public String getMessage(){ return message; }
 	/** 페이지 넘김을 가속화 할 수 있는 전략 */
 	private final transient BufferStrategy strategy;
 	/** 게임이 현재 "실행 중"이라면, 즉 게임 루프가 반복되고 있습니다 */
@@ -96,9 +94,6 @@ public class Game extends Canvas {
 
     /** HP가 낮은 등 위험 상태 표시 */
     private boolean dangerMode = false;
-
-    /** “아무 키나 누르기” 메시지 */
-    private String message = "";
     /** 아무 키 대기 중인지 여부 */
     private boolean waitingForKeyPress = true;
 
@@ -118,6 +113,8 @@ public class Game extends Canvas {
     private int fps;
     /** 윈도우 타이틀 기본값 */
     private String windowTitle = "Space Invaders 102";
+    /** 메시지 호출 */
+    private String message = "";
     /** 게임 윈도우 */
     private JFrame container;
 
@@ -177,12 +174,7 @@ public class Game extends Canvas {
         container.pack();
         container.setResizable(false);
         container.setVisible(true);
-
-        container.addWindowListener(new WindowAdapter() {
-            public void windowClosing(WindowEvent e) {
-                System.exit(0);
-            }
-        });
+        container.addWindowListener(new WindowAdapter() { public void windowClosing(WindowEvent e) { System.exit(0); } });
 
         addKeyListener(new GameKeyInputHandler(this));
         setFocusable(true);
@@ -577,7 +569,7 @@ public class Game extends Canvas {
 
     /** 플레이어 승리 처리(별 평가/저장 포함) */
     public void notifyWin() {
-        message = "Well done! You Win!";
+        message = "Player Win!";
         waitingForKeyPress = true;
 
         if (currentMode == Mode.STAGE) {
@@ -775,7 +767,7 @@ public class Game extends Canvas {
         for(int i=0; i< entities.size(); i++){
             Entity entity = entities.get(i);
             if(entity instanceof AlienEntity) {
-                entity.setHorizontalMovement(entity.getHorizontalMovement() + 1.04);
+                entity.setHorizontalMovement(entity.getHorizontalMovement() * 1.01);
             }
         }
     }
@@ -817,96 +809,86 @@ public class Game extends Canvas {
         long lastLoopTime = SystemTimer.getTime();
 
         while (gameRunning) {
-            long delta = SystemTimer.getTime() - lastLoopTime;
-            lastLoopTime = SystemTimer.getTime();
+            long currentTime = SystemTimer.getTime();
+            long delta = currentTime - lastLoopTime;
+            lastLoopTime = currentTime;
 
-            lastFpsTime += delta;
-            fps++;
+            updateFps(delta);
+            updateScreen(delta);
 
-            if (lastFpsTime >= 1000) {
-                container.setTitle(windowTitle + " (FPS: " + fps + ")");
-                lastFpsTime = 0;
-                fps = 0;
-            }
-
-            if (currentScreen != null) {
-                currentScreen.update(delta);
-            }
-
-            Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
+            Graphics2D g = beginFrame();
             render(g);
 
             if (state == GameState.MENU) {
-                g.dispose();
-                strategy.show();
-                SystemTimer.sleep(lastLoopTime + 10 - SystemTimer.getTime());
+                endFrame(g, lastLoopTime);
                 continue;
             }
 
-            boolean screenDrivesGame = (currentScreen != null);
-            if (!screenDrivesGame) {
-                if (!waitingForKeyPress) {
-                    for (int i = 0; i < entities.size(); i++) {
-                        Entity entity = entities.get(i);
-                        entity.move(delta);
-                    }
-                }
-
-                for (int p = 0; p < entities.size(); p++) {
-                    for (int s = p + 1; s < entities.size(); s++) {
-                        Entity me = entities.get(p);
-                        Entity him = entities.get(s);
-
-                        if (me.collidesWith(him)) {
-                            me.collidedWith(him);
-                            him.collidedWith(me);
-                        }
-                    }
-                }
-
-                entities.removeAll(removeList);
-                removeList.clear();
-
-                if (logicRequiredThisLoop) {
-                    for (int i = 0; i < entities.size(); i++) {
-                        Entity entity = entities.get(i);
-                        entity.doLogic();
-                    }
-                    logicRequiredThisLoop = false;
-                }
+            if (!doesScreenDriveGame()) {
+                updateEntities(delta);
             }
 
-            if (state == GameState.PLAYING && waitingForKeyPress) {
-                g.setColor(Color.white);
-                g.drawString(message, (800 - g.getFontMetrics().stringWidth(message)) / 2, 250);
-                g.drawString("Press any key", (800 - g.getFontMetrics().stringWidth("Press any key")) / 2, 300);
-            }
-
-            g.dispose();
-            strategy.show();
-
-            ship.setHorizontalMovement(0);
-            ship.setVerticalMovement(0);
-
-            if ((UpPressed) && (!DownPressed)) {
-                ship.setVerticalMovement(-moveSpeed);
-            } else if ((DownPressed) && (!UpPressed)) {
-                ship.setVerticalMovement(moveSpeed);
-            }
-
-            if ((leftPressed) && (!rightPressed)) {
-                ship.setHorizontalMovement(-moveSpeed);
-            } else if ((rightPressed) && (!leftPressed)) {
-                ship.setHorizontalMovement(moveSpeed);
-            }
-
-            if (firePressed) {
-                tryToFire();
-            }
-
-            SystemTimer.sleep(lastLoopTime + 10 - SystemTimer.getTime());
+            endFrame(g, lastLoopTime); //dispose + show +sleep
+            ShipKeyInputHandler(); // Ship의 방향키 및 발사 처리
         }
     }
+    // FPS업데이트
+    private void updateFps(long delta) {
+        lastFpsTime += delta;
+        fps++;
+
+        if (lastFpsTime >= 1000) {
+            container.setTitle(windowTitle + " (FPS: " + fps + ")");
+            lastFpsTime = 0;
+            fps = 0;
+        }
+
+    }
+
+    //Screen업데이트
+    private void updateScreen(long delta){
+        if (currentScreen != null) {
+            currentScreen.update(delta);
+        }
+    }
+    //화면 그리기 시작
+    private Graphics2D beginFrame(){
+        return (Graphics2D) strategy.getDrawGraphics();
+    }
+
+    //화면 그리기 종료
+    private void endFrame(Graphics2D g, long lastLoopTime){
+        g.dispose();
+        strategy.show();
+        SystemTimer.sleep(lastLoopTime + 10 - SystemTimer.getTime());
+    }
+
+    private boolean doesScreenDriveGame(){
+        return currentScreen != null;
+    }
+
+    //플레이어 입력 로직
+    private void ShipKeyInputHandler(){
+        ship.setHorizontalMovement(0);
+        ship.setVerticalMovement(0);
+
+        if ((UpPressed) && (!DownPressed)) {
+            ship.setVerticalMovement(-moveSpeed);
+        } else if ((DownPressed) && (!UpPressed)) {
+            ship.setVerticalMovement(moveSpeed);
+        }
+
+        if ((leftPressed) && (!rightPressed)) {
+            ship.setHorizontalMovement(-moveSpeed);
+        } else if ((rightPressed) && (!leftPressed)) {
+            ship.setHorizontalMovement(moveSpeed);
+        }
+
+        if (firePressed) {
+            tryToFire();
+        }
+    }
+
 
     /** Screen 교체 및 컨텍스트에 맞춘 BGM 갱신 */
     void setScreen(Screen screen) {
@@ -1099,7 +1081,7 @@ public class Game extends Canvas {
 
             FirebaseApp.initializeApp(options);
 
-            writeLog("gamestart");
+            writeLog("game Start");
 
             Game g = new Game();
             g.setScreen(new AuthScreen(g));
@@ -1110,7 +1092,7 @@ public class Game extends Canvas {
             g.gameLoop();
 
             ss.reloadScores();
-            writeLog("game over");
+            writeLog("game Over");
 
         } catch (Exception e) {
             e.printStackTrace();
