@@ -24,8 +24,6 @@ import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import org.newdawn.spaceinvaders.entity.base.Entity;
-import org.newdawn.spaceinvaders.entity.enemy.DiagonalShooterAlienEntity;
-import org.newdawn.spaceinvaders.entity.enemy.RangedAlienEntity;
 import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 import org.newdawn.spaceinvaders.entity.projectile.ShotEntity;
@@ -76,7 +74,7 @@ public class Game extends Canvas {
 
     private final transient EntityManager entityManager = new EntityManager(this);
     private final transient EntitySpawnManager spawnManager = new EntitySpawnManager(this, entityManager);
-
+    private final transient CombatManager combatManager = new CombatManager(this, entityManager, spawnManager);
     /** 플레이어(Ship) 엔티티 */
     private transient Entity ship;
     /** Ship 이동 속도(px/s) */
@@ -188,10 +186,6 @@ public class Game extends Canvas {
         SoundManager.get().setSfxVolume(-15.0f);// 전체 효과음 볼륨 설정
     }
 
-    /**
-     * 기존 엔티티/상태를 초기화하고 새 게임을 시작.
-     * - 엔티티/제거 큐 초기화, 입력 리셋, 상태 PLAYING 전환
-     */
     private void startGame() {
         entityManager.clearEntity();
         alienCount = 0;
@@ -205,9 +199,7 @@ public class Game extends Canvas {
         waveCount = 1;
     }
 
-    /**
-     * Ship 생성 및 초기 배치. 무한 모드면 즉시 웨이브 스폰.
-     */
+
     private void initEntities() {
         entityManager.clearEntity();
 
@@ -239,9 +231,6 @@ public class Game extends Canvas {
     public int getWaveCount() { return waveCount; }
     public void incrementWaveCount() { waveCount++; }
 
-    //infiniteMode
-    public boolean isInfiniteMode() { return infiniteMode; }
-
     //boss state
     public void setBossActive(boolean bossActive) { this.bossActive = bossActive; }
     public boolean isBossActive() { return bossActive; }
@@ -252,7 +241,7 @@ public class Game extends Canvas {
     public void updateEntities(long delta) { entityManager.update(delta, waitingForKeyPress);}
 
 
-    /** 보스 처치 콜백: 모드에 따라 웨이브 진행 또는 승리 처리 */
+    /** 보스 처치 */
     public void onBossKilled() {
         bossActive = false;
         if (infiniteMode) {
@@ -262,10 +251,31 @@ public class Game extends Canvas {
         }
     }
 
+    //--점수 / 카운트 / DangerMode 관련 헬퍼 --
+    public void addScore(int delta){ this.score += delta; }
 
-    public int getStageStarScoreRequirements(int stageId) {
-        return stageProgressManager.getRequiredScore(stageId);
+    public void decrementAlienCount(){
+        this.alienCount--;
+        if(this.alienCount < 0){
+            this.alienCount = 0;
+        }
     }
+
+    public int getAlienCount() { return alienCount; }
+    public void setDangerMode(boolean dangerMode){ this.dangerMode = dangerMode; }
+    public boolean isDangerMode() { return dangerMode; }
+
+    //-- 스테이지 / 웨이브 관련 헬퍼 --
+    public int getCurrentStageId() { return currentStageId; }
+    public boolean isInfiniteMode() { return infiniteMode; }
+
+    //-- 무한모드 웨이브 사이클 --
+    public int getNormalsClearedInCycle(){ return normalsClearedInCycle++; }
+    public void incrementNormalsClearedInCycle(){ normalsClearedInCycle++; }
+    public void resetNormalsClearedInCycle(){ normalsClearedInCycle = 0; }
+
+
+    public void onAlienKilled(AlienEntity alien) { combatManager.onAlienKilled(alien); }
 
     private void evaluateStageResult(int stageId, int timeLeft, int damageTaken, int score) {
         int stars = stageProgressManager.evaluateStars(stageId, timeLeft, damageTaken, score);
@@ -276,18 +286,9 @@ public class Game extends Canvas {
        return stageProgressManager.getStageStars(stageId);
     }
 
-    public void saveStageStars(){
-        stageProgressManager.saveAll(session);
-    }
-
     public void loadStageStars(){
         stageProgressManager.loadFromDb(session);
         System.out.println(" 별 기록 불러오기 완료 " + stageStars);
-    }
-
-    // [수정] 별을 갱신/저장한 직후에도 재계산
-    public void setStageStars(int stageId, int stars) {
-       stageProgressManager.updateStageStars(session, stageId, stars);
     }
 
     // [추가] 당장 다음 스테이지(= 현재 stageId의 다음 인덱스)를 오픈
@@ -419,9 +420,7 @@ public class Game extends Canvas {
         entityManager.removeEntity(entity);
     }
 
-    public int getAlienCount() {
-        return alienCount;
-    }
+
 
     public void setLeftPressed(boolean value) { leftPressed = value; }
     public void setRightPressed(boolean value) { rightPressed = value; }
@@ -429,109 +428,6 @@ public class Game extends Canvas {
     public void setUpPressed(boolean value) { upPressed = value; }
     public void setDownPressed(boolean value) { downPressed = value; }
 
-    //XP 지급
-    private void PayXpForKill(AlienEntity alien) {
-        int xp = calculateXpForAlien(alien);
-
-        ShipEntity player = getPlayerShip();
-        if(player != null) {
-            player.getStats().addXp(xp);
-        }
-    }
-
-    //Xp 계산
-    private int calculateXpForAlien(AlienEntity alien) {
-        if(alien instanceof RangedAlienEntity) {
-            return 8; //RangedAlienEntity 처치시 8
-        }
-        if(alien instanceof DiagonalShooterAlienEntity){
-            return 10; //DiagonalShooterAlienEntity 처치시 10 지급
-        }
-        return 5; // 기본Alien 지급 xp
-    }
-
-    //엔티티 제거
-    private void removeKilledAlien(AlienEntity alien) {
-        if(getMutableEntities().contains(alien)){
-            removeEntity(alien);
-        }
-    }
-
-    //점수/카운트, dangerMode 갱신
-    private void updateScoreAndCount(){
-        score += 100;
-        alienCount--;
-        if (alienCount < 0) alienCount = 0;
-
-        //디버깅 메시지
-        System.out.println("[DEBUG] Alien killed! alienCount=" + alienCount + " stage=" + currentStageId + " bossActive=" + bossActive);
-
-        ShipEntity player = getPlayerShip();
-        if(player != null) {
-            dangerMode = (player.getStats().getCurrentHP() < 1); //원래 2였는데 1로 변경함.
-        }
-    }
-
-    //Alien을 전부 처리하였는지에 따른 처리(웨이브 / 보스 / 승리 통합 처리)
-    private void aliensCleared() {
-        if(alienCount != 0) {
-            return;
-        }
-
-        if(infiniteMode) {
-            aliensClearedInInfiniteMode();
-        } else {
-            aliensClearedInStageMode();
-        }
-    }
-
-    //무한모드일때
-    private void aliensClearedInInfiniteMode() {
-        if(bossActive) {
-            return; //보스전에는 해당 없음
-        }
-
-        normalsClearedInCycle++;
-        if(normalsClearedInCycle >= 3){
-
-            normalsClearedInCycle = 0;
-            spawnManager.spawnBoss();
-
-        } else {
-            spawnManager.spawnAliens();
-        }
-    }
-
-    private void aliensClearedInStageMode() {
-        if(bossActive) {
-            return; // 보스 처리는 onBossKilled 에서 처리
-        }
-
-        if(currentStageId == 5) {
-            spawnManager.spawnBoss();
-        } else {
-            notifyWin();
-        }
-    }
-
-    //남은 Alien들 속도 증가
-    private void speedUpAliens() {
-        for(Entity entity : getMutableEntities()) {
-            if(entity instanceof AlienEntity) {
-                entity.setHorizontalMovement(entity.getHorizontalMovement() * 1.02);
-            }
-        }
-    }
-
-    public void onAlienKilled(AlienEntity alien) {
-
-        PayXpForKill(alien); //XP 지급, 계산
-        removeKilledAlien(alien); // 엔티티 제거
-        updateScoreAndCount(); // 점수/카운트, dangerMode 갱신
-        aliensCleared(); // 웨이브, 보스, 승리 처리
-        speedUpAliens(); //남은 적 속도 증가
-
-    }
 
     /** 발사 쿨다운을 만족하면 탄 1발 발사(SFX 포함) */
     public void tryToFire() {
