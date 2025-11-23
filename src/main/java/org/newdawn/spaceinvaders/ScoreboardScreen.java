@@ -1,5 +1,5 @@
 package org.newdawn.spaceinvaders;
-import org.newdawn.spaceinvaders.DataBase.ScoreEntry;
+import org.newdawn.spaceinvaders.database.ScoreEntry;
 import org.newdawn.spaceinvaders.Screen.Screen;
 
 import java.awt.*;

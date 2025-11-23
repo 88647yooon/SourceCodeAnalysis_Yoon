@@ -2,8 +2,8 @@ package org.newdawn.spaceinvaders;
 import java.util.logging.Logger;
 
 import com.google.gson.GsonBuilder;
-import org.newdawn.spaceinvaders.DataBase.DatabaseClient;
-import org.newdawn.spaceinvaders.DataBase.FirebaseDatabaseClient;
+import org.newdawn.spaceinvaders.database.DatabaseClient;
+import org.newdawn.spaceinvaders.database.FirebaseDatabaseClient;
 
 import com.google.gson.Gson;
 public class LevelManager {
@@ -47,6 +47,9 @@ public class LevelManager {
                 logger.warning("스킬 JSON 파싱 결과가 null. 기존 값 유지");
                 return;
             }
+            s.atkLv  = loaded.atkLv;
+            s.rofLv  = loaded.rofLv;
+            s.dashLv = loaded.dashLv;
 
             logger.info("스킬 불러오기 완료: atk=" + s.atkLv + ", rof=" + s.rofLv + ", dashLv=" + s.dashLv);
         } catch (Exception e) {

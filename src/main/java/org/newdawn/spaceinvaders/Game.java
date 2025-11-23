@@ -11,10 +11,12 @@ import java.io.FileInputStream;
 import java.util.List;
 import javax.swing.*;
 
-import org.newdawn.spaceinvaders.DataBase.*;
+import org.newdawn.spaceinvaders.database.*;
+import org.newdawn.spaceinvaders.manager.EntityManager;
+import org.newdawn.spaceinvaders.manager.SoundManager;
+import org.newdawn.spaceinvaders.manager.StageManager;
 import org.newdawn.spaceinvaders.Screen.Screen;
 import org.newdawn.spaceinvaders.Screen.StageSelectScreen;
-import org.newdawn.spaceinvaders.entity.*;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
@@ -52,9 +54,6 @@ public class Game extends Canvas {
     // Firebase Admin SDK 용 서비스 키
     private static final String DB_KEYFILE = "src/main/resources/serviceAccountKey.json";
 
-    public static String SESSION_UID   = null;
-    public static String SESSION_EMAIL = null;
-    public static String SESSION_ID_TOKEN = null;
 
     // 세션/DB 의존성
     private final transient DatabaseClient dbClient = new FirebaseDatabaseClient(DB_URL);
@@ -64,9 +63,8 @@ public class Game extends Canvas {
     private final transient FirebaseAuthService authService = new FirebaseAuthService(API_KEY);
     public FirebaseAuthService getAuthService() { return authService; }
 
-    public AuthSession getSession(){ return session; }
     public DatabaseClient getDbClient(){ return dbClient; }
-    public GameDatabaseService getGameDb(){ return gameDb; }
+
     public void setSession(AuthSession session){ this.session = session; }
     public boolean hasSession(){ return session != null && session.isLoggedIn(); }
     public String getMessage(){ return message; }
@@ -74,11 +72,8 @@ public class Game extends Canvas {
 	private final transient BufferStrategy strategy;
 	/** 게임이 현재 "실행 중"이라면, 즉 게임 루프가 반복되고 있습니다 */
 	private final transient boolean gameRunning = true;
-    /** 우리 게임에 존재하는 모든 엔티티 목록 */
-    private final transient ArrayList<Entity> entities = new ArrayList<>();
-    /** 이 프레임에서 제거할 엔티티 큐 */
-    private final transient ArrayList<Entity> removeList = new ArrayList<>();
 
+    private final EntityManager entityManager = new EntityManager(this);
     /** 플레이어(Ship) 엔티티 */
     private transient Entity ship;
 
@@ -122,6 +117,14 @@ public class Game extends Canvas {
     private transient BackgroundRenderer backgroundRenderer;
     /** 활성 화면 */
     private transient Screen currentScreen;
+
+    //entityManager에서 읽어갈 getter
+    public boolean isLogicRequiredThisLoop() { return logicRequiredThisLoop; }
+
+    //EntityManager에서 한 프레임 처리 후 flag를 꺼주는 setter
+    public void resetLogicFlag() { logicRequiredThisLoop = false; }
+
+    public AuthSession getSession() { return session; }
 
     // 모드/점수/스테이지
     private enum Mode { STAGE, INFINITE }
@@ -196,8 +199,7 @@ public class Game extends Canvas {
      * - 엔티티/제거 큐 초기화, 입력 리셋, 상태 PLAYING 전환
      */
     private void startGame() {
-        entities.clear();
-        removeList.clear();
+        entityManager.clearEntity();
         alienCount = 0;
 
         initEntities();
@@ -213,8 +215,10 @@ public class Game extends Canvas {
      * Ship 생성 및 초기 배치. 무한 모드면 즉시 웨이브 스폰.
      */
     private void initEntities() {
+        entityManager.clearEntity();
+
         ship = new ShipEntity(this, "sprites/ship.gif", 370, 550);
-        entities.add(ship);
+        entityManager.addEntity(ship);
 
         ((ShipEntity) ship).getStats().setInvulnerable(false);
         if (hasSession()) {
@@ -238,13 +242,7 @@ public class Game extends Canvas {
 
     }
 
-    public ShipEntity getPlayerShip() {
-        return (ShipEntity) ship;
-    }
 
-    public void addEntity(Entity e) {
-        entities.add(e);
-    }
 
     public int getWaveCount() {
         return waveCount;
@@ -261,7 +259,7 @@ public class Game extends Canvas {
             return;
         }
 
-        for (Iterator<Entity> it = entities.iterator(); it.hasNext(); ) {
+        for (Iterator<Entity> it = getMutableEntities().iterator(); it.hasNext(); ) {
             Entity e = it.next();
             if(e instanceof HostageEntity) it.remove();
         }
@@ -277,7 +275,7 @@ public class Game extends Canvas {
                 Entity alien = createAlienForPosition(x, y);
                 applyDifficultyToAlien(alien, diff);
 
-                entities.add(alien);
+                entityManager.addEntity(alien);
                 alienCount++;
             }
         }
@@ -286,17 +284,16 @@ public class Game extends Canvas {
     //위치별 외계인 타입 결정
     private Entity createAlienForPosition(int x, int y) {
         double diagonalProb = Math.min(0.05 + (waveCount -1) * 0.02, 0.25);
-        double rangedProb = RANGED_ALIEN_RATIO;
 
         double r = Math.random();
 
         if(r < diagonalProb) {
             return new DiagonalShooterAlienEntity(this, x, y);
-        }
-        if(r > diagonalProb+ rangedProb) {
+        } else if(r < diagonalProb + RANGED_ALIEN_RATIO) {
             return new RangedAlienEntity(this, x, y ,getPlayerShip());
+        }else{
+            return new AlienEntity(this, x, y);
         }
-        return new AlienEntity(this, x, y);
     }
 
     //무한모드일때 인질 스폰
@@ -315,7 +312,7 @@ public class Game extends Canvas {
             int x = startX + (c *gapX);
             int y = startY - 40;
             Entity hostage = new HostageEntity(this, x, y);
-            entities.add(hostage);
+            entityManager.addEntity(hostage);
         }
     }
 
@@ -351,7 +348,7 @@ public class Game extends Canvas {
 
     /** 보스 소환(인질 제거 후 중앙 배치) */
     private void spawnBoss() {
-        for (java.util.Iterator<Entity> it = entities.iterator(); it.hasNext(); ) {
+        for (java.util.Iterator<Entity> it = getMutableEntities().iterator(); it.hasNext(); ) {
             Entity e = it.next();
             if (e instanceof HostageEntity) {
                 it.remove();
@@ -359,7 +356,7 @@ public class Game extends Canvas {
         }
 
         Entity boss = new org.newdawn.spaceinvaders.entity.boss.BossEntity(this, 360, 60, getPlayerShip());
-        entities.add(boss);
+        entityManager.addEntity(boss);
         bossActive = true;
     }
 
@@ -539,10 +536,6 @@ public class Game extends Canvas {
         logicRequiredThisLoop = true;
     }
 
-    /** 엔티티 제거 요청(프레임 말미에 일괄 처리) */
-    public void removeEntity(Entity entity) {
-        removeList.add(entity);
-    }
 
     /** 플레이어 사망 처리 */
     public void notifyDeath() {
@@ -611,11 +604,28 @@ public class Game extends Canvas {
      **/
 
     public List<Entity> getEntities() {
-        return Collections.unmodifiableList(entities);
+        return entityManager.getEntities();
     }
 
-    List<Entity> getMutableEntities() {
-        return entities;
+    public List<Entity> getMutableEntities() {
+        return entityManager.getMutableEntities();
+    }
+
+    public ShipEntity getPlayerShip() {
+        return (ShipEntity) ship;
+    }
+
+    public void addEntity(Entity e) {
+        entityManager.addEntity(e);
+    }
+
+    /** 엔티티 제거 요청(프레임 말미에 일괄 처리) */
+    public void removeEntity(Entity entity) {
+        entityManager.removeEntity(entity);
+    }
+
+    public int getAlienCount() {
+        return alienCount;
     }
 
     public void setLeftPressed(boolean value) { leftPressed = value; }
@@ -629,44 +639,12 @@ public class Game extends Canvas {
      * 이동은 waitingForKeyPress=false 일 때만 수행.
      */
     public void updateEntities(long delta) {
-        if (!waitingForKeyPress) {
-            for (Entity entity : new java.util.ArrayList<>(entities)) {
-                entity.move(delta);
-            }
-        }
-        for (int p = 0; p < entities.size(); p++) {
-            for (int s = p + 1; s < entities.size(); s++) {
-                Entity a = entities.get(p);
-                Entity b = entities.get(s);
-                if (a.collidesWith(b)) {
-                    a.collidedWith(b);
-                    b.collidedWith(a);
-                }
-            }
-        }
-
-        entities.removeAll(removeList);
-        removeList.clear();
-
-        if (logicRequiredThisLoop) {
-            for (int i = 0; i < entities.size(); i++) {
-                entities.get(i).doLogic();
-            }
-            logicRequiredThisLoop = false;
-        }
+        entityManager.update(delta, waitingForKeyPress);
     }
 
     public void setAlienCount(int count) {
         this.alienCount = count;
     }
-
-    /**
-     * 적 처치 처리:
-     * - 점수 +100, 남은 수 감소/하한 0
-     * - 위험 모드 갱신
-     * - 전멸 시 모드/보스 여부에 따라 웨이브/승리 분기
-     * - 생존 Alien 수평 속도 2% 가속
-     */
 
     /**
      * [리팩토링 - 신규 메소드]
@@ -700,7 +678,7 @@ public class Game extends Canvas {
 
     //엔티티 제거
     private void removeKilledAlien(AlienEntity alien) {
-        if(entities.contains(alien)){
+        if(getMutableEntities().contains(alien)){
             removeEntity(alien);
         }
     }
@@ -764,10 +742,9 @@ public class Game extends Canvas {
 
     //남은 Alien들 속도 증가
     private void speedUpAliens() {
-        for(int i=0; i< entities.size(); i++){
-            Entity entity = entities.get(i);
+        for(Entity entity : getMutableEntities()) {
             if(entity instanceof AlienEntity) {
-                entity.setHorizontalMovement(entity.getHorizontalMovement() * 1.01);
+                entity.setHorizontalMovement(entity.getHorizontalMovement() * 1.02);
             }
         }
     }
@@ -789,7 +766,7 @@ public class Game extends Canvas {
         }
         lastFire = System.currentTimeMillis();
         ShotEntity shot = new ShotEntity(this, "sprites/shot.gif", ship.getX() + 10, ship.getY() - 30);
-        entities.add(shot);
+        entityManager.addEntity(shot);
 
         SoundManager.get().playSfx(SoundManager.Sfx.SHOOT); //플레이어 총소리
     }
@@ -915,9 +892,7 @@ public class Game extends Canvas {
         }
     }
 
-    public int getAlienCount() {
-        return alienCount;
-    }
+
 //스테이지모드 잠금 설정 기능. 스테이지 토탈을 1부터 5까지 정해놓고 클리어될시 다음 스테이지 오픈
     public void initStageUnlocks(){
         stageUnlocked = new boolean[TOTAL_STAGES];
@@ -1069,6 +1044,10 @@ public class Game extends Canvas {
         }
     }
 
+    public void requestExit(){
+        System.exit(0);
+    }
+
     /** 엔트리 포인트: Firebase 초기화 → Game 생성/루프 실행 */
     public static void main(String[] argv) {
         try {
@@ -1085,8 +1064,6 @@ public class Game extends Canvas {
 
             Game g = new Game();
             g.setScreen(new AuthScreen(g));
-            LevelManager.loadLastLevel(DB_URL,SESSION_UID, SESSION_ID_TOKEN);
-
             ScoreboardScreen ss = new ScoreboardScreen(g);
 
             g.gameLoop();

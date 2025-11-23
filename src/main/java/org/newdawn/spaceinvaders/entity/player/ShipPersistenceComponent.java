@@ -1,7 +1,7 @@
 package org.newdawn.spaceinvaders.entity.player;
 
-import org.newdawn.spaceinvaders.DataBase.AuthSession;
-import org.newdawn.spaceinvaders.DataBase.DatabaseClient;
+import org.newdawn.spaceinvaders.database.AuthSession;
+import org.newdawn.spaceinvaders.database.DatabaseClient;
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.LevelManager;
 import org.newdawn.spaceinvaders.PlayerSkills;

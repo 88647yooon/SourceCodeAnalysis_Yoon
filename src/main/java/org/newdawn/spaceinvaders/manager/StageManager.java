@@ -1,6 +1,6 @@
-package org.newdawn.spaceinvaders;
+package org.newdawn.spaceinvaders.manager;
 
-import org.newdawn.spaceinvaders.entity.*;
+import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.entity.base.Entity;
 import org.newdawn.spaceinvaders.entity.boss.BossEntity;
 import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
@@ -10,7 +10,6 @@ import org.newdawn.spaceinvaders.entity.enemy.RangedAlienEntity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 
 import java.util.List;
-import java.util.ArrayList;
 
 /**
  * 화면/입력과 분리된 스테이지 구성 전담 매니저.
