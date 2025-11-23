@@ -4,35 +4,31 @@ import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.entity.base.Entity;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.List;
 
-public class entitymanager {
+public class EntityManager {
     private final Game game;
-    private static final List<Entity> entities = new ArrayList<Entity>();
-    private static final List<Entity> removeList = new ArrayList<>();
+    private final List<Entity> entities = new ArrayList<>();
+    private final List<Entity> removeList = new ArrayList<>();
 
-    public entitymanager(Game game){
-        this.game = game;
-    }
+    public EntityManager(Game game){ this.game = game; }
 
-    public List<Entity> getEntities() { return entities; }
-    public static List<Entity> getMutableEntities(){ return entities; }
-    public static void addEntity(Entity entity){
-        entities.add(entity);
-    }
+    public void addEntity(Entity entity){ entities.add(entity); }
+    public void removeEntity(Entity entity){ removeList.add(entity); }
 
-    public void removeEntity(Entity entity){
-        removeList.add(entity);
-    }
-
-    public static void clearEntity(){
+    public void clearEntity(){
         entities.clear();
         removeList.clear();
     }
 
-    public void update(long delta, boolean skipMovement){
-        if(!skipMovement){
+    public List<Entity> getEntities() { return Collections.unmodifiableList(entities); }
+    public List<Entity> getMutableEntities(){ return entities; }
+
+
+
+    public void update(long delta, boolean waitingForKeyPress){
+        if(!waitingForKeyPress){
             for(Entity entity : new ArrayList<>(entities)){
                 entity.move(delta);
             }
@@ -63,8 +59,4 @@ public class entitymanager {
             game.resetLogicFlag();
         }
     }
-    public void removeAllHostages() {
-        entities.removeIf(e -> e instanceof org.newdawn.spaceinvaders.entity.enemy.HostageEntity);
-    }
-
 }

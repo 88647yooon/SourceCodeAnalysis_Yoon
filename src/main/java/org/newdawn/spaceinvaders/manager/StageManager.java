@@ -15,9 +15,9 @@ import java.util.List;
  * 화면/입력과 분리된 스테이지 구성 전담 매니저.
  * Game은 건드리지 않고, 선택된 스테이지에 맞게 엔티티를 재배치한다.
  */
-public final class stagemanager {
+public final class StageManager {
 
-    private stagemanager() {}
+    private StageManager() {}
 
     /** 스테이지 번호에 맞는 배치를 Game에 적용한다. */
     public static void applyStage(int stageNum, Game game) {

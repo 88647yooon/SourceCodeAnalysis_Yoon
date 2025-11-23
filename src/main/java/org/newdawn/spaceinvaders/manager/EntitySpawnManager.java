@@ -11,13 +11,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class entityspawnmanager {
+public class EntitySpawnManager {
     private final Game game;
-    private final entitymanager entityManager;
+    private final EntityManager entityManager;
 
     private static final double RANGED_ALIEN_RATIO = 0.25;
 
-    public entityspawnmanager(Game game, entitymanager entityManager) {
+    public EntitySpawnManager(Game game, EntityManager entityManager) {
         this.game = game;
         this.entityManager = entityManager;
     }
@@ -53,13 +53,13 @@ public class entityspawnmanager {
                 60,
                 game.getPlayerShip()
         );
-        entitymanager.addEntity(boss);
+        EntityManager.addEntity(boss);
         game.setBossActive(true);
     }
     private void clearHostagesForInfiniteMode() {
         if (!game.isInfiniteMode()) return;
 
-        List<Entity> entities = entitymanager.getMutableEntities();
+        List<Entity> entities = EntityManager.getMutableEntities();
         entities.removeIf(HostageEntity.class::isInstance);
     }
 
@@ -78,7 +78,7 @@ public class entityspawnmanager {
                 Entity alien = createAlienForPosition(x, y);
                 applyDifficultyToAlien(alien, diff);
 
-                entitymanager.addEntity(alien);
+                EntityManager.addEntity(alien);
                 alienCount++;
             }
         }
@@ -115,7 +115,7 @@ public class entityspawnmanager {
             int x = startX + (c * gapX);
             int y = startY - 40;
             Entity hostage = new HostageEntity(game, x, y);
-            entitymanager.addEntity(hostage);
+            EntityManager.addEntity(hostage);
         }
     }
 

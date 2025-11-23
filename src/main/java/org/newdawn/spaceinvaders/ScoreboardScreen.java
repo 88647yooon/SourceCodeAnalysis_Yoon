@@ -1,6 +1,6 @@
 package org.newdawn.spaceinvaders;
 import org.newdawn.spaceinvaders.database.ScoreEntry;
-import org.newdawn.spaceinvaders.Screen.Screen;
+import org.newdawn.spaceinvaders.screen.Screen;
 
 import java.awt.*;
 import java.util.List;

@@ -1,4 +1,4 @@
-package org.newdawn.spaceinvaders.Screen;
+package org.newdawn.spaceinvaders.screen;
 
 import org.newdawn.spaceinvaders.Game;
 

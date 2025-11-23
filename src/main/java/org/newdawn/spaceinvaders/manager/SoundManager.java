@@ -6,24 +6,24 @@ import java.io.BufferedInputStream;
 import java.util.EnumMap;
 import java.util.logging.Logger;
 
-public final class soundmanager {
+public final class SoundManager {
     // ===== BGM =====
     public enum Bgm { MENU, STAGE, BOSS }
 
-    private static final soundmanager I = new soundmanager();
-    private static final Logger logger = Logger.getLogger(soundmanager.class.getName());
-    public static soundmanager get() { return I; }
+    private static final SoundManager I = new SoundManager();
+    private static final Logger logger = Logger.getLogger(SoundManager.class.getName());
+    public static SoundManager get() { return I; }
 
     private final EnumMap<Bgm, Clip> bgmClips = new EnumMap<>(Bgm.class);
     private Bgm currentBgm;
 
     private float sfxGainDb = 0f;
 
-    private soundmanager() {}
+    private SoundManager() {}
 
     private Clip loadClip(String classpath) {
         if (classpath == null) return null;
-        try (InputStream in = soundmanager.class.getResourceAsStream(classpath);
+        try (InputStream in = SoundManager.class.getResourceAsStream(classpath);
              BufferedInputStream bin = new BufferedInputStream(in);
              AudioInputStream ais = AudioSystem.getAudioInputStream(bin)) {
             Clip c = AudioSystem.getClip();

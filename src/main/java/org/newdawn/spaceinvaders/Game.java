@@ -12,12 +12,12 @@ import java.util.List;
 import javax.swing.*;
 
 import org.newdawn.spaceinvaders.database.*;
-import org.newdawn.spaceinvaders.manager.entitymanager;
-import org.newdawn.spaceinvaders.manager.entityspawnmanager;
-import org.newdawn.spaceinvaders.manager.soundmanager;
-import org.newdawn.spaceinvaders.manager.stagemanager;
-import org.newdawn.spaceinvaders.Screen.Screen;
-import org.newdawn.spaceinvaders.Screen.StageSelectScreen;
+import org.newdawn.spaceinvaders.manager.EntityManager;
+import org.newdawn.spaceinvaders.manager.EntitySpawnManager;
+import org.newdawn.spaceinvaders.manager.SoundManager;
+import org.newdawn.spaceinvaders.manager.StageManager;
+import org.newdawn.spaceinvaders.screen.Screen;
+import org.newdawn.spaceinvaders.screen.StageSelectScreen;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
@@ -72,8 +72,8 @@ public class Game extends Canvas {
 	/** 게임이 현재 "실행 중"이라면, 즉 게임 루프가 반복되고 있습니다 */
 	private final transient boolean gameRunning = true;
 
-    private final entitymanager entityManager = new entitymanager(this);
-    private final entityspawnmanager spawnManager = new entityspawnmanager(this, entityManager);
+    private final transient EntityManager entityManager = new EntityManager(this);
+    private final transient EntitySpawnManager spawnManager = new EntitySpawnManager(this, entityManager);
 
     /** 플레이어(Ship) 엔티티 */
     private transient Entity ship;
@@ -138,8 +138,6 @@ public class Game extends Canvas {
 
     private Map<Integer, Integer> stageStarScoreRequirements = new HashMap<>();
     private Map<Integer, Integer> stageStars = new HashMap<>();
-    private String[] menuItems = {"스테이지 모드", "무한 모드", "스코어보드", "게임 종료"};
-    private int menuIndex = 0;
 
     // 무한 모드/웨이브/보스
     private boolean infiniteMode = false;
@@ -188,7 +186,7 @@ public class Game extends Canvas {
         initStageUnlocks();
         initEntities();
 
-        soundmanager.get().setSfxVolume(-15.0f);// 전체 효과음 볼륨 설정
+        SoundManager.get().setSfxVolume(-15.0f);// 전체 효과음 볼륨 설정
     }
 
     /**
@@ -196,7 +194,7 @@ public class Game extends Canvas {
      * - 엔티티/제거 큐 초기화, 입력 리셋, 상태 PLAYING 전환
      */
     private void startGame() {
-        entitymanager.clearEntity();
+        entityManager.clearEntity();
         alienCount = 0;
 
         initEntities();
@@ -212,10 +210,10 @@ public class Game extends Canvas {
      * Ship 생성 및 초기 배치. 무한 모드면 즉시 웨이브 스폰.
      */
     private void initEntities() {
-        entitymanager.clearEntity();
+        entityManager.clearEntity();
 
         ship = new ShipEntity(this, "sprites/ship.gif", 370, 550);
-        entitymanager.addEntity(ship);
+        entityManager.addEntity(ship);
 
         ((ShipEntity) ship).getStats().setInvulnerable(false);
         if (hasSession()) {
@@ -364,7 +362,7 @@ public class Game extends Canvas {
         stageStartHP = getPlayerShip().getStats().getCurrentHP();
         stageStarScoreRequirements();
 
-        stagemanager.applyStage(StageNum, this);
+        StageManager.applyStage(StageNum, this);
 
         if (StageNum == 5) {
             bossActive = true;
@@ -400,7 +398,6 @@ public class Game extends Canvas {
         state = GameState.GAMEOVER;
         waitingForKeyPress = false;
         message = "";
-        menuIndex = 0;
 
         if (hasSession()) {
             ShipEntity ship = getPlayerShip();
@@ -460,11 +457,11 @@ public class Game extends Canvas {
 
     public List<Entity> getEntities() { return entityManager.getEntities(); }
 
-    public List<Entity> getMutableEntities() { return entitymanager.getMutableEntities(); }
+    public List<Entity> getMutableEntities() { return entityManager.getMutableEntities(); }
 
     public ShipEntity getPlayerShip() { return (ShipEntity) ship; }
 
-    public void addEntity(Entity e) { entitymanager.addEntity(e);}
+    public void addEntity(Entity e) { entityManager.addEntity(e);}
 
     /** 엔티티 제거 요청(프레임 말미에 일괄 처리) */
     public void removeEntity(Entity entity) {
@@ -594,7 +591,7 @@ public class Game extends Canvas {
         ShotEntity shot = new ShotEntity(this, "sprites/shot.gif", ship.getX() + 10, ship.getY() - 30);
         entityManager.addEntity(shot);
 
-        soundmanager.get().playSfx(soundmanager.Sfx.SHOOT); //플레이어 총소리
+        SoundManager.get().playSfx(SoundManager.Sfx.SHOOT); //플레이어 총소리
     }
 
     /** 플레이어 피격 이벤트(로그 출력) */
@@ -776,27 +773,27 @@ public class Game extends Canvas {
 
     /** 화면 컨텍스트에 맞춰 BGM 선택/재생 */
     private void updateBGMForContext() {
-        soundmanager sm = soundmanager.get();
+        SoundManager sm = SoundManager.get();
 
         if (currentScreen instanceof MenuScreen) {
             System.out.println("[BGM] MENU");
-            sm.play(soundmanager.Bgm.MENU);
+            sm.play(SoundManager.Bgm.MENU);
             return;
         }
 
         if (currentScreen instanceof GamePlayScreen) {
             if (currentMode == Mode.STAGE && currentStageId == 5) {
                 System.out.println("[BGM] BOSS (Stage 5)"); //보스전 bgm
-                sm.play(soundmanager.Bgm.BOSS);
+                sm.play(SoundManager.Bgm.BOSS);
             } else {
                 System.out.println("[BGM] STAGE"); //일반 스테이지 bgm
-                sm.play(soundmanager.Bgm.STAGE);
+                sm.play(SoundManager.Bgm.STAGE);
             }
             return;
         }
 
         System.out.println("[BGM] MENU (fallback)"); //기본값
-        sm.play(soundmanager.Bgm.MENU);
+        sm.play(SoundManager.Bgm.MENU);
     }
 
     public void uploadScoreIfLoggedIn() {
