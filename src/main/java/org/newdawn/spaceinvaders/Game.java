@@ -1,628 +1,837 @@
 package org.newdawn.spaceinvaders;
 
-import java.awt.Canvas;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferStrategy;
 
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
+import java.util.*;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
-
-import javax.swing.JFrame;
-
-/***
- import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JLabel;
-import javax.swing.JDialog;
-***/
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
-
+import java.util.List;
 import javax.swing.*;
 
-import java.text.SimpleDateFormat;
-
-import org.newdawn.spaceinvaders.entity.AlienEntity;
-import org.newdawn.spaceinvaders.entity.Entity;
-import org.newdawn.spaceinvaders.entity.ShipEntity;
-import org.newdawn.spaceinvaders.entity.ShotEntity;
+import org.newdawn.spaceinvaders.database.*;
+import org.newdawn.spaceinvaders.manager.EntityManager;
+import org.newdawn.spaceinvaders.manager.EntitySpawnManager;
+import org.newdawn.spaceinvaders.manager.SoundManager;
+import org.newdawn.spaceinvaders.manager.StageManager;
+import org.newdawn.spaceinvaders.screen.Screen;
+import org.newdawn.spaceinvaders.screen.StageSelectScreen;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import org.newdawn.spaceinvaders.entity.base.Entity;
+import org.newdawn.spaceinvaders.entity.enemy.DiagonalShooterAlienEntity;
+import org.newdawn.spaceinvaders.entity.enemy.RangedAlienEntity;
+import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
+import org.newdawn.spaceinvaders.entity.player.ShipEntity;
+import org.newdawn.spaceinvaders.entity.projectile.ShotEntity;
 
 /**
- * The main hook of our game. This class with both act as a manager
- * for the display and central mediator for the game logic. 
- * 
- * Display management will consist of a loop that cycles round all
- * entities in the game asking them to move and then drawing them
- * in the appropriate place. With the help of an inner class it
- * will also allow the player to control the main ship.
- * 
- * As a mediator it will be informed when entities within our game
- * detect events (e.g. alient killed, played died) and will take
- * appropriate game actions.
- * 
- * @author Kevin Glass
+ * Game — Space Invaders 메인 오케스트레이션.
+ * 역할
+ *  - 화면(Screen) 전환, 엔티티(Entity) 생명주기, 게임 루프, 점수/웨이브/스테이지 상태 관리.
+ * 프레임 순서(단일 스레드)
+ *  1) currentScreen.update(deltaMs)
+ *  2) render(g)  // 배경 → Screen 오버레이
+ *  3) (레거시 경로인 경우) 엔티티 이동/충돌/doLogic
+ *  4) ship 이동 벡터/발사 처리
+ *  5) 10ms 슬립
+ * 단위/스레드
+ *  - 시간: ms, 속도: px/s, 좌표: px
+ *  - 싱글 스레드 전제. update/render 동안 블로킹 I/O 금지.
  */
-public class Game extends Canvas 
-{  /// 아래 5개는 회원가입, 로그인과 관련된 필드
-    private static final String API_KEY = "AIzaSyCdY9-wpF3Ad2DXkPTXGcqZEKWBD1qRYKE";
-    private static final String DB_URL  = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app/";
+
+public class Game extends Canvas {
+
+    // 인증/DB 관련 필드
+    private final transient String API_KEY = "AIzaSyCdY9-wpF3Ad2DXkPTXGcqZEKWBD1qRYKE";
+    public static final String DB_URL = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app";
+    // Firebase Admin SDK 용 서비스 키
     private static final String DB_KEYFILE = "src/main/resources/serviceAccountKey.json";
-    private static String SESSION_UID   = null;
-    private static String SESSION_EMAIL = null;
-    private static String SESSION_ID_TOKEN = null;
-	/** The stragey that allows us to use accelerate page flipping */
-	private BufferStrategy strategy;
-	/** True if the game is currently "running", i.e. the game loop is looping */
-	private boolean gameRunning = true;
-	/** The list of all the entities that exist in our game */
-	private ArrayList entities = new ArrayList();
-	/** The list of entities that need to be removed from the game this loop */
-	private ArrayList removeList = new ArrayList();
-	/** The entity representing the player */
-	private Entity ship;
-	/** The speed at which the player's ship should move (pixels/sec) */
-	private double moveSpeed = 300;
-	/** The time at which last fired a shot */
-	private long lastFire = 0;
-	/** The interval between our players shot (ms) */
-	private long firingInterval = 500;
-	/** The number of aliens left on the screen */
-	private int alienCount;
-	/** 위험한 상황이 발생했을 시**/
+
+
+    // 세션/DB 의존성
+    private final transient DatabaseClient dbClient = new FirebaseDatabaseClient(DB_URL);
+    private final transient GameDatabaseService gameDb = new GameDatabaseService(dbClient);
+    private transient AuthSession session; // 기존 SESSION_UID , EMAIL, ID_TOKEN 대체
+
+    private final transient FirebaseAuthService authService = new FirebaseAuthService(API_KEY);
+    public FirebaseAuthService getAuthService() { return authService; }
+    public DatabaseClient getDbClient(){ return dbClient; }
+
+    public void setSession(AuthSession session){ this.session = session; }
+    public boolean hasSession(){ return session != null && session.isLoggedIn(); }
+    public String getMessage(){ return message; }
+	/** 페이지 넘김을 가속화 할 수 있는 전략 */
+	private final transient BufferStrategy strategy;
+	/** 게임이 현재 "실행 중"이라면, 즉 게임 루프가 반복되고 있습니다 */
+	private final transient boolean gameRunning = true;
+
+    private final transient EntityManager entityManager = new EntityManager(this);
+    private final transient EntitySpawnManager spawnManager = new EntitySpawnManager(this, entityManager);
+
+    /** 플레이어(Ship) 엔티티 */
+    private transient Entity ship;
+    /** Ship 이동 속도(px/s) */
+    private double moveSpeed = 300;
+    /** 마지막 발사 시각(ms) */
+    private long lastFire = 0;
+    /** 발사 간격(ms) */
+    private long firingInterval = 500;
+    /** 화면에 남은 외계인 수 */
+    private int alienCount;
+    /** HP가 낮은 등 위험 상태 표시 */
     private boolean dangerMode = false;
-	/** The message to display which waiting for a key press */
-	private String message = "";
-	/** True if we're holding up game play until a key has been pressed */
-	private boolean waitingForKeyPress = true;
-	/** True if the left cursor key is currently pressed */
-	private boolean leftPressed = false;
-	/** True if the right cursor key is currently pressed */
-	private boolean rightPressed = false;
-	/** True if we are firing */
-	private boolean firePressed = false;
-	/** True if game logic needs to be applied this loop, normally as a result of a game event */
-	private boolean logicRequiredThisLoop = false;
-	/** The last time at which we recorded the frame rate */
-	private long lastFpsTime;
-	/** The current number of frames recorded */
-	private int fps;
-	/** The normal title of the game window */
-	private String windowTitle = "Space Invaders 102";
-	/** The game window that we'll update with the frame count */
-	private JFrame container;
+    /** 아무 키 대기 중인지 여부 */
+    private boolean waitingForKeyPress = true;
 
+    /** 입력 상태 */
+    private boolean leftPressed = false;
+    private boolean rightPressed = false;
+    private boolean upPressed = false;
+    private boolean downPressed = false;
+    private boolean firePressed = false;
 
-    // Game.java (필드)
-    private enum GameState { MENU, PLAYING, SCOREBOARD, EXIT }
+    /** 이번 루프에서 별도의 게임 로직(doLogic)을 적용해야 하는지 */
+    private boolean logicRequiredThisLoop = false;
+
+    /** FPS 측정 누적 시간(ms) */
+    private long lastFpsTime;
+    /** FPS 카운터 */
+    private int fps;
+    /** 윈도우 타이틀 기본값 */
+    private final String windowTitle = "Space Invaders 102";
+    /** 메시지 호출 */
+    private String message = "";
+    /** 게임 윈도우 */
+    private final JFrame container;
+
+    /** 배경 렌더러 */
+    private final transient BackgroundRenderer backgroundRenderer;
+    /** 활성 화면 */
+    private transient Screen currentScreen;
+
+    //entityManager에서 읽어갈 getter
+    public boolean isLogicRequiredThisLoop() { return logicRequiredThisLoop; }
+
+    //EntityManager에서 한 프레임 처리 후 flag를 꺼주는 setter
+    public void resetLogicFlag() { logicRequiredThisLoop = false; }
+
+    public AuthSession getSession() { return session; }
+
+    // 모드/점수/스테이지
+    private enum Mode { STAGE, INFINITE }
+    private Mode currentMode = Mode.STAGE;
+    private int score = 0;
+    private long runStartedAtMs = 0L;
+    private int currentStageId = 1;
+    private int stageStartHP = 0;
+    private static final int STAGE_TIME_LIMIT_MS = 120_000;
+
+    private enum GameState { MENU, PLAYING, GAMEOVER, SCOREBOARD, EXIT }
     private GameState state = GameState.MENU;
 
-    private String[] menuItems = {"스테이지 모드", "무한 모드", "스코어보드", "게임 종료"};
-    private int menuIndex = 0;
+    private Map<Integer, Integer> stageStarScoreRequirements = new HashMap<>();
+    private Map<Integer, Integer> stageStars = new HashMap<>();
 
-    //무한 모드 관련 필드 추가
-    private boolean infiniteMode = false;// 메뉴 선택 결과를 저장할 예시 플래그
-	private int waveCount =1;// 현재 웨이브 번호
-
-    //보스 관련 필드 추가
+    // 무한 모드/웨이브/보스
+    private boolean infiniteMode = false;
+    private int waveCount = 1;
+    private int normalsClearedInCycle = 0;
     private boolean bossActive = false;
+
+    //스테이지 잠금 상태 관리 배열
+    private boolean[] stageUnlocked;
+    private static  final int TOTAL_STAGES = 5;
+
+    /** 초기 화면·버퍼·입력·BGM·엔티티 설정 */
+    public Game() {
+        // 프레임에 띄울 게임 명
+        container = new JFrame("Space Invaders 102");
+        // 배경화면 렌더링
+        backgroundRenderer = new BackgroundRenderer();
+        // 메뉴 스크린 불러오기
+        setScreen(new MenuScreen(this)); // 시작 화면
+        // 패널
+        JPanel panel = (JPanel) container.getContentPane();
+        // 사이즈
+        panel.setPreferredSize(new Dimension(800, 600));
+        panel.setLayout(null);
+
+        setBounds(0, 0, 800, 600);
+        panel.add(this);
+
+        setIgnoreRepaint(true);
+        stageStarScoreRequirements();
+
+        container.pack();
+        container.setResizable(false);
+        container.setVisible(true);
+        container.addWindowListener(new WindowAdapter() { public void windowClosing(WindowEvent e) { System.exit(0); } });
+
+        addKeyListener(new GameKeyInputHandler(this));
+        setFocusable(true);
+        setFocusTraversalKeysEnabled(false);
+        SwingUtilities.invokeLater(this::requestFocusInWindow);
+        requestFocus();
+
+        createBufferStrategy(2);
+        strategy = getBufferStrategy();
+
+        initStageUnlocks();
+        initEntities();
+
+        SoundManager.get().setSfxVolume(-15.0f);// 전체 효과음 볼륨 설정
+    }
+
     /**
-	 * Construct our game and set it running.
-	 */
-
-	public Game() {
-		// create a frame to contain our game
-		container = new JFrame("Space Invaders 102");
-		
-		// get hold the content of the frame and set up the resolution of the game
-		JPanel panel = (JPanel) container.getContentPane();
-		panel.setPreferredSize(new Dimension(800,600));
-		panel.setLayout(null);
-		
-		// setup our canvas size and put it into the content of the frame
-		setBounds(0,0,800,600);
-		panel.add(this);
-		
-		// Tell AWT not to bother repainting our canvas since we're
-		// going to do that our self in accelerated mode
-		setIgnoreRepaint(true);
-		
-		// finally make the window visible 
-		container.pack();
-		container.setResizable(false);
-		container.setVisible(true);
-		
-		// add a listener to respond to the user closing the window. If they
-		// do we'd like to exit the game
-		container.addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				System.exit(0);
-			}
-		});
-		
-		// add a key input system (defined below) to our canvas
-		// so we can respond to key pressed
-		addKeyListener(new KeyInputHandler());
-		
-		// request the focus so key events come to us
-		requestFocus();
-
-		// create the buffering strategy which will allow AWT
-		// to manage our accelerated graphics
-		createBufferStrategy(2);
-		strategy = getBufferStrategy();
-		
-		// initialise the entities in our game so there's something
-		// to see at startup
-		initEntities();
-	}
-	
-	/**
-	 * Start a fresh game, this should clear out any old data and
-	 * create a new set.
-	 */
-	private void startGame() {
-		// clear out any existing entities and intialise a new set
-		entities.clear();
-		initEntities();
-
-		// blank out any keyboard settings we might currently have
-        leftPressed = rightPressed = firePressed = false;
-        //실재로 플레이 가능 상태로 전환
-        waitingForKeyPress = false;
-        state = GameState.PLAYING;  // 메뉴에서 게임 시작으로 전환
-
-        //무한모드일시 웨이브 카운트 초기화
-        waveCount = 1;
-	}
-	
-	/**
-	 * Initialise the starting state of the entities (ship and aliens). Each
-	 * entitiy will be added to the overall list of entities in the game.
-	 */
-	private void initEntities() {
-		// create the player ship and place it roughly in the center of the screen
-		ship = new ShipEntity(this,"sprites/ship.gif",370,550);
-		entities.add(ship);
-		
-		// create a block of aliens (5 rows, by 12 aliens, spaced evenly)
-		alienCount = 0;
-        if(infiniteMode){
-            //무한모드 : 웨이브 스폰으로 시작
-            spawnAliens();
-        }else{
-            //기존 스테이지 모드 : 5*12 고정 배치
-
-            for (int row=0;row<5;row++) {
-                for (int x=0;x<12;x++) {
-                    Entity alien = new AlienEntity(this,100+(x*50),(50)+row*30);
-                    entities.add(alien);
-                    alienCount++;
-                }
-            }
-        }
-	}
-
-    //무한모드 메소드
-    private void spawnAliens(){
-        // 난이도 조절용: waveCount 증가
-        int rows = 3 + (waveCount % 3);  // 점점 늘어나도록
-        int cols = 6 + (waveCount % 6);
+     * 기존 엔티티/상태를 초기화하고 새 게임을 시작.
+     * - 엔티티/제거 큐 초기화, 입력 리셋, 상태 PLAYING 전환
+     */
+    private void startGame() {
+        entityManager.clearEntity();
         alienCount = 0;
 
-        for (int row=0;row<rows;row++) {
-            for (int x=0;x<cols;x++) {
-                Entity alien = new AlienEntity(this,100+(x*50),(50)+row*30);
-                entities.add(alien);
-                alienCount++;
-            }
+        initEntities();
+
+        leftPressed = rightPressed = firePressed = false;
+        waitingForKeyPress = false;
+        state = GameState.PLAYING;
+
+        waveCount = 1;
+    }
+
+    /**
+     * Ship 생성 및 초기 배치. 무한 모드면 즉시 웨이브 스폰.
+     */
+    private void initEntities() {
+        entityManager.clearEntity();
+
+        ship = new ShipEntity(this, "sprites/ship.gif", 370, 550);
+        entityManager.addEntity(ship);
+
+        ((ShipEntity) ship).getStats().setInvulnerable(false);
+        if (hasSession()) {
+            ShipEntity s = getPlayerShip();
+
+            // 레벨
+            int[] saved = LevelManager.loadLastLevel(DB_URL,
+                    session.getUid(),
+                    session.getIdToken());
+            s.getStats().setLevelAndXp(saved[0], saved[1]);
+
+            // 스킬
+            PlayerSkills ps = s.getStats().getSkills();
+            s.getPersistence().loadSkills(ps);
         }
-        waveCount++;
+
+        alienCount = 0;
+        if (infiniteMode) {
+            spawnManager.spawnAliens();
+        }
+
     }
+    //wave
+    public int getWaveCount() { return waveCount; }
+    public void incrementWaveCount() { waveCount++; }
 
-    //보스 소환 메소드
-    private void spawnBoss() {
+    //infiniteMode
+    public boolean isInfiniteMode() { return infiniteMode; }
 
-        int bossW = 120;   // BossEntity.draw()에서 쓰는 축소 크기와 일치
-        int bossH = 120;
-        int startX = (800 - bossW) / 2;  // 화면 가로 800px 기준 중앙
-        int startY = 50;                 // 상단에서 50px 아래
+    //boss state
+    public void setBossActive(boolean bossActive) { this.bossActive = bossActive; }
+    public boolean isBossActive() { return bossActive; }
 
-        Entity boss = new org.newdawn.spaceinvaders.entity.BossEntity(this, 360, 60);
-        entities.add(boss);
-        bossActive = true;
-    }
-    // 보스 처치시 콜백
+    //alien count
+    public void setAlienCount(int count) { this.alienCount = count; }
+
+    public void updateEntities(long delta) { entityManager.update(delta, waitingForKeyPress);}
+
+
+    /** 보스 처치 콜백: 모드에 따라 웨이브 진행 또는 승리 처리 */
     public void onBossKilled() {
         bossActive = false;
         if (infiniteMode) {
-            // 무한모드라면 다음 웨이브 이어가기
-            spawnAliens();
+            spawnManager.spawnAliens();
         } else {
-            // 스테이지 모드라면 승리 처리
             notifyWin();
         }
     }
-	/**
-	 * Notification from a game entity that the logic of the game
-	 * should be run at the next opportunity (normally as a result of some
-	 * game event)
-	 */
-	public void updateLogic() {
-		logicRequiredThisLoop = true;
-	}
-	
-	/**
-	 * Remove an entity from the game. The entity removed will
-	 * no longer move or be drawn.
-	 * 
-	 * @param entity The entity that should be removed
-	 */
-	public void removeEntity(Entity entity) {
-		removeList.add(entity);
-	}
-	
-	/**
-	 * Notification that the player has died. 
-	 */
-	public void notifyDeath() {
-		message = "Oh no! They got you, try again?";
-		waitingForKeyPress = true;
-	}
-	
-	/**
-	 * Notification that the player has won since all the aliens
-	 * are dead.
-	 */
-	public void notifyWin() {
-		message = "Well done! You Win!";
-		waitingForKeyPress = true;
-	}
-	
-	/**
-	 * Notification that an alien has been killed
-	 */
-	public void notifyAlienKilled() {
-		// reduce the alient count, if there are none left, the player has won!
-		alienCount--;
-        if (alienCount < 10) {
-            dangerMode = true;
-        } else {
-            dangerMode = false;
-        }
-		if (alienCount == 0) {
-            if (infiniteMode) {
-                if (!bossActive && (waveCount % 1 == 0)){
-                    spawnBoss(); //무한모드에서 매 웨이브마다 보스가 생성
-                }else{
-                    spawnAliens(); // 무한모드일 경우 새로운 웨이브
-                }
-            } else {
-                //스테이지 모드 : 전멸후 보스 라운드였따면 보스 소호나
-                if (!bossActive) {
-                    spawnBoss(); // 마지막 스테이지라면 호출
-                }
-                notifyWin();   // 원래 로직
-            }
-		}
-		
-		// if there are still some aliens left then they all need to get faster, so
-		// speed up all the existing aliens
-		for (int i=0;i<entities.size();i++) {
-			Entity entity = (Entity) entities.get(i);
-			
-			if (entity instanceof AlienEntity) {
-				// speed up by 2%
-				entity.setHorizontalMovement(entity.getHorizontalMovement() * 1.02);
-			}
-		}
-	}
-	
-	/**
-	 * Attempt to fire a shot from the player. Its called "try"
-	 * since we must first check that the player can fire at this 
-	 * point, i.e. has he/she waited long enough between shots
-	 */
-	public void tryToFire() {
-		// check that we have waiting long enough to fire
-		if (System.currentTimeMillis() - lastFire < firingInterval) {
-			return;
-		}
-		
-		// if we waited long enough, create the shot entity, and record the time.
-		lastFire = System.currentTimeMillis();
-		ShotEntity shot = new ShotEntity(this,"sprites/shot.gif",ship.getX()+10,ship.getY()-30);
-		entities.add(shot);
-	}
-	
-	/**
-	 * The main game loop. This loop is running during all game
-	 * play as is responsible for the following activities:
-	 * <p>
-	 * - Working out the speed of the game loop to update moves
-	 * - Moving the game entities
-	 * - Drawing the screen contents (entities, text)
-	 * - Updating game events
-	 * - Checking Input
-	 * <p>
-	 */
-	public void gameLoop() {
-		long lastLoopTime = SystemTimer.getTime();
-		
-		// keep looping round til the game ends
-		while (gameRunning) {
-			// work out how long its been since the last update, this
-			// will be used to calculate how far the entities should
-			// move this loop
-			long delta = SystemTimer.getTime() - lastLoopTime;
-			lastLoopTime = SystemTimer.getTime();
 
-			// update the frame counter
-			lastFpsTime += delta;
-			fps++;
-			
-			// update our FPS counter if a second has passed since
-			// we last recorded
-			if (lastFpsTime >= 1000) {
-				container.setTitle(windowTitle+" (FPS: "+fps+")");
-				lastFpsTime = 0;
-				fps = 0;
-			}
-			
-			// Get hold of a graphics context for the accelerated 
-			// surface and blank it out
-			Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
-			g.setColor(Color.black);
-			g.fillRect(0,0,800,600);
-
-            if (state == GameState.MENU) {
-                drawMenu(g);
-                g.dispose();
-                strategy.show();
-                SystemTimer.sleep(lastLoopTime+10-SystemTimer.getTime());
-                continue; // 메뉴일 땐 이하(엔티티 이동/충돌) 스킵
-            }
-
-            //배경 그리기
-            BackgroundRenderer.draw(g, this);
-
-			// cycle round asking each entity to move itself
-			if (!waitingForKeyPress) {
-				for (int i=0;i<entities.size();i++) {
-					Entity entity = (Entity) entities.get(i);
-					
-					entity.move(delta);
-				}
-			}
-			
-			// cycle round drawing all the entities we have in the game
-			for (int i=0;i<entities.size();i++) {
-				Entity entity = (Entity) entities.get(i);
-				
-				entity.draw(g);
-			}
-			
-			// brute force collisions, compare every entity against
-			// every other entity. If any of them collide notify 
-			// both entities that the collision has occured
-			for (int p=0;p<entities.size();p++) {
-				for (int s=p+1;s<entities.size();s++) {
-					Entity me = (Entity) entities.get(p);
-					Entity him = (Entity) entities.get(s);
-					
-					if (me.collidesWith(him)) {
-						me.collidedWith(him);
-						him.collidedWith(me);
-					}
-				}
-			}
-			
-			// remove any entity that has been marked for clear up
-			entities.removeAll(removeList);
-			removeList.clear();
-
-			// if a game event has indicated that game logic should
-			// be resolved, cycle round every entity requesting that
-			// their personal logic should be considered.
-			if (logicRequiredThisLoop) {
-				for (int i=0;i<entities.size();i++) {
-					Entity entity = (Entity) entities.get(i);
-					entity.doLogic();
-				}
-				
-				logicRequiredThisLoop = false;
-			}
-			
-			// if we're waiting for an "any key" press then draw the 
-			// current message 
-			if (waitingForKeyPress) {
-				g.setColor(Color.white);
-				g.drawString(message,(800-g.getFontMetrics().stringWidth(message))/2,250);
-				g.drawString("Press any key",(800-g.getFontMetrics().stringWidth("Press any key"))/2,300);
-			}
-			
-			// finally, we've completed drawing so clear up the graphics
-			// and flip the buffer over
-			g.dispose();
-			strategy.show();
-			
-			// resolve the movement of the ship. First assume the ship 
-			// isn't moving. If either cursor key is pressed then
-			// update the movement appropraitely
-			ship.setHorizontalMovement(0);
-			
-			if ((leftPressed) && (!rightPressed)) {
-				ship.setHorizontalMovement(-moveSpeed);
-			} else if ((rightPressed) && (!leftPressed)) {
-				ship.setHorizontalMovement(moveSpeed);
-			}
-			
-			// if we're pressing fire, attempt to fire
-			if (firePressed) {
-				tryToFire();
-			}
-			
-			// we want each frame to take 10 milliseconds, to do this
-			// we've recorded when we started the frame. We add 10 milliseconds
-			// to this and then factor in the current time to give 
-			// us our final value to wait for
-			SystemTimer.sleep(lastLoopTime+10-SystemTimer.getTime());
-		}
-	}
-
-    private void drawMenu(Graphics2D g) {
-        g.setColor(Color.white);
-        String title = "Space Invaders - Main Menu";
-        g.drawString(title, (800 - g.getFontMetrics().stringWidth(title))/2, 200);
-
-        for (int i=0;i<menuItems.length;i++) {
-            String item = (i==menuIndex ? "> " : "  ") + menuItems[i];
-            g.drawString(item, (800 - g.getFontMetrics().stringWidth(item))/2, 260 + i*30);
-        }
-        String help = "↑/↓: 이동, ENTER: 선택, ESC: 종료";
-        g.drawString(help, (800 - g.getFontMetrics().stringWidth(help))/2, 420);
+    /** 스테이지별 3성 기준 점수표 초기화 */
+    private void stageStarScoreRequirements() {
+        stageStarScoreRequirements.put(1, 1000);
+        stageStarScoreRequirements.put(2, 2000);
+        stageStarScoreRequirements.put(3, 3000);
+        stageStarScoreRequirements.put(4, 4000);
+        stageStarScoreRequirements.put(5, 5000);
     }
-	/**
+
+    public int getStageStarScoreRequirements(int stageId) {
+        return stageStarScoreRequirements.getOrDefault(stageId, 1000);
+    }
+
+    /**
+     * 스테이지 별(★) 평가:
+     * 1★ 클리어 / 2★ 시간 내 클리어 / 3★ 시간 내 + 무피격 + 점수 기준 충족
+     */
+    private void evaluateStageResult(int stageId, int timeLeft, int damageTaken, int score) {
+        int stars = 1;
+
+        if (timeLeft > 0) {
+            stars = 2;
+            int requiredScore = getStageStarScoreRequirements(stageId);
+            if (damageTaken == 0 && score >= requiredScore) {
+                stars = 3;
+            }
+        }
+        setStageStars(stageId, stars);
+    }
 
 
-    public boolean isDangerMode(){
-        return dangerMode;
+
+    public int getStageStars(int stageId) {
+        return stageStars.getOrDefault(stageId, 0);
+    }
+
+    public void saveStageStars(){
+        gameDb.saveStageStars(session, stageStars);
+    }
+
+    public void loadStageStars(){
+        if (!hasSession()) return;
+
+        Map<Integer, Integer> loaded = gameDb.loadStageStars(session);
+
+        stageStars.clear();
+        stageStars.putAll(loaded);
+
+        rebuildStageUnlocks();
+        System.out.println(" 별 기록 불러오기 완료 " + stageStars);
+    }
+
+    // [수정] 별을 갱신/저장한 직후에도 재계산
+    public void setStageStars(int stageId, int stars) {
+        int prev = stageStars.getOrDefault(stageId, 0);
+        if(stars > prev){
+            stageStars.put(stageId, stars);
+
+            if (session != null && session.isLoggedIn()){
+                gameDb.saveStageStars(session, stageStars);
+            }
+
+            rebuildStageUnlocks();
+        }
+    }
+
+    // [추가] 당장 다음 스테이지(= 현재 stageId의 다음 인덱스)를 오픈
+    private void unlockNextStageIfEligible(int currentStageId) {
+        if (stageUnlocked == null) return;
+        if (currentStageId >= TOTAL_STAGES) return;
+
+        // 현재 스테이지의 최종 별 수가 3개 이상일 때만 다음 스테이지 오픈
+        if (getStageStars(currentStageId) >= 3) {
+            int nextIdx = currentStageId; // 1-based의 "다음"은 배열 인덱스로 currentStageId
+            if (nextIdx < stageUnlocked.length) {
+                stageUnlocked[nextIdx] = true;
+            }
+        }
+    }
+
+    public boolean isStageMode() {
+        return currentMode == Mode.STAGE;
+    }
+
+    /** 스테이지 모드 시작 */
+    public void startStageMode(int StageNum) {
+        currentMode = Mode.STAGE;
+        score = 0;
+        runStartedAtMs = System.currentTimeMillis();
+        infiniteMode = false;
+        waveCount = StageNum;
+        currentStageId = StageNum;
+        normalsClearedInCycle = 0;
+
+        startGame();
+
+        stageStartHP = getPlayerShip().getStats().getCurrentHP();
+        stageStarScoreRequirements();
+
+        StageManager.applyStage(StageNum, this);
+
+        if (StageNum == 5) {
+            bossActive = true;
+            if (alienCount < 0) alienCount = 0;
+        }
+        setScreen(new GamePlayScreen(this));
+    }
+
+    /** 무한 모드 시작 */
+    public void startInfiniteMode() {
+        currentMode = Mode.INFINITE;
+        score = 0;
+        runStartedAtMs = System.currentTimeMillis();
+        infiniteMode = true;
+        waveCount = 1;
+        normalsClearedInCycle = 0;
+        startGame();
+        setScreen(new GamePlayScreen(this));
+    }
+
+    public void showScoreboard() {
+        setScreen(new ScoreboardScreen(this));
+    }
+
+    /** 다음 프레임에서 doLogic 실행 요청 */
+    public void updateLogic() {
+        logicRequiredThisLoop = true;
+    }
+
+
+    /** 플레이어 사망 처리 */
+    public void notifyDeath() {
+        state = GameState.GAMEOVER;
+        waitingForKeyPress = false;
+        message = "";
+
+        if (hasSession()) {
+            ShipEntity ship = getPlayerShip();
+            if (ship != null) {
+                LevelManager.saveLastLevel(getDbClient(), session.getUid(), session.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
+            }
+
+        }
+
+        setScreen(new GameOverScreen(this));
+        uploadScoreIfLoggedIn();
+    }
+
+
+    /** 플레이어 승리 처리(별 평가/저장 포함) */
+    public void notifyWin() {
+        message = "Player Win!";
+        waitingForKeyPress = true;
+
+        if (currentMode == Mode.STAGE) {
+            long elapsed = (runStartedAtMs > 0) ? (System.currentTimeMillis() - runStartedAtMs) : 0L;
+            int timeLeft = Math.max(0, STAGE_TIME_LIMIT_MS - (int) elapsed);
+
+            int damageTaken = 0;
+            ShipEntity p = getPlayerShip();
+            if (p != null) {
+                damageTaken = Math.max(0, stageStartHP - p.getStats().getCurrentHP());
+            }
+            evaluateStageResult(currentStageId, timeLeft, damageTaken, score);
+            //조건 충족시 다음 스테이지 해제
+            unlockNextStageIfEligible(currentStageId);
+
+        }
+
+        if (hasSession()) {
+            ShipEntity playerShip = getPlayerShip();
+            if (playerShip != null) {
+                LevelManager.saveLastLevel(getDbClient(),session.getUid(), session.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
+            }
+        }
+        uploadScoreIfLoggedIn();
+    }
+
+    /** 남은 스테이지 시간(ms). 스테이지 모드가 아니면 0 */
+    public int getStageTimeLimitMs() {
+        if (currentMode != Mode.STAGE) return 0;
+        if (runStartedAtMs == 0) return STAGE_TIME_LIMIT_MS;
+
+        long elapsed = System.currentTimeMillis() - runStartedAtMs;
+        int timeLeft = (int) (STAGE_TIME_LIMIT_MS - elapsed);
+        return Math.max(0, timeLeft);
+    }
+
+    /** 원래 코드는 public java.util.List<Entity> getEntities() { return entities;}
+     * 이렇게 되면 add(), set() 등 수정메서드를 사용 가능하기때문에 바꿀수 없고 보기만 가능하게 만들었다
+     **/
+
+    public List<Entity> getEntities() { return entityManager.getEntities(); }
+
+    public List<Entity> getMutableEntities() { return entityManager.getMutableEntities(); }
+
+    public ShipEntity getPlayerShip() { return (ShipEntity) ship; }
+
+    public void addEntity(Entity e) { entityManager.addEntity(e);}
+
+    /** 엔티티 제거 요청(프레임 말미에 일괄 처리) */
+    public void removeEntity(Entity entity) {
+        entityManager.removeEntity(entity);
     }
 
     public int getAlienCount() {
         return alienCount;
     }
 
+    public void setLeftPressed(boolean value) { leftPressed = value; }
+    public void setRightPressed(boolean value) { rightPressed = value; }
+    public void setFirePressed(boolean value) { firePressed = value; }
+    public void setUpPressed(boolean value) { upPressed = value; }
+    public void setDownPressed(boolean value) { downPressed = value; }
+
+    //XP 지급
+    private void PayXpForKill(AlienEntity alien) {
+        int xp = calculateXpForAlien(alien);
+
+        ShipEntity player = getPlayerShip();
+        if(player != null) {
+            player.getStats().addXp(xp);
+        }
+    }
+
+    //Xp 계산
+    private int calculateXpForAlien(AlienEntity alien) {
+        if(alien instanceof RangedAlienEntity) {
+            return 8; //RangedAlienEntity 처치시 8
+        }
+        if(alien instanceof DiagonalShooterAlienEntity){
+            return 10; //DiagonalShooterAlienEntity 처치시 10 지급
+        }
+        return 5; // 기본Alien 지급 xp
+    }
+
+    //엔티티 제거
+    private void removeKilledAlien(AlienEntity alien) {
+        if(getMutableEntities().contains(alien)){
+            removeEntity(alien);
+        }
+    }
+
+    //점수/카운트, dangerMode 갱신
+    private void updateScoreAndCount(){
+        score += 100;
+        alienCount--;
+        if (alienCount < 0) alienCount = 0;
+
+        //디버깅 메시지
+        System.out.println("[DEBUG] Alien killed! alienCount=" + alienCount + " stage=" + currentStageId + " bossActive=" + bossActive);
+
+        ShipEntity player = getPlayerShip();
+        if(player != null) {
+            dangerMode = (player.getStats().getCurrentHP() < 1); //원래 2였는데 1로 변경함.
+        }
+    }
+
+    //Alien을 전부 처리하였는지에 따른 처리(웨이브 / 보스 / 승리 통합 처리)
+    private void aliensCleared() {
+        if(alienCount != 0) {
+            return;
+        }
+
+        if(infiniteMode) {
+            aliensClearedInInfiniteMode();
+        } else {
+            aliensClearedInStageMode();
+        }
+    }
+
+    //무한모드일때
+    private void aliensClearedInInfiniteMode() {
+        if(bossActive) {
+            return; //보스전에는 해당 없음
+        }
+
+        normalsClearedInCycle++;
+        if(normalsClearedInCycle >= 3){
+
+            normalsClearedInCycle = 0;
+            spawnManager.spawnBoss();
+
+        } else {
+            spawnManager.spawnAliens();
+        }
+    }
+
+    private void aliensClearedInStageMode() {
+        if(bossActive) {
+            return; // 보스 처리는 onBossKilled 에서 처리
+        }
+
+        if(currentStageId == 5) {
+            spawnManager.spawnBoss();
+        } else {
+            notifyWin();
+        }
+    }
+
+    //남은 Alien들 속도 증가
+    private void speedUpAliens() {
+        for(Entity entity : getMutableEntities()) {
+            if(entity instanceof AlienEntity) {
+                entity.setHorizontalMovement(entity.getHorizontalMovement() * 1.02);
+            }
+        }
+    }
+
+    public void onAlienKilled(AlienEntity alien) {
+
+        PayXpForKill(alien); //XP 지급, 계산
+        removeKilledAlien(alien); // 엔티티 제거
+        updateScoreAndCount(); // 점수/카운트, dangerMode 갱신
+        aliensCleared(); // 웨이브, 보스, 승리 처리
+        speedUpAliens(); //남은 적 속도 증가
+
+    }
+
+    /** 발사 쿨다운을 만족하면 탄 1발 발사(SFX 포함) */
+    public void tryToFire() {
+        if (System.currentTimeMillis() - lastFire < firingInterval) {
+            return;
+        }
+        lastFire = System.currentTimeMillis();
+        ShotEntity shot = new ShotEntity(this, "sprites/shot.gif", ship.getX() + 10, ship.getY() - 30);
+        entityManager.addEntity(shot);
+
+        SoundManager.get().playSfx(SoundManager.Sfx.SHOOT); //플레이어 총소리
+    }
+
+    /** 플레이어 피격 이벤트(로그 출력) */
+    public void onPlayerHit() {
+        System.out.println("Player hit!");
+    }
+
     /**
-	 * A class to handle keyboard input from the user. The class
-	 * handles both dynamic input during game play, i.e. left/right 
-	 * and shoot, and more static type input (i.e. press any key to
-	 * continue)
-	 * 
-	 * This has been implemented as an inner class more through 
-	 * habbit then anything else. Its perfectly normal to implement
-	 * this as seperate class if slight less convienient.
-	 * 
-	 * @author Kevin Glass
-	 */
-	private class KeyInputHandler extends KeyAdapter {
-		/** The number of key presses we've had while waiting for an "any key" press */
-		private int pressCount = 1;
-		
-		/**
-		 * Notification from AWT that a key has been pressed. Note that
-		 * a key being pressed is equal to being pushed down but *NOT*
-		 * released. Thats where keyTyped() comes in.
-		 *
-		 * @param e The details of the key that was pressed 
-		 */
-		public void keyPressed(KeyEvent e) {
+     * 메인 루프:
+     * delta 계산 → Screen.update → render →
+     * (레거시 경로일 경우) 이동/충돌/doLogic →
+     * 입력 기반 ship 이동 벡터/발사 처리 → 10ms 슬립.
+     */
+    public void gameLoop() {
+        long lastLoopTime = SystemTimer.getTime();
+
+        while (gameRunning) {
+            long currentTime = SystemTimer.getTime();
+            long delta = currentTime - lastLoopTime;
+            lastLoopTime = currentTime;
+
+            updateFps(delta);
+            updateScreen(delta);
+
+            Graphics2D g = beginFrame();
+            render(g);
+
             if (state == GameState.MENU) {
-                if (e.getKeyCode()==KeyEvent.VK_UP)    menuIndex = (menuIndex-1+menuItems.length)%menuItems.length;
-                if (e.getKeyCode()==KeyEvent.VK_DOWN)  menuIndex = (menuIndex+1)%menuItems.length;
-                return;
+                endFrame(g, lastLoopTime);
+                continue;
             }
-            // ===Playing === 기존처리
-			if (waitingForKeyPress) {
-				return;
-			}
-			
-			
-			if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-				leftPressed = true;
-			}
-			if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-				rightPressed = true;
-			}
-			if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-				firePressed = true;
-			}
-		} 
-		
-		/**
-		 * Notification from AWT that a key has been released.
-		 *
-		 * @param e The details of the key that was released 
-		 */
-		public void keyReleased(KeyEvent e) {
-			// if we're waiting for an "any key" typed then we don't 
-			// want to do anything with just a "released"
-			if (waitingForKeyPress) {
-				return;
-			}
-			
-			if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-				leftPressed = false;
-			}
-			if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-				rightPressed = false;
-			}
-			if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-				firePressed = false;
-			}
-		}
 
-		/**
-		 * Notification from AWT that a key has been typed. Note that
-		 * typing a key means to both press and then release it.
-		 *
-		 * @param e The details of the key that was typed. 
-		 */
-		public void keyTyped(KeyEvent e) {
-			// if we're waiting for a "any key" type then
-			// check if we've recieved any recently. We may
-			// have had a keyType() event from the user releasing
-			// the shoot or move keys, hence the use of the "pressCount"
-			// counter.
-            if (e.getKeyChar() == 27) {  // ESC
-                if (state == GameState.MENU) System.exit(0);
-                else state = GameState.MENU; // 게임 중 ESC로 메뉴로
-                return;
+            if (!doesScreenDriveGame()) {
+                updateEntities(delta);
             }
-            if (state == GameState.MENU && e.getKeyChar()=='\n') {
-                // ENTER 선택
-                switch (menuIndex) {
-                    case 0: infiniteMode = false; startGame(); break; // 스테이지 모드
-                    case 1: infiniteMode = true;  startGame(); break; // 무한 모드
-                    case 2: state = GameState.SCOREBOARD; break;      // 점수판(화면만 우선)
-                    case 3: System.exit(0);
-                }
-                return;
-			}
-			
-			// if we hit escape, then quit the game
-			if (e.getKeyChar() == 27) {
-				System.exit(0);
-			}
-		}
-	}
 
+            endFrame(g, lastLoopTime); //dispose + show +sleep
+            ShipKeyInputHandler(); // Ship의 방향키 및 발사 처리
+        }
+    }
+    // FPS업데이트
+    private void updateFps(long delta) {
+        lastFpsTime += delta;
+        fps++;
+
+        if (lastFpsTime >= 1000) {
+            container.setTitle(windowTitle + " (FPS: " + fps + ")");
+            lastFpsTime = 0;
+            fps = 0;
+        }
+
+    }
+
+    //Screen업데이트
+    private void updateScreen(long delta){
+        if (currentScreen != null) {
+            currentScreen.update(delta);
+        }
+    }
+    //화면 그리기 시작
+    private Graphics2D beginFrame(){
+        return (Graphics2D) strategy.getDrawGraphics();
+    }
+
+    //화면 그리기 종료
+    private void endFrame(Graphics2D g, long lastLoopTime){
+        g.dispose();
+        strategy.show();
+        SystemTimer.sleep(lastLoopTime + 10 - SystemTimer.getTime());
+    }
+
+    private boolean doesScreenDriveGame(){
+        return currentScreen != null;
+    }
+
+    //플레이어 입력 로직
+    private void ShipKeyInputHandler(){
+        ship.setHorizontalMovement(0);
+        ship.setVerticalMovement(0);
+
+        if ((upPressed) && (!downPressed)) {
+            ship.setVerticalMovement(-moveSpeed);
+        } else if ((downPressed) && (!upPressed)) {
+            ship.setVerticalMovement(moveSpeed);
+        }
+
+        if ((leftPressed) && (!rightPressed)) {
+            ship.setHorizontalMovement(-moveSpeed);
+        } else if ((rightPressed) && (!leftPressed)) {
+            ship.setHorizontalMovement(moveSpeed);
+        }
+
+        if (firePressed) {
+            tryToFire();
+        }
+    }
+
+
+    /** Screen 교체 및 컨텍스트에 맞춘 BGM 갱신 */
+    void setScreen(Screen screen) {
+        this.currentScreen = screen;
+        this.waitingForKeyPress = false;
+        updateBGMForContext();
+    }
+
+    /** 배경 → Screen 오버레이 순으로 렌더 */
+    public void render(Graphics2D g) {
+        if (backgroundRenderer != null) {
+            int w = getWidth() > 0 ? getWidth() : 800;
+            int h = getHeight() > 0 ? getHeight() : 600;
+
+            int wcForBg = Math.max(1, getWaveCount());
+            backgroundRenderer.render(g, wcForBg, w, h);
+        } else {
+            g.setColor(Color.black);
+            g.fillRect(0, 0, 800, 600);
+        }
+
+        if (currentScreen != null) {
+            currentScreen.render(g);
+        }
+    }
+
+
+//스테이지모드 잠금 설정 기능. 스테이지 토탈을 1부터 5까지 정해놓고 클리어될시 다음 스테이지 오픈
+    public void initStageUnlocks(){
+        stageUnlocked = new boolean[TOTAL_STAGES];
+        stageUnlocked[0]=true;
+    }
+
+    public boolean isStageUnlocked(int stageIndex){
+        if (stageUnlocked == null || stageIndex < 0 || stageIndex >= stageUnlocked.length)
+            return false;
+
+        return stageUnlocked[stageIndex];
+    }
+
+
+
+    // 로드된 stageStars(1..N) 기반으로 잠금 상태 재계산
+    public void rebuildStageUnlocks() {
+        if (stageUnlocked == null || stageUnlocked.length != TOTAL_STAGES) {
+            stageUnlocked = new boolean[TOTAL_STAGES];
+        }
+        // 스테이지 1(인덱스 0)은 항상 오픈
+        stageUnlocked[0] = true;
+
+        // 규칙: i번째 스테이지(1-based, 인덱스 i-1)는
+        // "이전 스테이지 별이 3개 이상이면" 오픈
+        for (int stageId = 2; stageId <= TOTAL_STAGES; stageId++) {
+            int prevStars = getStageStars(stageId - 1); // 1..N
+            stageUnlocked[stageId - 1] = (prevStars >= 3);
+        }
+    }
+
+    /**
+     * GameKeyInputHandler의 getter
+     * 헬퍼 메서드 필드
+     */
+
+    //현재 스크린의 상태 조회하기
+    public Screen getCurrentScreen() { return currentScreen; }
+
+    //아무 키나 누르기
+    public boolean isWaitingForKeyPress() { return waitingForKeyPress; }
+    public void setWaitingForKeyPress(boolean value) { this.waitingForKeyPress = value; }
+
+    //점수 조회(ESC 업로드용)
+    public int getScore(){ return score; }
+
+    //스테이지 선택 화면으로 이동
+    public void goToStageSelectScreen(){ setScreen(new StageSelectScreen(this)); }
+
+    //메뉴 화면으로 돌아가기(ESC 눌렀을때)
+    public void goToMenuScreen(){
+        state = GameState.MENU;
+        setScreen(new MenuScreen(this));
+    }
+
+    /** 화면 컨텍스트에 맞춰 BGM 선택/재생 */
+    private void updateBGMForContext() {
+        SoundManager sm = SoundManager.get();
+
+        if (currentScreen instanceof MenuScreen) {
+            System.out.println("[BGM] MENU");
+            sm.play(SoundManager.Bgm.MENU);
+            return;
+        }
+
+        if (currentScreen instanceof GamePlayScreen) {
+            if (currentMode == Mode.STAGE && currentStageId == 5) {
+                System.out.println("[BGM] BOSS (Stage 5)"); //보스전 bgm
+                sm.play(SoundManager.Bgm.BOSS);
+            } else {
+                System.out.println("[BGM] STAGE"); //일반 스테이지 bgm
+                sm.play(SoundManager.Bgm.STAGE);
+            }
+            return;
+        }
+
+        System.out.println("[BGM] MENU (fallback)"); //기본값
+        sm.play(SoundManager.Bgm.MENU);
+    }
+
+    public void uploadScoreIfLoggedIn() {
+        if (!hasSession()) return;
+
+        long durationMs = (runStartedAtMs > 0) ? (System.currentTimeMillis() - runStartedAtMs) : 0L;
+        String modeStr = (currentMode == Mode.STAGE) ? "STAGE" : "INFINITE";
+
+        ScoreEntry entry = new ScoreEntry();
+        entry.setMode(modeStr);
+        entry.setEmail(session.getEmail());
+        entry.setScore(score);
+        entry.setWave(waveCount);
+        entry.setDurationMs(durationMs);
+        entry.setTimestamp(now());
+        entry.setLevel(((ShipEntity) ship).getStats().getLevel());
+
+        gameDb.uploadScore(session, entry);
+    }
+
+    public List<ScoreEntry> fetchMyTopScores(int limit) {
+        if (session == null || !session.isLoggedIn()) {
+            return Collections.emptyList();
+        }
+        return gameDb.fetchMyTopScores(session, limit);
+    }
+
+
+    public List<ScoreEntry> fetchGlobalTopScores(int limit) {
+        if (session == null || !session.isLoggedIn()) {
+            return Collections.emptyList();
+        }
+        return gameDb.fetchGlobalTopScores(session, limit);
+    }
+
+
+
+    /** 간단 로그(Realtime DB) */
     private static void writeLog(String eventType) {
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("logs");
 
@@ -634,321 +843,58 @@ public class Game extends Canvas
 
         ref.push().setValueAsync(logEntry);
 
-        System.out.println("✅ 로그 저장: " + eventType + " at " + timestamp);
-    }
-    /// 로그인 화면
-    private static void showAuthDialogAndLogin() {
-        final JDialog dlg = new JDialog((JFrame)null, "로그인 / 회원가입", true);
-        JTabbedPane tabs = new JTabbedPane();
-
-        // 로그인 탭
-        JPanel login = new JPanel(new java.awt.GridBagLayout());
-        JTextField loginEmail = new JTextField(20);
-        JPasswordField loginPw = new JPasswordField(20);
-        JButton btnLogin = new JButton("로그인");
-        java.awt.GridBagConstraints c = gbc();
-        login.add(new JLabel("이메일"), c); c.gridx=1; login.add(loginEmail, c);
-        c = gbc(0,1); login.add(new JLabel("비밀번호"), c); c.gridx=1; login.add(loginPw, c);
-        c = gbc(0,2); c.gridwidth=2;
-        btnLogin.addActionListener(ev -> {
-            try {
-                AuthResult ar = restSignIn(loginEmail.getText().trim(), new String(loginPw.getPassword()));
-                SESSION_UID = ar.localId; SESSION_EMAIL = ar.email; SESSION_ID_TOKEN = ar.idToken;
-                JOptionPane.showMessageDialog(dlg, "로그인 성공: " + ar.email);
-                dlg.dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dlg, "로그인 실패\n" + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-        login.add(btnLogin, c);
-
-        // 회원가입 탭
-        JPanel signup = new JPanel(new java.awt.GridBagLayout());
-        JTextField signEmail = new JTextField(20);
-        JPasswordField signPw = new JPasswordField(20);
-        JPasswordField signPw2 = new JPasswordField(20);
-        JButton btnSign = new JButton("회원가입");
-        c = gbc();
-        signup.add(new JLabel("이메일"), c); c.gridx=1; signup.add(signEmail, c);
-        c = gbc(0,1); signup.add(new JLabel("비밀번호"), c); c.gridx=1; signup.add(signPw, c);
-        c = gbc(0,2); signup.add(new JLabel("비밀번호 확인"), c); c.gridx=1; signup.add(signPw2, c);
-        c = gbc(0,3); c.gridwidth=2;
-        btnSign.addActionListener(ev -> {
-            String pw1 = new String(signPw.getPassword());
-            String pw2 = new String(signPw2.getPassword());
-            if (!pw1.equals(pw2)) {
-                JOptionPane.showMessageDialog(dlg, "비밀번호가 일치하지 않습니다.", "오류", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            try {
-                AuthResult ar = restSignUp(signEmail.getText().trim(), pw1);
-                SESSION_UID = ar.localId; SESSION_EMAIL = ar.email; SESSION_ID_TOKEN = ar.idToken;
-                JOptionPane.showMessageDialog(dlg, "회원가입 성공: " + ar.email);
-                // 기본 프로필 저장(선택)
-                restSetJson("users/"+SESSION_UID+"/profile", SESSION_ID_TOKEN,
-                        "{\"email\":"+quote(SESSION_EMAIL)+",\"createdAt\":"+quote(now())+"}");
-                dlg.dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dlg, "회원가입 실패\n" + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-        signup.add(btnSign, c);
-
-        tabs.add("로그인", login);
-        tabs.add("회원가입", signup);
-
-        dlg.setContentPane(tabs);
-        dlg.pack();
-        dlg.setLocationRelativeTo(null);
-        dlg.setVisible(true);
-
-        if (SESSION_ID_TOKEN == null) System.exit(0); // 취소 시 종료(원하면 다르게 처리)
+        System.out.println(" 로그 저장: " + eventType + " at " + timestamp);
     }
 
-    private static java.awt.GridBagConstraints gbc() { return gbc(0,0); }
+    private static java.awt.GridBagConstraints gbc() { return gbc(0, 0); }
     private static java.awt.GridBagConstraints gbc(int x, int y) {
         java.awt.GridBagConstraints c = new java.awt.GridBagConstraints();
-        c.gridx = x; c.gridy = y; c.insets = new java.awt.Insets(5,5,5,5);
+        c.gridx = x; c.gridy = y; c.insets = new java.awt.Insets(5, 5, 5, 5);
         c.anchor = java.awt.GridBagConstraints.WEST; c.fill = java.awt.GridBagConstraints.HORIZONTAL;
         return c;
     }
 
-    // =========================
-    // 🌐 Firebase Auth (REST)
-    // =========================
-    private static class AuthResult {
-        final String idToken, refreshToken, localId, email;
-        AuthResult(String idToken, String refreshToken, String localId, String email) {
-            this.idToken=idToken; this.refreshToken=refreshToken; this.localId=localId; this.email=email;
-        }
-    }
 
-    private static AuthResult restSignUp(String email, String password) throws Exception {
-        String endpoint = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" + API_KEY;
-        String body = "{"
-                + "\"email\":"+quote(email)+","
-                + "\"password\":"+quote(password)+","
-                + "\"returnSecureToken\":true"
-                + "}";
-        String res = httpPostJson(endpoint, body);
-        String idToken = jget(res, "idToken");
-        String refreshToken = jget(res, "refreshToken");
-        String localId = jget(res, "localId");
-        String emailOut = jget(res, "email");
-        if (idToken==null || localId==null) throw new RuntimeException("SignUp parse failed: " + res);
-        return new AuthResult(idToken, refreshToken, localId, emailOut);
-    }
-
-    private static AuthResult restSignIn(String email, String password) throws Exception {
-        String endpoint = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + API_KEY;
-        String body = "{"
-                + "\"email\":"+quote(email)+","
-                + "\"password\":"+quote(password)+","
-                + "\"returnSecureToken\":true"
-                + "}";
-        String res = httpPostJson(endpoint, body);
-        String idToken = jget(res, "idToken");
-        String refreshToken = jget(res, "refreshToken");
-        String localId = jget(res, "localId");
-        String emailOut = jget(res, "email");
-        if (idToken==null || localId==null) throw new RuntimeException("SignIn parse failed: " + res);
-        return new AuthResult(idToken, refreshToken, localId, emailOut);
-    }
-
-    // =========================
-    // 🗄️ Realtime Database (REST)
-    // =========================
-    private static void restLogEvent(String type) {
-        if (SESSION_ID_TOKEN == null || SESSION_UID == null) return;
-        String ts = now();
-        String json = "{"
-                + "\"event\":"+quote(type)+","
-                + "\"timestamp\":"+quote(ts)+"}";
-        try {
-            restPushJson("users/"+SESSION_UID+"/logs", SESSION_ID_TOKEN, json);
-        } catch (Exception e) {
-            System.err.println("⚠️ 로그 저장 실패: " + e.getMessage());
-        }
-    }
-
-    private static String restPushJson(String path, String idToken, String json) throws Exception {
-        String endpoint = DB_URL + "/" + path + ".json?auth=" + urlEnc(idToken);
-        return httpPostJson(endpoint, json);
-    }
-
-    private static String restSetJson(String path, String idToken, String json) throws Exception {
-        String endpoint = DB_URL + "/" + path + ".json?auth=" + urlEnc(idToken);
-        return httpPutJson(endpoint, json);
-    }
-
-    // =========================
-    // 🔧 HTTP & 미니 JSON 유틸 (의존성 없음)
-    // =========================
-    private static String httpPostJson(String endpoint, String body) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
-        conn.setRequestMethod("POST");
-        conn.setDoOutput(true);
-        conn.setRequestProperty("Content-Type","application/json; charset=UTF-8");
-        try (OutputStream os = conn.getOutputStream()) {
-            os.write(body.getBytes(StandardCharsets.UTF_8));
-        }
-        return readResp(conn);
-    }
-
-    private static String httpPutJson(String endpoint, String body) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
-        conn.setRequestMethod("PUT");
-        conn.setDoOutput(true);
-        conn.setRequestProperty("Content-Type","application/json; charset=UTF-8");
-        try (OutputStream os = conn.getOutputStream()) {
-            os.write(body.getBytes(StandardCharsets.UTF_8));
-        }
-        return readResp(conn);
-    }
-
-    private static String readResp(HttpURLConnection conn) throws Exception {
-        int code = conn.getResponseCode();
-        try (InputStream is = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream()) {
-            String txt = readFully(is, "UTF-8");
-            if (code >= 200 && code < 300) return txt;
-            throw new RuntimeException("HTTP " + code + ": " + txt);
-        }
-    }
-    private static String readFully(InputStream is, String charset) throws Exception {
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            byte[] buf = new byte[4096];
-            int len;
-            while ((len = is.read(buf)) != -1) {
-                baos.write(buf, 0, len);
-            }
-            return baos.toString(charset);
-        } finally {
-            if (is != null) try { is.close(); } catch (Exception ignore) {}
-        }
-    }
-
-    private static String jget(String json, String key) {
-        // 매우 단순한 "키:문자열" 추출. (필요한 필드만)
-        // "key" : "value"
-        String k = "\"" + key.replace("\"","\\\"") + "\"";
-        int i = json.indexOf(k);
-        if (i < 0) return null;
-        i = json.indexOf(':', i);
-        if (i < 0) return null;
-        i++;
-        // skip spaces
-        while (i < json.length() && Character.isWhitespace(json.charAt(i))) i++;
-        if (i >= json.length() || json.charAt(i) != '"') return null;
-        i++; // skip opening "
-        StringBuilder sb = new StringBuilder();
-        while (i < json.length()) {
-            char c = json.charAt(i++);
-            if (c == '\\') {
-                if (i >= json.length()) break;
-                char n = json.charAt(i++);
-                switch (n) {
-                    case '\\': sb.append('\\'); break;
-                    case '"':  sb.append('"');  break;
-                    case 'n':  sb.append('\n'); break;
-                    case 'r':  sb.append('\r'); break;
-                    case 't':  sb.append('\t'); break;
-                    case 'b':  sb.append('\b'); break;
-                    case 'f':  sb.append('\f'); break;
-                    case 'u':
-                        if (i+3 < json.length()) {
-                            String hex = json.substring(i, i+4);
-                            try { sb.append((char)Integer.parseInt(hex,16)); } catch (Exception ignore) {}
-                            i += 4;
-                        }
-                        break;
-                    default: sb.append(n); break;
-                }
-            } else if (c == '"') {
-                break;
-            } else {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
-
-    private static String quote(String s) {
-        if (s == null) return "null";
-        StringBuilder sb = new StringBuilder("\"");
-        for (int i=0;i<s.length();i++) {
-            char c = s.charAt(i);
-            switch (c) {
-                case '\\': sb.append("\\\\"); break;
-                case '"': sb.append("\\\""); break;
-                case '\b': sb.append("\\b"); break;
-                case '\f': sb.append("\\f"); break;
-                case '\n': sb.append("\\n"); break;
-                case '\r': sb.append("\\r"); break;
-                case '\t': sb.append("\\t"); break;
-                default:
-                    if (c < 0x20) sb.append(String.format("\\u%04x",(int)c));
-                    else sb.append(c);
-            }
-        }
-        sb.append("\"");
-        return sb.toString();
-    }
-
-    private static String urlEnc(String s) {
-        try { return java.net.URLEncoder.encode(s, "UTF-8"); }
-        catch (Exception e) { return s; }
-    }
-
-    private static String now() {
+    protected static String now() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
     }
 
+    public void restartLastMode() {
+        if (currentMode == Mode.INFINITE) {
+            startInfiniteMode();
+        } else {
+            startStageMode(1);
+        }
+    }
 
-    /**
-	 * The entry point into the game. We'll simply create an
-	 * instance of class which will start the display and game
-	 * loop.
-	 * 
-	 * @param argv The arguments that are passed into our game
-	 */
-	public static void main(String argv[]) {
-        try {
-            // serviceAccountKey.json 불러오기
-              FileInputStream serviceAccount = new FileInputStream(DB_KEYFILE);
+    public void requestExit(){
+        System.exit(0);
+    }
 
-            // Firebase 옵션 설정
-              FirebaseOptions options = FirebaseOptions.builder()
+    /** 엔트리 포인트: Firebase 초기화 → Game 생성/루프 실행 */
+    public static void main(String[] argv) {
+        try (FileInputStream serviceAccount = new FileInputStream(DB_KEYFILE)){
+
+            FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                     .setDatabaseUrl(DB_URL)
                     .build();
 
-            // Firebase 초기화 (앱 실행 시 딱 1번만!)
             FirebaseApp.initializeApp(options);
 
-            System.out.println("Firebase 초기화");
-            writeLog("gamestart");
-
-            // 1) 로그인/회원가입 먼저
-            SwingUtilities.invokeLater(() -> showAuthDialogAndLogin());
-            // 로그인 다이얼로그가 modal이므로 여기서 잠시 대기
-            try {
-                // modal dialog가 닫히는 동안 메인 스레드가 바로 진행되지 않게 약간 대기
-                while (SESSION_ID_TOKEN == null) Thread.sleep(100);
-            } catch (InterruptedException ignored) {}
+            writeLog("game Start");
 
             Game g = new Game();
+            g.setScreen(new AuthScreen(g));
+            ScoreboardScreen ss = new ScoreboardScreen(g);
 
-            // Start the main game loop, note: this method will not
-            // return until the game has finished running. Hence we are
-            // using the actual main thread to run the game.
             g.gameLoop();
-            writeLog("game over");
 
+            ss.reloadScores();
+            writeLog("game Over");
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 }
-

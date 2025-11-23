@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BasicMetricsValidRanges">
+    <option name="controlledMetrics">
+      <map>
+        <entry key="ATFD">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Access To Foreign Data" />
+              <option name="highBound" value="8" />
+              <option name="level" value="Class Level" />
+              <option name="name" value="ATFD" />
+              <option name="regularBound" value="6" />
+              <option name="veryHighBound" value="10" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="CBO">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Coupling Between Objects" />
+              <option name="highBound" value="17" />
+              <option name="level" value="Class Level" />
+              <option name="name" value="CBO" />
+              <option name="regularBound" value="14" />
+              <option name="veryHighBound" value="23" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="CC">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="McCabe Cyclomatic Complexity" />
+              <option name="highBound" value="5" />
+              <option name="level" value="Method Level" />
+              <option name="name" value="CC" />
+              <option name="regularBound" value="3" />
+              <option name="veryHighBound" value="7" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="CCC">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Cognitive Complexity" />
+              <option name="highBound" value="64" />
+              <option name="level" value="Class Level" />
+              <option name="name" value="CCC" />
+              <option name="regularBound" value="32" />
+              <option name="veryHighBound" value="96" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="CCM">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Cognitive Complexity" />
+              <option name="highBound" value="12" />
+              <option name="level" value="Method Level" />
+              <option name="name" value="CCM" />
+              <option name="regularBound" value="8" />
+              <option name="veryHighBound" value="16" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="CINT">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Coupling Intensity" />
+              <option name="highBound" value="11" />
+              <option name="level" value="Method Level" />
+              <option name="name" value="CINT" />
+              <option name="regularBound" value="7" />
+              <option name="veryHighBound" value="15" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="CND">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Condition Nesting Depth" />
+              <option name="highBound" value="3" />
+              <option name="level" value="Method Level" />
+              <option name="name" value="CND" />
+              <option name="regularBound" value="2" />
+              <option name="veryHighBound" value="4" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="Ca">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Afferent Coupling" />
+              <option name="highBound" value="40" />
+              <option name="level" value="Package Level" />
+              <option name="name" value="Ca" />
+              <option name="regularBound" value="8" />
+              <option name="veryHighBound" value="65" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="Ce">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Efferent Coupling" />
+              <option name="highBound" value="17" />
+              <option name="level" value="Package Level" />
+              <option name="name" value="Ce" />
+              <option name="regularBound" value="7" />
+              <option name="veryHighBound" value="33" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="DIT">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Depth Of Inheritance Tree" />
+              <option name="highBound" value="5" />
+              <option name="level" value="Class Level" />
+              <option name="name" value="DIT" />
+              <option name="regularBound" value="3" />
+              <option name="veryHighBound" value="7" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="FDP">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Foreign Data Providers" />
+              <option name="highBound" value="5" />
+              <option name="level" value="Method Level" />
+              <option name="name" value="FDP" />
+              <option name="regularBound" value="3" />
+              <option name="veryHighBound" value="7" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="LND">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Loop Nesting Depth" />
+              <option name="highBound" value="3" />
+              <option name="level" value="Method Level" />
+              <option name="name" value="LND" />
+              <option name="regularBound" value="2" />
+              <option name="veryHighBound" value="4" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="LOC">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Lines Of Code" />
+              <option name="highBound" value="31" />
+              <option name="level" value="Method Level" />
+              <option name="name" value="LOC" />
+              <option name="regularBound" value="11" />
+              <option name="veryHighBound" value="47" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="MND">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Maximum Nesting Depth" />
+              <option name="highBound" value="5" />
+              <option name="level" value="Method Level" />
+              <option name="name" value="MND" />
+              <option name="regularBound" value="3" />
+              <option name="veryHighBound" value="7" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="NCSS">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Non-Commenting Source Statements" />
+              <option name="highBound" value="1500" />
+              <option name="level" value="Class Level" />
+              <option name="name" value="NCSS" />
+              <option name="regularBound" value="1000" />
+              <option name="veryHighBound" value="2000" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="NOA">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Number Of Attributes" />
+              <option name="highBound" value="9" />
+              <option name="level" value="Class Level" />
+              <option name="name" value="NOA" />
+              <option name="regularBound" value="4" />
+              <option name="veryHighBound" value="14" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="NOAC">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Number Of Accessor Methods" />
+              <option name="highBound" value="7" />
+              <option name="level" value="Class Level" />
+              <option name="name" value="NOAC" />
+              <option name="regularBound" value="4" />
+              <option name="veryHighBound" value="13" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="NOAV">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Number Of Accessed Variables" />
+              <option name="highBound" value="5" />
+              <option name="level" value="Method Level" />
+              <option name="name" value="NOAV" />
+              <option name="regularBound" value="3" />
+              <option name="veryHighBound" value="7" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="NOC">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Number Of Children" />
+              <option name="highBound" value="4" />
+              <option name="level" value="Class Level" />
+              <option name="name" value="NOC" />
+              <option name="regularBound" value="2" />
+              <option name="veryHighBound" value="7" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="NOM">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Number Of Methods" />
+              <option name="highBound" value="15" />
+              <option name="level" value="Class Level" />
+              <option name="name" value="NOM" />
+              <option name="regularBound" value="7" />
+              <option name="veryHighBound" value="25" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="NOOM">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Number Of Overridden Methods" />
+              <option name="highBound" value="5" />
+              <option name="level" value="Class Level" />
+              <option name="name" value="NOOM" />
+              <option name="regularBound" value="3" />
+              <option name="veryHighBound" value="8" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="NOPA">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Number Of Public Attributes" />
+              <option name="highBound" value="5" />
+              <option name="level" value="Class Level" />
+              <option name="name" value="NOPA" />
+              <option name="regularBound" value="3" />
+              <option name="veryHighBound" value="12" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="NOPM">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Number Of Parameters" />
+              <option name="highBound" value="4" />
+              <option name="level" value="Method Level" />
+              <option name="name" value="NOPM" />
+              <option name="regularBound" value="3" />
+              <option name="veryHighBound" value="5" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="RFC">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Response For A Class" />
+              <option name="highBound" value="65" />
+              <option name="level" value="Class Level" />
+              <option name="name" value="RFC" />
+              <option name="regularBound" value="45" />
+              <option name="veryHighBound" value="80" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+        <entry key="WMC">
+          <value>
+            <BasicMetricsValidRangeStub>
+              <option name="description" value="Weighted Methods Per Class" />
+              <option name="highBound" value="35" />
+              <option name="level" value="Class Level" />
+              <option name="name" value="WMC" />
+              <option name="regularBound" value="30" />
+              <option name="veryHighBound" value="45" />
+            </BasicMetricsValidRangeStub>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
