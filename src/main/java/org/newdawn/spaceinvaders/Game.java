@@ -15,10 +15,7 @@ import org.newdawn.spaceinvaders.database.*;
 import org.newdawn.spaceinvaders.entity.player.PlayerSkills;
 import org.newdawn.spaceinvaders.graphics.BackgroundRenderer;
 import org.newdawn.spaceinvaders.input.GameKeyInputHandler;
-import org.newdawn.spaceinvaders.manager.EntityManager;
-import org.newdawn.spaceinvaders.manager.EntitySpawnManager;
-import org.newdawn.spaceinvaders.manager.SoundManager;
-import org.newdawn.spaceinvaders.manager.StageManager;
+import org.newdawn.spaceinvaders.manager.*;
 import org.newdawn.spaceinvaders.screen.*;
 
 import com.google.auth.oauth2.GoogleCredentials;
@@ -61,6 +58,7 @@ public class Game extends Canvas {
     // 세션/DB 의존성
     private final transient DatabaseClient dbClient = new FirebaseDatabaseClient(DB_URL);
     private final transient GameDatabaseService gameDb = new GameDatabaseService(dbClient);
+    private final transient StageProgressManager stageProgressManager = new StageProgressManager(gameDb);
     private transient AuthSession session; // 기존 SESSION_UID , EMAIL, ID_TOKEN 대체
 
     private final transient FirebaseAuthService authService = new FirebaseAuthService(API_KEY);
@@ -139,7 +137,6 @@ public class Game extends Canvas {
     private enum GameState { MENU, PLAYING, GAMEOVER, SCOREBOARD, EXIT }
     private GameState state = GameState.MENU;
 
-    private Map<Integer, Integer> stageStarScoreRequirements = new HashMap<>();
     private Map<Integer, Integer> stageStars = new HashMap<>();
 
     // 무한 모드/웨이브/보스
@@ -170,7 +167,6 @@ public class Game extends Canvas {
         panel.add(this);
 
         setIgnoreRepaint(true);
-        stageStarScoreRequirements();
 
         container.pack();
         container.setResizable(false);
@@ -186,7 +182,6 @@ public class Game extends Canvas {
         createBufferStrategy(2);
         strategy = getBufferStrategy();
 
-        initStageUnlocks();
         initEntities();
 
         SoundManager.get().setSfxVolume(-15.0f);// 전체 효과음 볼륨 설정
@@ -266,84 +261,37 @@ public class Game extends Canvas {
         }
     }
 
-    /** 스테이지별 3성 기준 점수표 초기화 */
-    private void stageStarScoreRequirements() {
-        stageStarScoreRequirements.put(1, 1000);
-        stageStarScoreRequirements.put(2, 2000);
-        stageStarScoreRequirements.put(3, 3000);
-        stageStarScoreRequirements.put(4, 4000);
-        stageStarScoreRequirements.put(5, 5000);
-    }
 
     public int getStageStarScoreRequirements(int stageId) {
-        return stageStarScoreRequirements.getOrDefault(stageId, 1000);
+        return stageProgressManager.getRequiredScore(stageId);
     }
 
-    /**
-     * 스테이지 별(★) 평가:
-     * 1★ 클리어 / 2★ 시간 내 클리어 / 3★ 시간 내 + 무피격 + 점수 기준 충족
-     */
     private void evaluateStageResult(int stageId, int timeLeft, int damageTaken, int score) {
-        int stars = 1;
-
-        if (timeLeft > 0) {
-            stars = 2;
-            int requiredScore = getStageStarScoreRequirements(stageId);
-            if (damageTaken == 0 && score >= requiredScore) {
-                stars = 3;
-            }
-        }
-        setStageStars(stageId, stars);
+        int stars = stageProgressManager.evaluateStars(stageId, timeLeft, damageTaken, score);
+        stageProgressManager.updateStageStars(session, stageId, stars);
     }
-
-
 
     public int getStageStars(int stageId) {
-        return stageStars.getOrDefault(stageId, 0);
+       return stageProgressManager.getStageStars(stageId);
     }
 
     public void saveStageStars(){
-        gameDb.saveStageStars(session, stageStars);
+        stageProgressManager.saveAll(session);
     }
 
     public void loadStageStars(){
-        if (!hasSession()) return;
-
-        Map<Integer, Integer> loaded = gameDb.loadStageStars(session);
-
-        stageStars.clear();
-        stageStars.putAll(loaded);
-
-        rebuildStageUnlocks();
+        stageProgressManager.loadFromDb(session);
         System.out.println(" 별 기록 불러오기 완료 " + stageStars);
     }
 
     // [수정] 별을 갱신/저장한 직후에도 재계산
     public void setStageStars(int stageId, int stars) {
-        int prev = stageStars.getOrDefault(stageId, 0);
-        if(stars > prev){
-            stageStars.put(stageId, stars);
-
-            if (session != null && session.isLoggedIn()){
-                gameDb.saveStageStars(session, stageStars);
-            }
-
-            rebuildStageUnlocks();
-        }
+       stageProgressManager.updateStageStars(session, stageId, stars);
     }
 
     // [추가] 당장 다음 스테이지(= 현재 stageId의 다음 인덱스)를 오픈
     private void unlockNextStageIfEligible(int currentStageId) {
-        if (stageUnlocked == null) return;
-        if (currentStageId >= TOTAL_STAGES) return;
-
-        // 현재 스테이지의 최종 별 수가 3개 이상일 때만 다음 스테이지 오픈
-        if (getStageStars(currentStageId) >= 3) {
-            int nextIdx = currentStageId; // 1-based의 "다음"은 배열 인덱스로 currentStageId
-            if (nextIdx < stageUnlocked.length) {
-                stageUnlocked[nextIdx] = true;
-            }
-        }
+        stageProgressManager.unlockNextStageIfEligible(currentStageId);
     }
 
     public boolean isStageMode() {
@@ -363,7 +311,6 @@ public class Game extends Canvas {
         startGame();
 
         stageStartHP = getPlayerShip().getStats().getCurrentHP();
-        stageStarScoreRequirements();
 
         StageManager.applyStage(StageNum, this);
 
@@ -718,42 +665,16 @@ public class Game extends Canvas {
         }
     }
 
-
-//스테이지모드 잠금 설정 기능. 스테이지 토탈을 1부터 5까지 정해놓고 클리어될시 다음 스테이지 오픈
-    public void initStageUnlocks(){
-        stageUnlocked = new boolean[TOTAL_STAGES];
-        stageUnlocked[0]=true;
-    }
-
     public boolean isStageUnlocked(int stageIndex){
-        if (stageUnlocked == null || stageIndex < 0 || stageIndex >= stageUnlocked.length)
-            return false;
-
-        return stageUnlocked[stageIndex];
+        return stageProgressManager.isStageUnlocked(stageIndex);
     }
 
 
 
     // 로드된 stageStars(1..N) 기반으로 잠금 상태 재계산
     public void rebuildStageUnlocks() {
-        if (stageUnlocked == null || stageUnlocked.length != TOTAL_STAGES) {
-            stageUnlocked = new boolean[TOTAL_STAGES];
-        }
-        // 스테이지 1(인덱스 0)은 항상 오픈
-        stageUnlocked[0] = true;
-
-        // 규칙: i번째 스테이지(1-based, 인덱스 i-1)는
-        // "이전 스테이지 별이 3개 이상이면" 오픈
-        for (int stageId = 2; stageId <= TOTAL_STAGES; stageId++) {
-            int prevStars = getStageStars(stageId - 1); // 1..N
-            stageUnlocked[stageId - 1] = (prevStars >= 3);
-        }
+        stageProgressManager.rebuildStageUnlocks();
     }
-
-    /**
-     * GameKeyInputHandler의 getter
-     * 헬퍼 메서드 필드
-     */
 
     //현재 스크린의 상태 조회하기
     public Screen getCurrentScreen() { return currentScreen; }
