@@ -25,7 +25,7 @@ public class LoginFlowCoordinator {
                     authFormState.setMessage("비밀번호가 일치하지 않습니다!");
                     return;
                 }
-                ar = game.getAuthService().signUp(authFormState.getEmail().trim(), authFormState.getPassword());
+                ar = game.getAuthService().restSignUp(authFormState.getEmail().trim(), authFormState.getPassword());
                 // 기본 프로필 저장
                 String profileJson = "{"
                         + "\"email\":" + FirebaseDatabaseClient.quote(ar.email) + ","
@@ -33,7 +33,7 @@ public class LoginFlowCoordinator {
                         + "}";
                 game.getDbClient().put("users/" + ar.localId + "/profile", ar.idToken, profileJson);
             } else {
-                ar = game.getAuthService().signIn(authFormState.getEmail().trim(), authFormState.getPassword());
+                ar = game.getAuthService().restSignIn(authFormState.getEmail().trim(), authFormState.getPassword());
             }
 
             AuthSession s = new AuthSession(ar.localId, ar.email, ar.idToken);
