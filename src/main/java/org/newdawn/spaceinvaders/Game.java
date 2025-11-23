@@ -62,7 +62,6 @@ public class Game extends Canvas {
 
     private final transient FirebaseAuthService authService = new FirebaseAuthService(API_KEY);
     public FirebaseAuthService getAuthService() { return authService; }
-
     public DatabaseClient getDbClient(){ return dbClient; }
 
     public void setSession(AuthSession session){ this.session = session; }
@@ -78,17 +77,14 @@ public class Game extends Canvas {
 
     /** 플레이어(Ship) 엔티티 */
     private transient Entity ship;
-
     /** Ship 이동 속도(px/s) */
     private double moveSpeed = 300;
     /** 마지막 발사 시각(ms) */
     private long lastFire = 0;
     /** 발사 간격(ms) */
     private long firingInterval = 500;
-
     /** 화면에 남은 외계인 수 */
     private int alienCount;
-
     /** HP가 낮은 등 위험 상태 표시 */
     private boolean dangerMode = false;
     /** 아무 키 대기 중인지 여부 */
@@ -97,8 +93,8 @@ public class Game extends Canvas {
     /** 입력 상태 */
     private boolean leftPressed = false;
     private boolean rightPressed = false;
-    private boolean UpPressed = false;
-    private boolean DownPressed = false;
+    private boolean upPressed = false;
+    private boolean downPressed = false;
     private boolean firePressed = false;
 
     /** 이번 루프에서 별도의 게임 로직(doLogic)을 적용해야 하는지 */
@@ -109,14 +105,14 @@ public class Game extends Canvas {
     /** FPS 카운터 */
     private int fps;
     /** 윈도우 타이틀 기본값 */
-    private String windowTitle = "Space Invaders 102";
+    private final String windowTitle = "Space Invaders 102";
     /** 메시지 호출 */
     private String message = "";
     /** 게임 윈도우 */
-    private JFrame container;
+    private final JFrame container;
 
     /** 배경 렌더러 */
-    private transient BackgroundRenderer backgroundRenderer;
+    private final transient BackgroundRenderer backgroundRenderer;
     /** 활성 화면 */
     private transient Screen currentScreen;
 
@@ -152,7 +148,7 @@ public class Game extends Canvas {
     private boolean bossActive = false;
 
     //스테이지 잠금 상태 관리 배열
-    private static boolean[] stageUnlocked;
+    private boolean[] stageUnlocked;
     private static  final int TOTAL_STAGES = 5;
 
     /** 초기 화면·버퍼·입력·BGM·엔티티 설정 */
@@ -440,8 +436,8 @@ public class Game extends Canvas {
         }
 
         if (hasSession()) {
-            ShipEntity ship = getPlayerShip();
-            if (ship != null) {
+            ShipEntity playerShip = getPlayerShip();
+            if (playerShip != null) {
                 LevelManager.saveLastLevel(getDbClient(),session.getUid(), session.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
             }
         }
@@ -482,22 +478,8 @@ public class Game extends Canvas {
     public void setLeftPressed(boolean value) { leftPressed = value; }
     public void setRightPressed(boolean value) { rightPressed = value; }
     public void setFirePressed(boolean value) { firePressed = value; }
-    public void setUpPressed(boolean value) { UpPressed = value; }
-    public void setDownPressed(boolean value) { DownPressed = value; }
-
-    /**
-     * 엔티티 이동 → 충돌 → 제거 flush → (요청 시) doLogic 순서로 처리.
-     * 이동은 waitingForKeyPress=false 일 때만 수행.
-     */
-
-    /**
-     * [리팩토링 - 신규 메소드]
-     * * AlienEntity로부터 외계인이 사망했음을 알림받는 중앙 처리 메소드.
-     * 기존 notifyAlienKilled()의 로직과 ShotEntity에 있던 XP, 엔티티 제거 로직을
-     * 이곳에서 모두 통합하여 처리합니다. (SRP, 캡슐화)
-     *
-     * @param alien 사망한 외계인 엔티티
-     */
+    public void setUpPressed(boolean value) { upPressed = value; }
+    public void setDownPressed(boolean value) { downPressed = value; }
 
     //XP 지급
     private void PayXpForKill(AlienEntity alien) {
@@ -693,9 +675,9 @@ public class Game extends Canvas {
         ship.setHorizontalMovement(0);
         ship.setVerticalMovement(0);
 
-        if ((UpPressed) && (!DownPressed)) {
+        if ((upPressed) && (!downPressed)) {
             ship.setVerticalMovement(-moveSpeed);
-        } else if ((DownPressed) && (!UpPressed)) {
+        } else if ((downPressed) && (!upPressed)) {
             ship.setVerticalMovement(moveSpeed);
         }
 
@@ -894,8 +876,7 @@ public class Game extends Canvas {
 
     /** 엔트리 포인트: Firebase 초기화 → Game 생성/루프 실행 */
     public static void main(String[] argv) {
-        try {
-            FileInputStream serviceAccount = new FileInputStream(DB_KEYFILE);
+        try (FileInputStream serviceAccount = new FileInputStream(DB_KEYFILE)){
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))

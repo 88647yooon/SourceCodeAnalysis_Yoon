@@ -16,11 +16,8 @@ public class entitymanager {
         this.game = game;
     }
 
-    public List<Entity> getEntities() {
-        return entities;
-    }
-    public static List<Entity> getMutableEntities(){
-        return entities; }
+    public List<Entity> getEntities() { return entities; }
+    public static List<Entity> getMutableEntities(){ return entities; }
     public static void addEntity(Entity entity){
         entities.add(entity);
     }
@@ -67,13 +64,7 @@ public class entitymanager {
         }
     }
     public void removeAllHostages() {
-        Iterator<Entity> it = entities.iterator();
-        while (it.hasNext()) {
-            Entity e = it.next();
-            if (e instanceof org.newdawn.spaceinvaders.entity.enemy.HostageEntity) {
-                it.remove();
-            }
-        }
+        entities.removeIf(e -> e instanceof org.newdawn.spaceinvaders.entity.enemy.HostageEntity);
     }
 
 }
