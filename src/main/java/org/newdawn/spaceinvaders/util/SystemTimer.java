@@ -1,4 +1,4 @@
-package org.newdawn.spaceinvaders;
+package org.newdawn.spaceinvaders.util;
 
 public final class SystemTimer {
 	/** 고해상도 타이머의 기준 시점(클래스 로딩 순간) */

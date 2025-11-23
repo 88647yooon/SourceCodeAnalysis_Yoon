@@ -3,7 +3,7 @@ package org.newdawn.spaceinvaders.entity.player;
 import org.newdawn.spaceinvaders.database.AuthSession;
 import org.newdawn.spaceinvaders.database.DatabaseClient;
 import org.newdawn.spaceinvaders.Game;
-import org.newdawn.spaceinvaders.LevelManager;
+import org.newdawn.spaceinvaders.database.PlayerRepository;
 
 import java.util.logging.Logger;
 
@@ -27,7 +27,7 @@ public class ShipPersistenceComponent {
 
         try {
             DatabaseClient db = game.getDbClient();
-            LevelManager.saveSkills(
+            PlayerRepository.saveSkills(
                     db,
                     session.getUid(),
                     session.getIdToken(),
@@ -47,7 +47,7 @@ public class ShipPersistenceComponent {
         }
 
         try {
-            LevelManager.loadSkills(
+            PlayerRepository.loadSkills(
                     Game.DB_URL,
                     session.getUid(),
                     session.getIdToken(),

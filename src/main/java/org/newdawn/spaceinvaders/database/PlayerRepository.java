@@ -1,20 +1,18 @@
-package org.newdawn.spaceinvaders;
+package org.newdawn.spaceinvaders.database;
 import java.util.logging.Logger;
 
 import com.google.gson.GsonBuilder;
-import org.newdawn.spaceinvaders.database.DatabaseClient;
-import org.newdawn.spaceinvaders.database.FirebaseDatabaseClient;
 
 import com.google.gson.Gson;
 import org.newdawn.spaceinvaders.entity.player.PlayerSkills;
 
-public class LevelManager {
+public class PlayerRepository {
     private static final Gson GSON = new GsonBuilder().create();
-    private  static final Logger logger  = Logger.getLogger(LevelManager.class.getName());
+    private  static final Logger logger  = Logger.getLogger(PlayerRepository.class.getName());
     private static final String MESSAGE1 = "UID 또는 TOKEN이 null";
     private static final String MESSAGE2 = "UID, TOKEN, SKILLS가 null";
 
-    private LevelManager(){
+    private PlayerRepository(){
 
     }
 
