@@ -53,13 +53,13 @@ public class EntitySpawnManager {
                 60,
                 game.getPlayerShip()
         );
-        EntityManager.addEntity(boss);
+        entityManager.addEntity(boss);
         game.setBossActive(true);
     }
     private void clearHostagesForInfiniteMode() {
         if (!game.isInfiniteMode()) return;
 
-        List<Entity> entities = EntityManager.getMutableEntities();
+        List<Entity> entities = entityManager.getMutableEntities();
         entities.removeIf(HostageEntity.class::isInstance);
     }
 
@@ -78,7 +78,7 @@ public class EntitySpawnManager {
                 Entity alien = createAlienForPosition(x, y);
                 applyDifficultyToAlien(alien, diff);
 
-                EntityManager.addEntity(alien);
+                entityManager.addEntity(alien);
                 alienCount++;
             }
         }
@@ -115,7 +115,7 @@ public class EntitySpawnManager {
             int x = startX + (c * gapX);
             int y = startY - 40;
             Entity hostage = new HostageEntity(game, x, y);
-            EntityManager.addEntity(hostage);
+            entityManager.addEntity(hostage);
         }
     }
 

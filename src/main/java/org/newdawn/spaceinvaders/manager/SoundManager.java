@@ -1,5 +1,7 @@
 package org.newdawn.spaceinvaders.manager;
 
+import org.newdawn.spaceinvaders.SfxEngine;
+
 import javax.sound.sampled.*;
 import java.io.InputStream;
 import java.io.BufferedInputStream;
@@ -10,18 +12,27 @@ public final class SoundManager {
     // ===== BGM =====
     public enum Bgm { MENU, STAGE, BOSS }
 
+    // ===== SFX =====
+    public enum Sfx { SHOOT }
+
     private static final SoundManager I = new SoundManager();
     private static final Logger logger = Logger.getLogger(SoundManager.class.getName());
-    public static SoundManager get() { return I; }
 
+    public static SoundManager get() {
+        return I;
+    }
+
+    // BGM 엔진
     private final EnumMap<Bgm, Clip> bgmClips = new EnumMap<>(Bgm.class);
     private Bgm currentBgm;
 
-    private float sfxGainDb = 0f;
+    // SFX 엔진 (분리된 클래스)
+    private final SfxEngine sfxEngine = new SfxEngine();
 
-    private SoundManager() {}
+    private SoundManager() { }
 
-    private Clip loadClip(String classpath) {
+    /* 공통 유틸: 클래스패스에서 clip 로드 (SfxEngine에서도 사용) */
+    public static Clip loadClip(String classpath) {
         if (classpath == null) return null;
         try (InputStream in = SoundManager.class.getResourceAsStream(classpath);
              BufferedInputStream bin = new BufferedInputStream(in);
@@ -29,7 +40,8 @@ public final class SoundManager {
             Clip c = AudioSystem.getClip();
             c.open(ais);
             return c;
-        } catch (Exception ignore) {
+        } catch (Exception e) {
+            logger.warning("Failed to load clip: " + classpath + " / " + e.getMessage());
             return null;
         }
     }
@@ -38,14 +50,14 @@ public final class SoundManager {
         Clip c = bgmClips.get(bgm);
         if (c != null) return c;
 
-        String p;
+        String path;
         switch (bgm) {
-            case MENU:  p = "/sounds/menu.wav";  break;
-            case STAGE: p = "/sounds/stage.wav"; break;
-            case BOSS:  p = "/sounds/boss.wav";  break;
-            default:    p = null;                break;
+            case MENU:  path = "/sounds/menu.wav";  break;
+            case STAGE: path = "/sounds/stage.wav"; break;
+            case BOSS:  path = "/sounds/boss.wav";  break;
+            default:    path = null;                break;
         }
-        c = loadClip(p);
+        c = loadClip(path);
         bgmClips.put(bgm, c);
         return c;
     }
@@ -53,7 +65,9 @@ public final class SoundManager {
     public void stop() {
         if (currentBgm != null) {
             Clip c = bgmClips.get(currentBgm);
-            if (c != null && c.isRunning()) c.stop();
+            if (c != null && c.isRunning()) {
+                c.stop();
+            }
         }
         currentBgm = null;
     }
@@ -69,95 +83,12 @@ public final class SoundManager {
         }
     }
 
-    // ===== SFX (effect) =====
-    public enum Sfx { SHOOT }
 
-    private static final int SFX_POOL_SIZE = 8;
-    private final EnumMap<Sfx, Clip[]> sfxPools = new EnumMap<>(Sfx.class);
-
-    private Clip loadSfx(String classpath) {
-        return loadClip(classpath); // 동일 로더 사용
-    }
-
-    private Clip[] ensureSfxPool(Sfx s) {
-        Clip[] pool = sfxPools.get(s);
-        if (pool != null) return pool;
-
-        String p = null;
-
-        if (s == Sfx.SHOOT) {
-            p = "/sounds/shoot.wav";
-        }
-        pool = new Clip[SFX_POOL_SIZE];
-        for (int i = 0; i < SFX_POOL_SIZE; i++) {
-            pool[i] = loadSfx(p);
-            applyGain(pool[i]);
-        }
-        sfxPools.put(s, pool);
-        return pool;
-    }
-
-    /** 짧은 효과음 재생(겹쳐 재생 지원) */
     public void playSfx(Sfx s) {
-        Clip[] pool = ensureSfxPool(s);  // null 아님
-
-        for (Clip c : pool) {
-            if (c == null) continue;
-            if (!c.isRunning()) {
-                try {
-                    applyGain(c);
-                    c.setFramePosition(0);
-                    c.start();
-                } catch (Exception ignore) {
-                    logger.warning("Failed to play sfx");
-                }
-                return;
-            }
-        }
-        // 모두 재생 중이면 0번을 재시작
-        Clip c0 = pool[0];
-        if (c0 != null) {
-            try {
-                applyGain(c0);
-                c0.stop();
-                c0.setFramePosition(0);
-                c0.start();
-            } catch (Exception ignore){
-                logger.info("Failed to play sfx");
-            }
-        }
+        sfxEngine.playSfx(s);
     }
 
-    /** (선택) SFX 전체 볼륨 조절 (dB) */
     public void setSfxVolume(float db) {
-        sfxGainDb = db;
-        for (Clip[] pool : sfxPools.values()) {
-            if (pool == null) continue;
-            for (Clip c : pool) {
-                if (c == null) continue;
-                try {
-                    FloatControl gain = (FloatControl) c.getControl(FloatControl.Type.MASTER_GAIN);
-                    gain.setValue(db);
-                } catch (Exception ignore) {
-                    logger.warning("Failed to set volume for sfx");
-                }
-            }
-        }
+        sfxEngine.setSfxVolume(db);
     }
-
-    private void applyGain(Clip c) {
-        if (c == null) return;
-        try {
-            FloatControl gain = (FloatControl) c.getControl(FloatControl.Type.MASTER_GAIN);
-            // 지원 범위 클램프
-            float min = gain.getMinimum();
-            float max = gain.getMaximum();
-            float val = Math.max(min, Math.min(max, sfxGainDb));
-            gain.setValue(val);
-        } catch (Exception ignore) {
-            logger.warning("Failed to apply Gain");
-        }
-    }
-
-
 }
