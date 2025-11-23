@@ -30,6 +30,7 @@ import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 import org.newdawn.spaceinvaders.entity.projectile.ShotEntity;
 import org.newdawn.spaceinvaders.screen.auth.AuthScreen;
+import org.newdawn.spaceinvaders.util.SystemTimer;
 
 /**
  * Game — Space Invaders 메인 오케스트레이션.
@@ -218,7 +219,7 @@ public class Game extends Canvas {
             ShipEntity s = getPlayerShip();
 
             // 레벨
-            int[] saved = LevelManager.loadLastLevel(DB_URL,
+            int[] saved = PlayerRepository.loadLastLevel(DB_URL,
                     session.getUid(),
                     session.getIdToken());
             s.getStats().setLevelAndXp(saved[0], saved[1]);
@@ -352,7 +353,7 @@ public class Game extends Canvas {
         if (hasSession()) {
             ShipEntity ship = getPlayerShip();
             if (ship != null) {
-                LevelManager.saveLastLevel(getDbClient(), session.getUid(), session.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
+                PlayerRepository.saveLastLevel(getDbClient(), session.getUid(), session.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
             }
 
         }
@@ -385,7 +386,7 @@ public class Game extends Canvas {
         if (hasSession()) {
             ShipEntity playerShip = getPlayerShip();
             if (playerShip != null) {
-                LevelManager.saveLastLevel(getDbClient(),session.getUid(), session.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
+                PlayerRepository.saveLastLevel(getDbClient(),session.getUid(), session.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
             }
         }
         uploadScoreIfLoggedIn();
