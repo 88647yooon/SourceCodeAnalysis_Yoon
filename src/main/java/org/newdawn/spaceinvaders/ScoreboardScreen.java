@@ -8,11 +8,11 @@ import java.util.List;
 public class ScoreboardScreen implements Screen {
     private final Game game;
     private List<ScoreEntry> scores;
-    private boolean showGlobal = true; //  글로벌/내 점수 전환 플래그
+    private boolean showGlobal = true;//  글로벌/내 점수 전환 플래그
+    private boolean scoresLoaded = false;
 
     public ScoreboardScreen(Game game) {
         this.game = game;
-        reloadScores();
     }
 
     public void reloadScores() {
@@ -26,12 +26,12 @@ public class ScoreboardScreen implements Screen {
     @Override
     public void render(Graphics2D g) {
         g.setColor(Color.black);
-        g.fillRect(0,0,800,600);
+        g.fillRect(0, 0, 800, 600);
 
         g.setColor(Color.white);
         g.setFont(new Font("Dialog", Font.BOLD, 28));
         String title = showGlobal ? " 글로벌 스코어보드" : " 내 스코어보드";
-        g.drawString(title, (800 - g.getFontMetrics().stringWidth(title))/2, 80);
+        g.drawString(title, (800 - g.getFontMetrics().stringWidth(title)) / 2, 80);
 
         g.setFont(new Font("Dialog", Font.PLAIN, 14));
         g.drawString("ESC: 뒤로 | TAB: 전환", 20, 30);
@@ -53,11 +53,11 @@ public class ScoreboardScreen implements Screen {
             }
 
             String line = String.format("%-6s %-12s %-8s %-10s %-20s",
-                    (i+1),
+                    (i + 1),
                     user,
-                    (s.getScore()==null?0:s.getScore()),
-                    (s.getMode()==null?"-":s.getMode()),
-                    ((s.getDurationMs()==null?0:s.getDurationMs()) + " / " + (s.getTimestamp()==null?"-":s.getTimestamp()))
+                    (s.getScore() == null ? 0 : s.getScore()),
+                    (s.getMode() == null ? "-" : s.getMode()),
+                    ((s.getDurationMs() == null ? 0 : s.getDurationMs()) + " / " + (s.getTimestamp() == null ? "-" : s.getTimestamp()))
             );
             g.drawString(line, 80, y);
             y += 28;
@@ -68,7 +68,13 @@ public class ScoreboardScreen implements Screen {
         }
     }
 
-    @Override public void update(long delta) { }
+    @Override
+    public void update(long delta) {
+        if (!scoresLoaded) {
+            reloadScores();
+            scoresLoaded = true;
+        }
+    }
 
     @Override
     public void handleKeyPress(int keyCode) {
@@ -78,5 +84,6 @@ public class ScoreboardScreen implements Screen {
         }
     }
 
-    @Override public void handleKeyRelease(int keyCode) { }
+    @Override
+    public void handleKeyRelease(int keyCode) { }
 }
