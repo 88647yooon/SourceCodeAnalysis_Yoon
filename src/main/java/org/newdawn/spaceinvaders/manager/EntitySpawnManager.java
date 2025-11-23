@@ -9,11 +9,13 @@ import org.newdawn.spaceinvaders.entity.enemy.RangedAlienEntity;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 public class EntitySpawnManager {
     private final Game game;
     private final EntityManager entityManager;
+    private final Random random = new Random();
 
     private static final double RANGED_ALIEN_RATIO = 0.25;
 
@@ -29,7 +31,10 @@ public class EntitySpawnManager {
 
         int rows = 3 + (game.getWaveCount() % 3);   // 3~5
         int cols = 6 + (game.getWaveCount() % 6);   // 6~11
-        int startX = 100, startY = 50, gapX = 50, gapY = 30;
+        int startX = 100;
+        int startY = 50;
+        int gapX = 50;
+        int gapY = 30;
 
         int alienCount = spawnAlienGrid(diff, rows, cols, startX, startY, gapX, gapY);
 
@@ -45,7 +50,7 @@ public class EntitySpawnManager {
 
     public void spawnBoss() {
         List<Entity> entities = entityManager.getMutableEntities();
-        entities.removeIf(e -> e instanceof HostageEntity);
+        entities.removeIf(HostageEntity.class::isInstance);
 
         Entity boss = new org.newdawn.spaceinvaders.entity.boss.BossEntity(
                 game,
@@ -53,13 +58,13 @@ public class EntitySpawnManager {
                 60,
                 game.getPlayerShip()
         );
-        EntityManager.addEntity(boss);
+        entityManager.addEntity(boss);
         game.setBossActive(true);
     }
     private void clearHostagesForInfiniteMode() {
         if (!game.isInfiniteMode()) return;
 
-        List<Entity> entities = EntityManager.getMutableEntities();
+        List<Entity> entities = entityManager.getMutableEntities();
         entities.removeIf(HostageEntity.class::isInstance);
     }
 
@@ -78,7 +83,7 @@ public class EntitySpawnManager {
                 Entity alien = createAlienForPosition(x, y);
                 applyDifficultyToAlien(alien, diff);
 
-                EntityManager.addEntity(alien);
+                entityManager.addEntity(alien);
                 alienCount++;
             }
         }
@@ -89,22 +94,20 @@ public class EntitySpawnManager {
         int waveCount = game.getWaveCount();
 
         double diagonalProb = Math.min(0.05 + (waveCount - 1) * 0.02, 0.25);
-        double rangedProb = RANGED_ALIEN_RATIO;
 
         double r = Math.random();
 
         if (r < diagonalProb) {
             return new DiagonalShooterAlienEntity(game, x, y);
         }
-        if (r < diagonalProb + rangedProb) {
+        if (r < diagonalProb + RANGED_ALIEN_RATIO) {
             return new RangedAlienEntity(game, x, y, game.getPlayerShip());
         }
         return new AlienEntity(game, x, y);
     }
 
     private void spawnHostages(int cols, int startX, int startY, int gapX) {
-        int hostageNum = 1 + (int) (Math.random() * 2);
-        if (hostageNum <= 0) return;
+        int hostageNum = 1 + random.nextInt(2);
 
         Set<Integer> usedCols = new HashSet<>();
 
@@ -115,7 +118,7 @@ public class EntitySpawnManager {
             int x = startX + (c * gapX);
             int y = startY - 40;
             Entity hostage = new HostageEntity(game, x, y);
-            EntityManager.addEntity(hostage);
+            entityManager.addEntity(hostage);
         }
     }
 
@@ -123,7 +126,7 @@ public class EntitySpawnManager {
         int guard = 0;
         int c;
         do {
-            c = (int) (Math.random() * cols);
+            c = random.nextInt(cols);
         } while (usedCols.contains(c) && ++guard < 10);
         return c;
     }
