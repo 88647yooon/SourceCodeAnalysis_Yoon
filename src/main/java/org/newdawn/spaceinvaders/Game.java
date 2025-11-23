@@ -7,7 +7,6 @@ import java.awt.image.BufferStrategy;
 
 import java.util.*;
 import java.text.SimpleDateFormat;
-import java.io.FileInputStream;
 import java.util.List;
 import javax.swing.*;
 
@@ -15,20 +14,13 @@ import org.newdawn.spaceinvaders.database.*;
 import org.newdawn.spaceinvaders.entity.player.PlayerSkills;
 import org.newdawn.spaceinvaders.graphics.BackgroundRenderer;
 import org.newdawn.spaceinvaders.input.GameKeyInputHandler;
-import org.newdawn.spaceinvaders.input.InputState;
 import org.newdawn.spaceinvaders.input.PlayerController;
 import org.newdawn.spaceinvaders.manager.*;
 import org.newdawn.spaceinvaders.screen.*;
 
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.FirebaseOptions;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import org.newdawn.spaceinvaders.entity.base.Entity;
 import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
-import org.newdawn.spaceinvaders.screen.auth.AuthScreen;
 import org.newdawn.spaceinvaders.util.SystemTimer;
 import org.newdawn.spaceinvaders.manager.SessionManager;
 /**
@@ -51,9 +43,6 @@ public class Game extends Canvas {
     // 인증/DB 관련 필드
     private final transient String API_KEY = "AIzaSyCdY9-wpF3Ad2DXkPTXGcqZEKWBD1qRYKE";
     public static final String DB_URL = "https://sourcecodeanalysis-donggyu-default-rtdb.asia-southeast1.firebasedatabase.app";
-    // Firebase Admin SDK 용 서비스 키
-    private static final String DB_KEYFILE = "src/main/resources/serviceAccountKey.json";
-
 
     // 세션/DB 의존성
     private final transient DatabaseClient dbClient = new FirebaseDatabaseClient(DB_URL);
@@ -77,7 +66,7 @@ public class Game extends Canvas {
     private final transient EntitySpawnManager spawnManager = new EntitySpawnManager(this, entityManager);
     private final transient CombatManager combatManager = new CombatManager(this, entityManager, spawnManager);
 
-    private final PlayerController playerController = new PlayerController(this);
+    private final transient PlayerController playerController = new PlayerController(this);
     /** 플레이어(Ship) 엔티티 */
     private transient Entity ship;
     /** 화면에 남은 외계인 수 */
@@ -104,7 +93,7 @@ public class Game extends Canvas {
     /** 배경 렌더러 */
     private final transient BackgroundRenderer backgroundRenderer;
     /** 활성 화면 */
-    private transient Screen currentScreen;
+    private final ScreenNavigator screenNavigator = new ScreenNavigator(this);
 
     //entityManager에서 읽어갈 getter
     public boolean isLogicRequiredThisLoop() { return logicRequiredThisLoop; }
@@ -126,17 +115,11 @@ public class Game extends Canvas {
     private enum GameState { MENU, PLAYING, GAMEOVER, SCOREBOARD, EXIT }
     private GameState state = GameState.MENU;
 
-    private Map<Integer, Integer> stageStars = new HashMap<>();
-
     // 무한 모드/웨이브/보스
     private boolean infiniteMode = false;
     private int waveCount = 1;
     private int normalsClearedInCycle = 0;
     private boolean bossActive = false;
-
-    //스테이지 잠금 상태 관리 배열
-    private boolean[] stageUnlocked;
-    private static  final int TOTAL_STAGES = 5;
 
     /** 초기 화면·버퍼·입력·BGM·엔티티 설정 */
     public Game() {
@@ -145,7 +128,7 @@ public class Game extends Canvas {
         // 배경화면 렌더링
         backgroundRenderer = new BackgroundRenderer();
         // 메뉴 스크린 불러오기
-        setScreen(new MenuScreen(this)); // 시작 화면
+        screenNavigator.showMenu(); // 시작 화면
         // 패널
         JPanel panel = (JPanel) container.getContentPane();
         // 사이즈
@@ -279,7 +262,6 @@ public class Game extends Canvas {
 
     public void loadStageStars(){
         stageProgressManager.loadFromDb(getSession());
-        System.out.println(" 별 기록 불러오기 완료 " + stageStars);
     }
 
     // [추가] 당장 다음 스테이지(= 현재 stageId의 다음 인덱스)를 오픈
@@ -311,7 +293,7 @@ public class Game extends Canvas {
             bossActive = true;
             if (alienCount < 0) alienCount = 0;
         }
-        setScreen(new GamePlayScreen(this));
+        screenNavigator.showGamePlay();
     }
 
     /** 무한 모드 시작 */
@@ -323,12 +305,10 @@ public class Game extends Canvas {
         waveCount = 1;
         normalsClearedInCycle = 0;
         startGame();
-        setScreen(new GamePlayScreen(this));
+        screenNavigator.showGamePlay();
     }
 
-    public void showScoreboard() {
-        setScreen(new ScoreboardScreen(this));
-    }
+    public void showScoreboard() { screenNavigator.showScoreboard(); }
 
     /** 다음 프레임에서 doLogic 실행 요청 */
     public void updateLogic() {
@@ -347,12 +327,17 @@ public class Game extends Canvas {
             AuthSession current = getSession();
 
             if (playerShip != null) {
-                PlayerRepository.saveLastLevel(getDbClient(), current.getUid(), current.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
+                PlayerRepository.saveLastLevel(
+                        getDbClient(),
+                        current.getUid(),
+                        current.getIdToken(),
+                        getPlayerShip().getStats().getLevel(),
+                        getPlayerShip().getStats().getXpIntoLevel());
             }
 
         }
 
-        setScreen(new GameOverScreen(this));
+        screenNavigator.showGameOver();
         uploadScoreIfLoggedIn();
     }
 
@@ -398,10 +383,6 @@ public class Game extends Canvas {
         return Math.max(0, timeLeft);
     }
 
-    /** 원래 코드는 public java.util.List<Entity> getEntities() { return entities;}
-     * 이렇게 되면 add(), set() 등 수정메서드를 사용 가능하기때문에 바꿀수 없고 보기만 가능하게 만들었다
-     **/
-
     public List<Entity> getEntities() { return entityManager.getEntities(); }
 
     public List<Entity> getMutableEntities() { return entityManager.getMutableEntities(); }
@@ -413,11 +394,6 @@ public class Game extends Canvas {
     /** 엔티티 제거 요청(프레임 말미에 일괄 처리) */
     public void removeEntity(Entity entity) {
         entityManager.removeEntity(entity);
-    }
-
-
-    public InputState getInputState() {
-        return playerController.getInputState();
     }
 
     public void setLeftPressed(boolean value) {
@@ -476,6 +452,7 @@ public class Game extends Canvas {
             playerController.update();
         }
     }
+
     // FPS업데이트
     private void updateFps(long delta) {
         lastFpsTime += delta;
@@ -488,18 +465,10 @@ public class Game extends Canvas {
         }
 
     }
-
     //Screen업데이트
-    private void updateScreen(long delta){
-        if (currentScreen != null) {
-            currentScreen.update(delta);
-        }
-    }
+    private void updateScreen(long delta){ screenNavigator.update(delta); }
     //화면 그리기 시작
-    private Graphics2D beginFrame(){
-        return (Graphics2D) strategy.getDrawGraphics();
-    }
-
+    private Graphics2D beginFrame(){ return (Graphics2D) strategy.getDrawGraphics(); }
     //화면 그리기 종료
     private void endFrame(Graphics2D g, long lastLoopTime){
         g.dispose();
@@ -508,14 +477,14 @@ public class Game extends Canvas {
     }
 
     private boolean doesScreenDriveGame(){
-        return currentScreen != null;
+        return screenNavigator.getCurrentScreen() != null;
     }
 
 
     /** Screen 교체 및 컨텍스트에 맞춘 BGM 갱신 */
     public void setScreen(Screen screen) {
-        this.currentScreen = screen;
         this.waitingForKeyPress = false;
+        screenNavigator.setScreen(screen);
         updateBGMForContext();
     }
 
@@ -532,24 +501,14 @@ public class Game extends Canvas {
             g.fillRect(0, 0, 800, 600);
         }
 
-        if (currentScreen != null) {
-            currentScreen.render(g);
-        }
+        screenNavigator.render(g);
     }
 
-    public boolean isStageUnlocked(int stageIndex){
-        return stageProgressManager.isStageUnlocked(stageIndex);
-    }
-
-
-
+    public boolean isStageUnlocked(int stageIndex){ return stageProgressManager.isStageUnlocked(stageIndex); }
     // 로드된 stageStars(1..N) 기반으로 잠금 상태 재계산
-    public void rebuildStageUnlocks() {
-        stageProgressManager.rebuildStageUnlocks();
-    }
-
+    public void rebuildStageUnlocks() { stageProgressManager.rebuildStageUnlocks(); }
     //현재 스크린의 상태 조회하기
-    public Screen getCurrentScreen() { return currentScreen; }
+    public Screen getCurrentScreen() { return screenNavigator.getCurrentScreen(); }
 
     //아무 키나 누르기
     public boolean isWaitingForKeyPress() { return waitingForKeyPress; }
@@ -559,37 +518,20 @@ public class Game extends Canvas {
     public int getScore(){ return score; }
 
     //스테이지 선택 화면으로 이동
-    public void goToStageSelectScreen(){ setScreen(new StageSelectScreen(this)); }
+    public void goToStageSelectScreen(){ screenNavigator.showStageSelect(); }
 
     //메뉴 화면으로 돌아가기(ESC 눌렀을때)
     public void goToMenuScreen(){
         state = GameState.MENU;
-        setScreen(new MenuScreen(this));
+        screenNavigator.showMenu();
     }
 
-    /** 화면 컨텍스트에 맞춰 BGM 선택/재생 */
-    private void updateBGMForContext() {
-        SoundManager sm = SoundManager.get();
-
-        if (currentScreen instanceof MenuScreen) {
-            System.out.println("[BGM] MENU");
-            sm.play(SoundManager.Bgm.MENU);
-            return;
-        }
-
-        if (currentScreen instanceof GamePlayScreen) {
-            if (currentMode == Mode.STAGE && currentStageId == 5) {
-                System.out.println("[BGM] BOSS (Stage 5)"); //보스전 bgm
-                sm.play(SoundManager.Bgm.BOSS);
-            } else {
-                System.out.println("[BGM] STAGE"); //일반 스테이지 bgm
-                sm.play(SoundManager.Bgm.STAGE);
-            }
-            return;
-        }
-
-        System.out.println("[BGM] MENU (fallback)"); //기본값
-        sm.play(SoundManager.Bgm.MENU);
+    private void updateBGMForContext(){
+        SoundManager.get().updateBGMForContext(
+                getCurrentScreen(),         // screenNavigator에서 가져온 현재 Screen
+                currentMode == Mode.STAGE,  //스테이지 모드인지 여부
+                currentStageId              //현재 스테이지 번호
+        );
     }
 
     public void uploadScoreIfLoggedIn() {
@@ -625,23 +567,6 @@ public class Game extends Canvas {
         return gameDb.fetchGlobalTopScores(getSession(), limit);
     }
 
-
-
-    /** 간단 로그(Realtime DB) */
-    private static void writeLog(String eventType) {
-        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("logs");
-
-        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-
-        Map<String, Object> logEntry = new HashMap<>();
-        logEntry.put("event", eventType);
-        logEntry.put("timestamp", timestamp);
-
-        ref.push().setValueAsync(logEntry);
-
-        System.out.println(" 로그 저장: " + eventType + " at " + timestamp);
-    }
-
     private static java.awt.GridBagConstraints gbc() { return gbc(0, 0); }
     private static java.awt.GridBagConstraints gbc(int x, int y) {
         java.awt.GridBagConstraints c = new java.awt.GridBagConstraints();
@@ -665,32 +590,5 @@ public class Game extends Canvas {
 
     public void requestExit(){
         System.exit(0);
-    }
-
-    /** 엔트리 포인트: Firebase 초기화 → Game 생성/루프 실행 */
-    public static void main(String[] argv) {
-        try (FileInputStream serviceAccount = new FileInputStream(DB_KEYFILE)){
-
-            FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .setDatabaseUrl(DB_URL)
-                    .build();
-
-            FirebaseApp.initializeApp(options);
-
-            writeLog("game Start");
-
-            Game g = new Game();
-            g.setScreen(new AuthScreen(g));
-            ScoreboardScreen ss = new ScoreboardScreen(g);
-
-            g.gameLoop();
-
-            ss.reloadScores();
-            writeLog("game Over");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 }

@@ -1,5 +1,9 @@
 package org.newdawn.spaceinvaders.manager;
 
+
+import org.newdawn.spaceinvaders.screen.GamePlayScreen;
+import org.newdawn.spaceinvaders.screen.Screen;
+import org.newdawn.spaceinvaders.screen.MenuScreen;
 import org.newdawn.spaceinvaders.sound.SfxEngine;
 
 import javax.sound.sampled.*;
@@ -43,6 +47,21 @@ public final class SoundManager {
         } catch (Exception e) {
             logger.warning("Failed to load clip: " + classpath + " / " + e.getMessage());
             return null;
+        }
+    }
+
+    /** 화면 컨텍스트에 맞춰 BGM 선택/재생 */
+    public void updateBGMForContext(Screen currentScreen, boolean isStageMode, int currentStageId) {
+        if (currentScreen instanceof GamePlayScreen) {
+            // 플레이 중
+            if (isStageMode && currentStageId == 5) {
+                play(Bgm.BOSS);
+            } else {
+                play(Bgm.STAGE);
+            }
+        } else {
+            // 메뉴, 스테이지 선택, 게임오버 등은 전부 메뉴 BGM
+            play(Bgm.MENU);
         }
     }
 
