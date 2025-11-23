@@ -1,12 +1,16 @@
 package org.newdawn.spaceinvaders.database;
 
+import java.io.IOException;
 import java.net.HttpURLConnection;
 
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
+import java.util.logging.Logger;
+
 public class FirebaseAuthService {
     public final String apiKey;
+    private static final Logger logger = Logger.getLogger(FirebaseAuthService.class.getName());
 
     public FirebaseAuthService(String apiKey) {
         this.apiKey = apiKey;
@@ -42,7 +46,7 @@ public class FirebaseAuthService {
         String emailOut = jget(res, "email");
 
         if(idToken == null || localId == null){
-            throw new RuntimeException("SignIn parse failed: " + res);
+            throw new IOException("SignIn parse failed: " + res);
         }
         return new AuthResult(idToken, refreshToken, localId, emailOut);
     }
@@ -63,7 +67,7 @@ public class FirebaseAuthService {
         String emailOut     = jget(res, "email");
 
         if (idToken == null || localId == null) {
-            throw new RuntimeException("SignIn parse failed: " + res);
+            throw new IOException("SignIn parse failed: " + res);
         }
         return new AuthResult(idToken, refreshToken, localId, emailOut);
     }
@@ -80,38 +84,21 @@ public class FirebaseAuthService {
 
     /** 매우 단순한 "키:문자열" 추출(필요 필드만) */
     private static String jget(String json, String key) {
-        String k = "\"" + key.replace("\"","\\\"") + "\"";
-        int i = json.indexOf(k);
-        if (i < 0) return null;
-        i = json.indexOf(':', i);
-        if (i < 0) return null;
-        i++;
-        while (i < json.length() && Character.isWhitespace(json.charAt(i))) i++;
-        if (i >= json.length() || json.charAt(i) != '"') return null;
-        i++;
+        int valueStart = findStringValueStart(json, key);
+        if (valueStart < 0) {
+            return null;
+        }
         StringBuilder sb = new StringBuilder();
+        int i = valueStart;
         while (i < json.length()) {
             char c = json.charAt(i++);
             if (c == '\\') {
-                if (i >= json.length()) break;
-                char n = json.charAt(i++);
-                switch (n) {
-                    case '\\': sb.append('\\'); break;
-                    case '"':  sb.append('"');  break;
-                    case 'n':  sb.append('\n'); break;
-                    case 'r':  sb.append('\r'); break;
-                    case 't':  sb.append('\t'); break;
-                    case 'b':  sb.append('\b'); break;
-                    case 'f':  sb.append('\f'); break;
-                    case 'u':
-                        if (i + 3 < json.length()) {
-                            String hex = json.substring(i, i + 4);
-                            try { sb.append((char) Integer.parseInt(hex, 16)); } catch (Exception ignore) {}
-                            i += 4;
-                        }
-                        break;
-                    default: sb.append(n); break;
+                if (i >= json.length()) {
+                    logger.warning("Unexpected end of JSON parsing:");
                 }
+                char n = json.charAt(i++);
+                appendStringbuilder(json, sb, n, i);
+
             } else if (c == '"') {
                 break;
             } else {
@@ -120,6 +107,68 @@ public class FirebaseAuthService {
         }
         return sb.toString();
     }
+    private static int findStringValueStart(String json, String key){
+        String k = "\"" + key.replace("\"", "\\\"") + "\"";
+        int i = json.indexOf(k);
+        if (i < 0) return -1;
 
+        i = json.indexOf(':', i);
+        if (i < 0) return -1;
 
+        i++; // ':' 다음
+        while (i < json.length() && Character.isWhitespace(json.charAt(i))) {
+            i++;
+        }
+        if (i >= json.length() || json.charAt(i) != '"') {
+            return -1;
+        }
+        return i + 1;
+    }
+
+    private static void appendStringbuilder(String json, StringBuilder sb, char n, int i) {
+        if (n == 'u') {
+            appendUnicode(json, sb, i);
+            return;
+        }
+
+        switch (n) {
+            case '\\':
+                sb.append('\\');
+                break;
+            case '"':
+                sb.append('"');
+                break;
+            case 'n':
+                sb.append('\n');
+                break;
+            case 'r':
+                sb.append('\r');
+                break;
+            case 't':
+                sb.append('\t');
+                break;
+            case 'b':
+                sb.append('\b');
+                break;
+            case 'f':
+                sb.append('\f');
+                break;
+            default:
+                sb.append(n);
+                break;
+        }
+    }
+
+    private static void appendUnicode(String json, StringBuilder sb, int i) {
+        if (i + 3 >= json.length()) {
+            return;
+        }
+
+        String hex = json.substring(i, i + 4);
+        try {
+            sb.append((char) Integer.parseInt(hex, 16));
+        } catch (NumberFormatException e) {
+            logger.warning("Failed to parse hex: " + hex);
+        }
+    }
 }
