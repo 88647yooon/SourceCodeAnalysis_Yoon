@@ -68,7 +68,7 @@ public class CombatManager {
         game.decrementAlienCount();
 
         //디버깅 메시지
-        System.out.println("[DEBUG] Alien killed! alienCount=" + game.getAlienCount() + " stage=" + game.getCurrentId() + " bossActive=" + game.isBossActive());
+        System.out.println("[DEBUG] Alien killed! alienCount=" + game.getAlienCount() + " stage=" + game.getCurrentStageId() + " bossActive=" + game.isBossActive());
 
         ShipEntity player = game.getPlayerShip();
         if(player != null) {
