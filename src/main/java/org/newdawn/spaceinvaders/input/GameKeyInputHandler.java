@@ -13,7 +13,7 @@ import java.util.logging.Logger;
  */
 public class GameKeyInputHandler extends KeyAdapter {
     private final Game game;
-    private Logger logger = Logger.getLogger(GameKeyInputHandler.class.getName());
+    private final Logger logger = Logger.getLogger(GameKeyInputHandler.class.getName());
 
     public GameKeyInputHandler(Game game) {
         this.game = game;

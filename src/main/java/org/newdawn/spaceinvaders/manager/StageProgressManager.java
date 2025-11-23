@@ -28,6 +28,8 @@ public class StageProgressManager {
         starRequirements.put(1, 1000);
         starRequirements.put(2, 2000);
         starRequirements.put(3, 3000);
+        starRequirements.put(4, 4000);
+        starRequirements.put(5, 5000);
     }
     /** 잠금 배열 초기화 (1스테이지만 기본 오픈) */
     private void initStageUnlocks() {
@@ -77,12 +79,6 @@ public class StageProgressManager {
         }
         rebuildStageUnlocks();
         return true;
-    }
-
-    /** 현재 stageStars 전체를 DB에 저장 (원하면 명시적으로 호출) */
-    public void saveAll(AuthSession session) {
-        if (session == null || !session.isLoggedIn()) return;
-        gameDb.saveStageStars(session, stageStars);
     }
 
     /** DB에서 stageStars 불러오기 + 잠금 상태 재계산 */

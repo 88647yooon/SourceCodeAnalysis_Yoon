@@ -15,6 +15,8 @@ import org.newdawn.spaceinvaders.database.*;
 import org.newdawn.spaceinvaders.entity.player.PlayerSkills;
 import org.newdawn.spaceinvaders.graphics.BackgroundRenderer;
 import org.newdawn.spaceinvaders.input.GameKeyInputHandler;
+import org.newdawn.spaceinvaders.input.InputState;
+import org.newdawn.spaceinvaders.input.PlayerController;
 import org.newdawn.spaceinvaders.manager.*;
 import org.newdawn.spaceinvaders.screen.*;
 
@@ -26,7 +28,6 @@ import com.google.firebase.database.FirebaseDatabase;
 import org.newdawn.spaceinvaders.entity.base.Entity;
 import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
-import org.newdawn.spaceinvaders.entity.projectile.ShotEntity;
 import org.newdawn.spaceinvaders.screen.auth.AuthScreen;
 import org.newdawn.spaceinvaders.util.SystemTimer;
 
@@ -75,14 +76,10 @@ public class Game extends Canvas {
     private final transient EntityManager entityManager = new EntityManager(this);
     private final transient EntitySpawnManager spawnManager = new EntitySpawnManager(this, entityManager);
     private final transient CombatManager combatManager = new CombatManager(this, entityManager, spawnManager);
+
+    private final PlayerController playerController = new PlayerController(this);
     /** 플레이어(Ship) 엔티티 */
     private transient Entity ship;
-    /** Ship 이동 속도(px/s) */
-    private double moveSpeed = 300;
-    /** 마지막 발사 시각(ms) */
-    private long lastFire = 0;
-    /** 발사 간격(ms) */
-    private long firingInterval = 500;
     /** 화면에 남은 외계인 수 */
     private int alienCount;
     /** HP가 낮은 등 위험 상태 표시 */
@@ -205,6 +202,7 @@ public class Game extends Canvas {
 
         ship = new ShipEntity(this, "sprites/ship.gif", 370, 550);
         entityManager.addEntity(ship);
+        playerController.setShip((ShipEntity) ship);
 
         ((ShipEntity) ship).getStats().setInvulnerable(false);
         if (hasSession()) {
@@ -421,26 +419,28 @@ public class Game extends Canvas {
     }
 
 
-
-    public void setLeftPressed(boolean value) { leftPressed = value; }
-    public void setRightPressed(boolean value) { rightPressed = value; }
-    public void setFirePressed(boolean value) { firePressed = value; }
-    public void setUpPressed(boolean value) { upPressed = value; }
-    public void setDownPressed(boolean value) { downPressed = value; }
-
-
-    /** 발사 쿨다운을 만족하면 탄 1발 발사(SFX 포함) */
-    public void tryToFire() {
-        if (System.currentTimeMillis() - lastFire < firingInterval) {
-            return;
-        }
-        lastFire = System.currentTimeMillis();
-        ShotEntity shot = new ShotEntity(this, "sprites/shot.gif", ship.getX() + 10, ship.getY() - 30);
-        entityManager.addEntity(shot);
-
-        SoundManager.get().playSfx(SoundManager.Sfx.SHOOT); //플레이어 총소리
+    public InputState getInputState() {
+        return playerController.getInputState();
     }
 
+    public void setLeftPressed(boolean value) {
+        playerController.getInputState().setLeft(value);
+    }
+    public void setRightPressed(boolean value) {
+        playerController.getInputState().setRight(value);
+    }
+
+    public void setUpPressed(boolean value) {
+        playerController.getInputState().setUp(value);
+    }
+
+    public void setDownPressed(boolean value) {
+        playerController.getInputState().setDown(value);
+    }
+
+    public void setFirePressed(boolean value) {
+        playerController.getInputState().setFire(value);
+    }
     /** 플레이어 피격 이벤트(로그 출력) */
     public void onPlayerHit() {
         System.out.println("Player hit!");
@@ -476,7 +476,7 @@ public class Game extends Canvas {
             }
 
             endFrame(g, lastLoopTime); //dispose + show +sleep
-            ShipKeyInputHandler(); // Ship의 방향키 및 발사 처리
+            playerController.update();
         }
     }
     // FPS업데이트
@@ -512,28 +512,6 @@ public class Game extends Canvas {
 
     private boolean doesScreenDriveGame(){
         return currentScreen != null;
-    }
-
-    //플레이어 입력 로직
-    private void ShipKeyInputHandler(){
-        ship.setHorizontalMovement(0);
-        ship.setVerticalMovement(0);
-
-        if ((upPressed) && (!downPressed)) {
-            ship.setVerticalMovement(-moveSpeed);
-        } else if ((downPressed) && (!upPressed)) {
-            ship.setVerticalMovement(moveSpeed);
-        }
-
-        if ((leftPressed) && (!rightPressed)) {
-            ship.setHorizontalMovement(-moveSpeed);
-        } else if ((rightPressed) && (!leftPressed)) {
-            ship.setHorizontalMovement(moveSpeed);
-        }
-
-        if (firePressed) {
-            tryToFire();
-        }
     }
 
 
