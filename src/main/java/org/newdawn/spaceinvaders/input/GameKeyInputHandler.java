@@ -1,6 +1,8 @@
-package org.newdawn.spaceinvaders;
+package org.newdawn.spaceinvaders.input;
 
+import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.screen.Screen;
+import org.newdawn.spaceinvaders.screen.auth.AuthScreen;
 
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;

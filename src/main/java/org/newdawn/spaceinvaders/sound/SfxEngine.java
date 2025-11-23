@@ -1,4 +1,4 @@
-package org.newdawn.spaceinvaders;
+package org.newdawn.spaceinvaders.sound;
 
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.FloatControl;

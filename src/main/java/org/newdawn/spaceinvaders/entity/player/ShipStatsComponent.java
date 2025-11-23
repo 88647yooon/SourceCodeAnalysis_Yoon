@@ -1,6 +1,5 @@
 package org.newdawn.spaceinvaders.entity.player;
 
-import org.newdawn.spaceinvaders.PlayerSkills;
 public class ShipStatsComponent {
     private int maxHP = 3;
     private int currentHP = 3;

@@ -1,6 +1,6 @@
 package org.newdawn.spaceinvaders.manager;
 
-import org.newdawn.spaceinvaders.SfxEngine;
+import org.newdawn.spaceinvaders.sound.SfxEngine;
 
 import javax.sound.sampled.*;
 import java.io.InputStream;

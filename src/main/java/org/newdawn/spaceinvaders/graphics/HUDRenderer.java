@@ -1,6 +1,8 @@
-package org.newdawn.spaceinvaders;
+package org.newdawn.spaceinvaders.graphics;
 
+import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
+
 import java.awt.*;
 
 public class HUDRenderer {

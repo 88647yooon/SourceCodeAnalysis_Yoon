@@ -12,12 +12,14 @@ import java.util.List;
 import javax.swing.*;
 
 import org.newdawn.spaceinvaders.database.*;
+import org.newdawn.spaceinvaders.entity.player.PlayerSkills;
+import org.newdawn.spaceinvaders.graphics.BackgroundRenderer;
+import org.newdawn.spaceinvaders.input.GameKeyInputHandler;
 import org.newdawn.spaceinvaders.manager.EntityManager;
 import org.newdawn.spaceinvaders.manager.EntitySpawnManager;
 import org.newdawn.spaceinvaders.manager.SoundManager;
 import org.newdawn.spaceinvaders.manager.StageManager;
-import org.newdawn.spaceinvaders.screen.Screen;
-import org.newdawn.spaceinvaders.screen.StageSelectScreen;
+import org.newdawn.spaceinvaders.screen.*;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
@@ -30,6 +32,7 @@ import org.newdawn.spaceinvaders.entity.enemy.RangedAlienEntity;
 import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 import org.newdawn.spaceinvaders.entity.projectile.ShotEntity;
+import org.newdawn.spaceinvaders.screen.auth.AuthScreen;
 
 /**
  * Game — Space Invaders 메인 오케스트레이션.
@@ -691,7 +694,7 @@ public class Game extends Canvas {
 
 
     /** Screen 교체 및 컨텍스트에 맞춘 BGM 갱신 */
-    void setScreen(Screen screen) {
+    public void setScreen(Screen screen) {
         this.currentScreen = screen;
         this.waitingForKeyPress = false;
         updateBGMForContext();
@@ -855,7 +858,7 @@ public class Game extends Canvas {
     }
 
 
-    protected static String now() {
+    public static String now() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
     }
 

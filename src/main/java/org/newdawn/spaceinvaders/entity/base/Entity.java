@@ -3,8 +3,8 @@ package org.newdawn.spaceinvaders.entity.base;
 import java.awt.Graphics;
 import java.awt.Rectangle;
 
-import org.newdawn.spaceinvaders.Sprite;
-import org.newdawn.spaceinvaders.SpriteStore;
+import org.newdawn.spaceinvaders.graphics.Sprite;
+import org.newdawn.spaceinvaders.graphics.SpriteStore;
 
 /**
  * 게임 내 모든 객체의 기본이 되는 추상 클래스.

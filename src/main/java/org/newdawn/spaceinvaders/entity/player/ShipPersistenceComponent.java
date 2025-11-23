@@ -4,7 +4,6 @@ import org.newdawn.spaceinvaders.database.AuthSession;
 import org.newdawn.spaceinvaders.database.DatabaseClient;
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.LevelManager;
-import org.newdawn.spaceinvaders.PlayerSkills;
 
 import java.util.logging.Logger;
 

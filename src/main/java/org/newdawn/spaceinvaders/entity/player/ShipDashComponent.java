@@ -1,6 +1,6 @@
 package org.newdawn.spaceinvaders.entity.player;
 
-import org.newdawn.spaceinvaders.Sprite;
+import org.newdawn.spaceinvaders.graphics.Sprite;
 import java.awt.*;
 import java.util.ArrayDeque;
 

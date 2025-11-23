@@ -1,11 +1,11 @@
-package org.newdawn.spaceinvaders;
+package org.newdawn.spaceinvaders.graphics;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
 
-class BackgroundRenderer {
+public class BackgroundRenderer {
     private BufferedImage[] backgrounds;
 
     public BackgroundRenderer() {

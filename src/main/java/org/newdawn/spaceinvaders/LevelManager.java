@@ -6,6 +6,8 @@ import org.newdawn.spaceinvaders.database.DatabaseClient;
 import org.newdawn.spaceinvaders.database.FirebaseDatabaseClient;
 
 import com.google.gson.Gson;
+import org.newdawn.spaceinvaders.entity.player.PlayerSkills;
+
 public class LevelManager {
     private static final Gson GSON = new GsonBuilder().create();
     private  static final Logger logger  = Logger.getLogger(LevelManager.class.getName());

@@ -1,7 +1,9 @@
-package org.newdawn.spaceinvaders;
+package org.newdawn.spaceinvaders.input;
+
+import org.newdawn.spaceinvaders.screen.auth.AuthFormState;
 
 public class LoginCharTypedHandler {
-    private  AuthFormState form;
+    private AuthFormState form;
 
     public LoginCharTypedHandler(AuthFormState form) {
         this.form = form;

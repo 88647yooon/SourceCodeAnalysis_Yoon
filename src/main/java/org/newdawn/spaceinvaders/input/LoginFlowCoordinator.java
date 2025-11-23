@@ -1,7 +1,10 @@
-package org.newdawn.spaceinvaders;
+package org.newdawn.spaceinvaders.input;
+import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.database.AuthSession;
 import org.newdawn.spaceinvaders.database.FirebaseAuthService;
 import org.newdawn.spaceinvaders.database.FirebaseDatabaseClient;
+import org.newdawn.spaceinvaders.screen.MenuScreen;
+import org.newdawn.spaceinvaders.screen.auth.AuthFormState;
 
 
 public class LoginFlowCoordinator {
