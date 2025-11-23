@@ -30,7 +30,7 @@ import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 import org.newdawn.spaceinvaders.screen.auth.AuthScreen;
 import org.newdawn.spaceinvaders.util.SystemTimer;
-
+import org.newdawn.spaceinvaders.manager.SessionManager;
 /**
  * Game — Space Invaders 메인 오케스트레이션.
  * 역할
@@ -59,14 +59,14 @@ public class Game extends Canvas {
     private final transient DatabaseClient dbClient = new FirebaseDatabaseClient(DB_URL);
     private final transient GameDatabaseService gameDb = new GameDatabaseService(dbClient);
     private final transient StageProgressManager stageProgressManager = new StageProgressManager(gameDb);
-    private transient AuthSession session; // 기존 SESSION_UID , EMAIL, ID_TOKEN 대체
-
+    private final transient SessionManager sessionManager = new SessionManager();
     private final transient FirebaseAuthService authService = new FirebaseAuthService(API_KEY);
     public FirebaseAuthService getAuthService() { return authService; }
     public DatabaseClient getDbClient(){ return dbClient; }
 
-    public void setSession(AuthSession session){ this.session = session; }
-    public boolean hasSession(){ return session != null && session.isLoggedIn(); }
+    public void setSession(AuthSession session){ sessionManager.setSession(session); }
+    public boolean hasSession(){ return sessionManager.hasSession(); }
+    public AuthSession getSession() { return sessionManager.getSession(); }
     public String getMessage(){ return message; }
 	/** 페이지 넘김을 가속화 할 수 있는 전략 */
 	private final transient BufferStrategy strategy;
@@ -86,13 +86,6 @@ public class Game extends Canvas {
     private boolean dangerMode = false;
     /** 아무 키 대기 중인지 여부 */
     private boolean waitingForKeyPress = true;
-
-    /** 입력 상태 */
-    private boolean leftPressed = false;
-    private boolean rightPressed = false;
-    private boolean upPressed = false;
-    private boolean downPressed = false;
-    private boolean firePressed = false;
 
     /** 이번 루프에서 별도의 게임 로직(doLogic)을 적용해야 하는지 */
     private boolean logicRequiredThisLoop = false;
@@ -119,7 +112,7 @@ public class Game extends Canvas {
     //EntityManager에서 한 프레임 처리 후 flag를 꺼주는 setter
     public void resetLogicFlag() { logicRequiredThisLoop = false; }
 
-    public AuthSession getSession() { return session; }
+
 
     // 모드/점수/스테이지
     private enum Mode { STAGE, INFINITE }
@@ -188,8 +181,6 @@ public class Game extends Canvas {
         alienCount = 0;
 
         initEntities();
-
-        leftPressed = rightPressed = firePressed = false;
         waitingForKeyPress = false;
         state = GameState.PLAYING;
 
@@ -207,11 +198,13 @@ public class Game extends Canvas {
         ((ShipEntity) ship).getStats().setInvulnerable(false);
         if (hasSession()) {
             ShipEntity s = getPlayerShip();
+            AuthSession current = getSession();
 
             // 레벨
-            int[] saved = PlayerRepository.loadLastLevel(DB_URL,
-                    session.getUid(),
-                    session.getIdToken());
+            int[] saved = PlayerRepository.loadLastLevel(
+                    DB_URL,
+                    current.getUid(),
+                    current.getIdToken());
             s.getStats().setLevelAndXp(saved[0], saved[1]);
 
             // 스킬
@@ -277,7 +270,7 @@ public class Game extends Canvas {
 
     private void evaluateStageResult(int stageId, int timeLeft, int damageTaken, int score) {
         int stars = stageProgressManager.evaluateStars(stageId, timeLeft, damageTaken, score);
-        stageProgressManager.updateStageStars(session, stageId, stars);
+        stageProgressManager.updateStageStars(getSession(), stageId, stars);
     }
 
     public int getStageStars(int stageId) {
@@ -285,7 +278,7 @@ public class Game extends Canvas {
     }
 
     public void loadStageStars(){
-        stageProgressManager.loadFromDb(session);
+        stageProgressManager.loadFromDb(getSession());
         System.out.println(" 별 기록 불러오기 완료 " + stageStars);
     }
 
@@ -350,9 +343,11 @@ public class Game extends Canvas {
         message = "";
 
         if (hasSession()) {
-            ShipEntity ship = getPlayerShip();
-            if (ship != null) {
-                PlayerRepository.saveLastLevel(getDbClient(), session.getUid(), session.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
+            ShipEntity playerShip = getPlayerShip();
+            AuthSession current = getSession();
+
+            if (playerShip != null) {
+                PlayerRepository.saveLastLevel(getDbClient(), current.getUid(), current.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
             }
 
         }
@@ -384,8 +379,10 @@ public class Game extends Canvas {
 
         if (hasSession()) {
             ShipEntity playerShip = getPlayerShip();
+            AuthSession current = getSession();
+
             if (playerShip != null) {
-                PlayerRepository.saveLastLevel(getDbClient(),session.getUid(), session.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
+                PlayerRepository.saveLastLevel(getDbClient(),current.getUid(), current.getIdToken(), getPlayerShip().getStats().getLevel(), getPlayerShip().getStats().getXpIntoLevel());
             }
         }
         uploadScoreIfLoggedIn();
@@ -597,35 +594,35 @@ public class Game extends Canvas {
 
     public void uploadScoreIfLoggedIn() {
         if (!hasSession()) return;
-
+        AuthSession current = getSession();
         long durationMs = (runStartedAtMs > 0) ? (System.currentTimeMillis() - runStartedAtMs) : 0L;
         String modeStr = (currentMode == Mode.STAGE) ? "STAGE" : "INFINITE";
 
         ScoreEntry entry = new ScoreEntry();
         entry.setMode(modeStr);
-        entry.setEmail(session.getEmail());
+        entry.setEmail(current.getEmail());
         entry.setScore(score);
         entry.setWave(waveCount);
         entry.setDurationMs(durationMs);
         entry.setTimestamp(now());
         entry.setLevel(((ShipEntity) ship).getStats().getLevel());
 
-        gameDb.uploadScore(session, entry);
+        gameDb.uploadScore(current, entry);
     }
 
     public List<ScoreEntry> fetchMyTopScores(int limit) {
-        if (session == null || !session.isLoggedIn()) {
+        if (!hasSession()) {
             return Collections.emptyList();
         }
-        return gameDb.fetchMyTopScores(session, limit);
+        return gameDb.fetchMyTopScores(getSession(), limit);
     }
 
 
     public List<ScoreEntry> fetchGlobalTopScores(int limit) {
-        if (session == null || !session.isLoggedIn()) {
+        if (!hasSession()) {
             return Collections.emptyList();
         }
-        return gameDb.fetchGlobalTopScores(session, limit);
+        return gameDb.fetchGlobalTopScores(getSession(), limit);
     }
 
 
