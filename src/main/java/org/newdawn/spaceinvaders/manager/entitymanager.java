@@ -7,22 +7,21 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class EntityManager {
+public class entitymanager {
     private final Game game;
-    private final List<Entity> entities = new ArrayList<Entity>();
-    private final List<Entity> removeList = new ArrayList<>();
+    private static final List<Entity> entities = new ArrayList<Entity>();
+    private static final List<Entity> removeList = new ArrayList<>();
 
-    public EntityManager(Game game){
+    public entitymanager(Game game){
         this.game = game;
     }
 
     public List<Entity> getEntities() {
         return entities;
     }
-    public List<Entity> getMutableEntities(){
-        return entities;
-    }
-    public void addEntity(Entity entity){
+    public static List<Entity> getMutableEntities(){
+        return entities; }
+    public static void addEntity(Entity entity){
         entities.add(entity);
     }
 
@@ -30,7 +29,7 @@ public class EntityManager {
         removeList.add(entity);
     }
 
-    public void clearEntity(){
+    public static void clearEntity(){
         entities.clear();
         removeList.clear();
     }

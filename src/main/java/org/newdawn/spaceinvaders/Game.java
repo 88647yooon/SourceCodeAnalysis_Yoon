@@ -12,9 +12,10 @@ import java.util.List;
 import javax.swing.*;
 
 import org.newdawn.spaceinvaders.database.*;
-import org.newdawn.spaceinvaders.manager.EntityManager;
-import org.newdawn.spaceinvaders.manager.SoundManager;
-import org.newdawn.spaceinvaders.manager.StageManager;
+import org.newdawn.spaceinvaders.manager.entitymanager;
+import org.newdawn.spaceinvaders.manager.entityspawnmanager;
+import org.newdawn.spaceinvaders.manager.soundmanager;
+import org.newdawn.spaceinvaders.manager.stagemanager;
 import org.newdawn.spaceinvaders.Screen.Screen;
 import org.newdawn.spaceinvaders.Screen.StageSelectScreen;
 
@@ -25,7 +26,6 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import org.newdawn.spaceinvaders.entity.base.Entity;
 import org.newdawn.spaceinvaders.entity.enemy.DiagonalShooterAlienEntity;
-import org.newdawn.spaceinvaders.entity.enemy.HostageEntity;
 import org.newdawn.spaceinvaders.entity.enemy.RangedAlienEntity;
 import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
@@ -73,7 +73,9 @@ public class Game extends Canvas {
 	/** 게임이 현재 "실행 중"이라면, 즉 게임 루프가 반복되고 있습니다 */
 	private final transient boolean gameRunning = true;
 
-    private final EntityManager entityManager = new EntityManager(this);
+    private final entitymanager entityManager = new entitymanager(this);
+    private final entityspawnmanager spawnManager = new entityspawnmanager(this, entityManager);
+
     /** 플레이어(Ship) 엔티티 */
     private transient Entity ship;
 
@@ -147,7 +149,6 @@ public class Game extends Canvas {
     private boolean infiniteMode = false;
     private int waveCount = 1;
     private int normalsClearedInCycle = 0;
-    private static final double RANGED_ALIEN_RATIO = 0.25;
     private boolean bossActive = false;
 
     //스테이지 잠금 상태 관리 배열
@@ -191,7 +192,7 @@ public class Game extends Canvas {
         initStageUnlocks();
         initEntities();
 
-        SoundManager.get().setSfxVolume(-15.0f);// 전체 효과음 볼륨 설정
+        soundmanager.get().setSfxVolume(-15.0f);// 전체 효과음 볼륨 설정
     }
 
     /**
@@ -199,7 +200,7 @@ public class Game extends Canvas {
      * - 엔티티/제거 큐 초기화, 입력 리셋, 상태 PLAYING 전환
      */
     private void startGame() {
-        entityManager.clearEntity();
+        entitymanager.clearEntity();
         alienCount = 0;
 
         initEntities();
@@ -215,10 +216,10 @@ public class Game extends Canvas {
      * Ship 생성 및 초기 배치. 무한 모드면 즉시 웨이브 스폰.
      */
     private void initEntities() {
-        entityManager.clearEntity();
+        entitymanager.clearEntity();
 
         ship = new ShipEntity(this, "sprites/ship.gif", 370, 550);
-        entityManager.addEntity(ship);
+        entitymanager.addEntity(ship);
 
         ((ShipEntity) ship).getStats().setInvulnerable(false);
         if (hasSession()) {
@@ -237,173 +238,34 @@ public class Game extends Canvas {
 
         alienCount = 0;
         if (infiniteMode) {
-            spawnAliens();
+            spawnManager.spawnAliens();
         }
 
     }
+    //wave
+    public int getWaveCount() { return waveCount; }
+    public void incrementWaveCount() { waveCount++; }
 
+    //infiniteMode
+    public boolean isInfiniteMode() { return infiniteMode; }
 
+    //boss state
+    public void setBossActive(boolean bossActive) { this.bossActive = bossActive; }
+    public boolean isBossActive() { return bossActive; }
 
-    public int getWaveCount() {
-        return waveCount;
-    }
+    //alien count
+    public void setAlienCount(int count) { this.alienCount = count; }
 
-    /**
-     * 무한 모드 웨이브 스폰:
-     * - 난이도 계산/적용, Diagonal/Ranged/기본 적 배치, 인질 일부 추가, waveCount 증가
-     */
+    public void updateEntities(long delta) { entityManager.update(delta, waitingForKeyPress);}
 
-    //무한모드일 때 기존 인질 제거
-    private void clearHostagesForInfiniteMode() {
-        if (!infiniteMode) {
-            return;
-        }
-
-        for (Iterator<Entity> it = getMutableEntities().iterator(); it.hasNext(); ) {
-            Entity e = it.next();
-            if(e instanceof HostageEntity) it.remove();
-        }
-    }
-
-    //alien 그리드 생성
-    private void spawnAlienGrid(Difficulty diff, int rows, int cols, int startX, int startY, int gapX, int gapY) {
-        for (int row = 0; row < rows; row++) {
-            for (int c = 0; c < cols; c++) {
-                int x = startX + (c * gapX);
-                int y = startY + (row * gapY);
-
-                Entity alien = createAlienForPosition(x, y);
-                applyDifficultyToAlien(alien, diff);
-
-                entityManager.addEntity(alien);
-                alienCount++;
-            }
-        }
-    }
-
-    //위치별 외계인 타입 결정
-    private Entity createAlienForPosition(int x, int y) {
-        double diagonalProb = Math.min(0.05 + (waveCount -1) * 0.02, 0.25);
-
-        double r = Math.random();
-
-        if(r < diagonalProb) {
-            return new DiagonalShooterAlienEntity(this, x, y);
-        } else if(r < diagonalProb + RANGED_ALIEN_RATIO) {
-            return new RangedAlienEntity(this, x, y ,getPlayerShip());
-        }else{
-            return new AlienEntity(this, x, y);
-        }
-    }
-
-    //무한모드일때 인질 스폰
-    private void spawnHostages(int cols, int startX, int startY, int gapX) {
-        int hostageNum = 1 + (int)(Math.random()*2);
-        if (hostageNum <=0){
-            return;
-        }
-
-        Set<Integer> usedCols = new HashSet<>();
-
-        for(int i=0; i< hostageNum; i++){
-            int c = chooseHostageColumn(cols, usedCols);
-            usedCols.add(c);
-
-            int x = startX + (c *gapX);
-            int y = startY - 40;
-            Entity hostage = new HostageEntity(this, x, y);
-            entityManager.addEntity(hostage);
-        }
-    }
-
-    //인질이 설 위치 컬럼 선택 로직
-    private int chooseHostageColumn(int cols, Set<Integer> usedCols) {
-        int guard = 0;
-        int c;
-        do{
-            c = (int)(Math.random() * cols);
-        } while (usedCols.contains(c) && ++ guard < 10);
-        return c;
-    }
-
-    private void spawnAliens() {
-
-        clearHostagesForInfiniteMode(); // 기존 인질 정리
-        Difficulty diff = computeDifficultyForWave(waveCount);
-
-        int rows = 3 + (waveCount % 3);   // 3~5
-        int cols = 6 + (waveCount % 6);   // 6~11
-        alienCount = 0;
-
-        int startX = 100, startY = 50, gapX = 50, gapY = 30;
-
-        spawnAlienGrid(diff, rows, cols, startX, startY, gapX, gapY); //외계인 배치
-
-        if(infiniteMode) {
-            spawnHostages(cols, startX, startY, gapX); // 인질 배치
-        }
-
-        waveCount++;
-    }
-
-    /** 보스 소환(인질 제거 후 중앙 배치) */
-    private void spawnBoss() {
-        for (java.util.Iterator<Entity> it = getMutableEntities().iterator(); it.hasNext(); ) {
-            Entity e = it.next();
-            if (e instanceof HostageEntity) {
-                it.remove();
-            }
-        }
-
-        Entity boss = new org.newdawn.spaceinvaders.entity.boss.BossEntity(this, 360, 60, getPlayerShip());
-        entityManager.addEntity(boss);
-        bossActive = true;
-    }
 
     /** 보스 처치 콜백: 모드에 따라 웨이브 진행 또는 승리 처리 */
     public void onBossKilled() {
         bossActive = false;
         if (infiniteMode) {
-            spawnAliens();
+            spawnManager.spawnAliens();
         } else {
             notifyWin();
-        }
-    }
-
-    /** 웨이브별 난이도 파라미터 */
-    private static class Difficulty {
-        int alienHP;
-        double alienSpeedMul;
-        double fireRateMul;
-        double bulletSpeedMul;
-    }
-
-    /** 웨이브 → 난이도 계산 */
-    private Difficulty computeDifficultyForWave(int wave) {
-        Difficulty d = new Difficulty();
-        d.alienHP = 1 + Math.max(0, (wave - 1) / 2);
-        d.alienSpeedMul = Math.min(2.5, 1.0 + 0.08 * (wave - 1));
-        d.fireRateMul = Math.min(3.0, 1.0 + 0.10 * (wave - 1));
-        d.bulletSpeedMul = Math.min(2.0, 1.0 + 0.05 * (wave - 1));
-        return d;
-    }
-
-    /** 난이도 적용 */
-    private void applyDifficultyToAlien(Entity e, Difficulty d) {
-        if (e instanceof AlienEntity) {
-            AlienEntity a = (AlienEntity) e;
-            a.setMaxHP(d.alienHP);
-            a.applySpeedMultiplier(d.alienSpeedMul);
-        }
-        if (e instanceof RangedAlienEntity) {
-            RangedAlienEntity r = (RangedAlienEntity) e;
-            r.setFireRateMultiplier(d.fireRateMul);
-            r.setBulletSpeedMultiplier(d.bulletSpeedMul);
-        }
-        if (e instanceof DiagonalShooterAlienEntity) {
-            DiagonalShooterAlienEntity ds = (DiagonalShooterAlienEntity) e;
-            ds.setFireRateMultiplier(d.fireRateMul);
-            ds.setBulletSpeedMultiplier(d.bulletSpeedMul);
         }
     }
 
@@ -506,7 +368,7 @@ public class Game extends Canvas {
         stageStartHP = getPlayerShip().getStats().getCurrentHP();
         stageStarScoreRequirements();
 
-        StageManager.applyStage(StageNum, this);
+        stagemanager.applyStage(StageNum, this);
 
         if (StageNum == 5) {
             bossActive = true;
@@ -556,9 +418,6 @@ public class Game extends Canvas {
         uploadScoreIfLoggedIn();
     }
 
-    public boolean isInfiniteMode() {
-        return infiniteMode;
-    }
 
     /** 플레이어 승리 처리(별 평가/저장 포함) */
     public void notifyWin() {
@@ -603,21 +462,13 @@ public class Game extends Canvas {
      * 이렇게 되면 add(), set() 등 수정메서드를 사용 가능하기때문에 바꿀수 없고 보기만 가능하게 만들었다
      **/
 
-    public List<Entity> getEntities() {
-        return entityManager.getEntities();
-    }
+    public List<Entity> getEntities() { return entityManager.getEntities(); }
 
-    public List<Entity> getMutableEntities() {
-        return entityManager.getMutableEntities();
-    }
+    public List<Entity> getMutableEntities() { return entitymanager.getMutableEntities(); }
 
-    public ShipEntity getPlayerShip() {
-        return (ShipEntity) ship;
-    }
+    public ShipEntity getPlayerShip() { return (ShipEntity) ship; }
 
-    public void addEntity(Entity e) {
-        entityManager.addEntity(e);
-    }
+    public void addEntity(Entity e) { entitymanager.addEntity(e);}
 
     /** 엔티티 제거 요청(프레임 말미에 일괄 처리) */
     public void removeEntity(Entity entity) {
@@ -638,13 +489,6 @@ public class Game extends Canvas {
      * 엔티티 이동 → 충돌 → 제거 flush → (요청 시) doLogic 순서로 처리.
      * 이동은 waitingForKeyPress=false 일 때만 수행.
      */
-    public void updateEntities(long delta) {
-        entityManager.update(delta, waitingForKeyPress);
-    }
-
-    public void setAlienCount(int count) {
-        this.alienCount = count;
-    }
 
     /**
      * [리팩토링 - 신규 메소드]
@@ -721,10 +565,10 @@ public class Game extends Canvas {
         if(normalsClearedInCycle >= 3){
 
             normalsClearedInCycle = 0;
-            spawnBoss();
+            spawnManager.spawnBoss();
 
         } else {
-            spawnAliens();
+            spawnManager.spawnAliens();
         }
     }
 
@@ -734,7 +578,7 @@ public class Game extends Canvas {
         }
 
         if(currentStageId == 5) {
-            spawnBoss();
+            spawnManager.spawnBoss();
         } else {
             notifyWin();
         }
@@ -768,7 +612,7 @@ public class Game extends Canvas {
         ShotEntity shot = new ShotEntity(this, "sprites/shot.gif", ship.getX() + 10, ship.getY() - 30);
         entityManager.addEntity(shot);
 
-        SoundManager.get().playSfx(SoundManager.Sfx.SHOOT); //플레이어 총소리
+        soundmanager.get().playSfx(soundmanager.Sfx.SHOOT); //플레이어 총소리
     }
 
     /** 플레이어 피격 이벤트(로그 출력) */
@@ -950,27 +794,27 @@ public class Game extends Canvas {
 
     /** 화면 컨텍스트에 맞춰 BGM 선택/재생 */
     private void updateBGMForContext() {
-        SoundManager sm = SoundManager.get();
+        soundmanager sm = soundmanager.get();
 
         if (currentScreen instanceof MenuScreen) {
             System.out.println("[BGM] MENU");
-            sm.play(SoundManager.Bgm.MENU);
+            sm.play(soundmanager.Bgm.MENU);
             return;
         }
 
         if (currentScreen instanceof GamePlayScreen) {
             if (currentMode == Mode.STAGE && currentStageId == 5) {
                 System.out.println("[BGM] BOSS (Stage 5)"); //보스전 bgm
-                sm.play(SoundManager.Bgm.BOSS);
+                sm.play(soundmanager.Bgm.BOSS);
             } else {
                 System.out.println("[BGM] STAGE"); //일반 스테이지 bgm
-                sm.play(SoundManager.Bgm.STAGE);
+                sm.play(soundmanager.Bgm.STAGE);
             }
             return;
         }
 
         System.out.println("[BGM] MENU (fallback)"); //기본값
-        sm.play(SoundManager.Bgm.MENU);
+        sm.play(soundmanager.Bgm.MENU);
     }
 
     public void uploadScoreIfLoggedIn() {

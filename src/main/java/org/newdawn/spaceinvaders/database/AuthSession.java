@@ -7,7 +7,7 @@ public class AuthSession implements Serializable {
 
     private final String uid;
     private final String email;
-    private transient final String idToken;
+    private final transient String idToken;
 
     public AuthSession(String uid, String email, String idToken) {
         this.uid = uid;
