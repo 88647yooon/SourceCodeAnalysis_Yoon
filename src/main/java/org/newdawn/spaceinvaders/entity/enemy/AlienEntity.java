@@ -22,8 +22,7 @@ public class AlienEntity extends EnemyEntity {
 	private int frameNumber;
 
     /** 웨이브에 따라 외계인 이동 속도를 키울 때 사용하는 배수 (1.0 = 기본) */
-    private double speedMul = 1.0;
-
+    private double speedMul= 1.0;
     /** 마지막 발사 시각 (ms) */
     private long lastShotAt = 0L;
     /** 기본 발사 쿨다운 (ms) - 기본값은 발사 안 함 */
@@ -104,7 +103,7 @@ public class AlienEntity extends EnemyEntity {
 		// proceed with normal move
 		super.move(delta);
 
-        checkFire(delta);
+        checkFire();
 
 	}
 	
@@ -126,10 +125,10 @@ public class AlienEntity extends EnemyEntity {
     /** 수평 이동 속도 배수 적용 (좌/우 방향은 유지) */
     public void applySpeedMultiplier(double mul) {
         if (mul <= 0) return;
-        this.speedMul = mul;
+        speedMul = mul;
 
         // moveSpeed는 이 클래스의 private final이지만 동일 클래스 안이라 접근 가능
-        double base = Math.abs(dx) > 0 ? moveSpeed : moveSpeed; // 방향은 dx의 부호를 따름
+        double base = moveSpeed; // 방향은 dx의 부호를 따름
         double dir = (dx < 0) ? -1.0 : 1.0;
         setHorizontalMovement(dir * base * speedMul);
     }
@@ -164,7 +163,7 @@ public class AlienEntity extends EnemyEntity {
      * 템플릿 메소드: 발사 타이머 로직 (공통)
      * 이 메소드는 final이므로 자식 클래스가 오버라이드할 수 없습니다.
      */
-    protected final void checkFire(long delta) {
+    protected final void checkFire() {
         // 쿨다운이 너무 길면 (기본값) 발사 기능이 없는 것으로 간주
         if (baseCooldownMs > 900000) {
             return;
