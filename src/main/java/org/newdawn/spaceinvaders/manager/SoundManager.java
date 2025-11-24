@@ -3,7 +3,6 @@ package org.newdawn.spaceinvaders.manager;
 
 import org.newdawn.spaceinvaders.screen.GamePlayScreen;
 import org.newdawn.spaceinvaders.screen.Screen;
-import org.newdawn.spaceinvaders.screen.MenuScreen;
 import org.newdawn.spaceinvaders.sound.SfxEngine;
 
 import javax.sound.sampled.*;
@@ -19,11 +18,15 @@ public final class SoundManager {
     // ===== SFX =====
     public enum Sfx { SHOOT }
 
-    private static final SoundManager I = new SoundManager();
+    private static final SoundManager SOUND = new SoundManager();
     private static final Logger logger = Logger.getLogger(SoundManager.class.getName());
 
-    public static SoundManager get() {
-        return I;
+    private static final  String MENU_BGM = "/sounds/menu.wav";
+    private static final  String STAGE_BGM = "/sounds/stage.wav";
+    private static final  String BOSS_BGM = "/sounds/boss.wav";
+
+    public static SoundManager getSound() {
+        return SOUND;
     }
 
     // BGM 엔진
@@ -71,9 +74,9 @@ public final class SoundManager {
 
         String path;
         switch (bgm) {
-            case MENU:  path = "/sounds/menu.wav";  break;
-            case STAGE: path = "/sounds/stage.wav"; break;
-            case BOSS:  path = "/sounds/boss.wav";  break;
+            case MENU:  path = MENU_BGM;  break;
+            case STAGE: path =  STAGE_BGM; break;
+            case BOSS:  path = BOSS_BGM;  break;
             default:    path = null;                break;
         }
         c = loadClip(path);

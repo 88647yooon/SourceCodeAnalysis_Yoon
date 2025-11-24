@@ -1,7 +1,6 @@
 package org.newdawn.spaceinvaders.screen;
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.database.ScoreEntry;
-import org.newdawn.spaceinvaders.screen.Screen;
 
 import java.awt.*;
 import java.util.List;
@@ -53,12 +52,15 @@ public class ScoreboardScreen implements Screen {
                 user = s.getEmail().substring(0, s.getEmail().indexOf("@"));
             }
 
-            String line = String.format("%-6s %-12s %-8s %-10s %-20s",
+            int scoreVal = (s.getScore() == null) ? 0 : s.getScore();  // 한 번만 언박싱
+
+            String line = String.format("%-6d %-12s %-8d %-10s %-20s",
                     (i + 1),
                     user,
-                    (s.getScore() == null ? 0 : s.getScore()),
+                    scoreVal,
                     (s.getMode() == null ? "-" : s.getMode()),
-                    ((s.getDurationMs() == null ? 0 : s.getDurationMs()) + " / " + (s.getTimestamp() == null ? "-" : s.getTimestamp()))
+                    ((s.getDurationMs() == null ? 0 : s.getDurationMs()) + " / "
+                            + (s.getTimestamp() == null ? "-" : s.getTimestamp()))
             );
             g.drawString(line, 80, y);
             y += 28;
@@ -86,5 +88,7 @@ public class ScoreboardScreen implements Screen {
     }
 
     @Override
-    public void handleKeyRelease(int keyCode) { }
+    public void handleKeyRelease(int keyCode) {
+        //여기서는 필요 없음
+    }
 }

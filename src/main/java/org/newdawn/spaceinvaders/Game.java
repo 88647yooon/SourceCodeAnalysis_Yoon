@@ -156,7 +156,7 @@ public class Game extends Canvas {
 
         initEntities();
 
-        SoundManager.get().setSfxVolume(-15.0f);// 전체 효과음 볼륨 설정
+        SoundManager.getSound().setSfxVolume(-15.0f);// 전체 효과음 볼륨 설정
     }
 
     private void startGame() {
@@ -527,7 +527,7 @@ public class Game extends Canvas {
     }
 
     private void updateBGMForContext(){
-        SoundManager.get().updateBGMForContext(
+        SoundManager.getSound().updateBGMForContext(
                 getCurrentScreen(),         // screenNavigator에서 가져온 현재 Screen
                 currentMode == Mode.STAGE,  //스테이지 모드인지 여부
                 currentStageId              //현재 스테이지 번호
@@ -567,7 +567,7 @@ public class Game extends Canvas {
         return gameDb.fetchGlobalTopScores(getSession(), limit);
     }
 
-    private static java.awt.GridBagConstraints gbc() { return gbc(0, 0); }
+
     private static java.awt.GridBagConstraints gbc(int x, int y) {
         java.awt.GridBagConstraints c = new java.awt.GridBagConstraints();
         c.gridx = x; c.gridy = y; c.insets = new java.awt.Insets(5, 5, 5, 5);

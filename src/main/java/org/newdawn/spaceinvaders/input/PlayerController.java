@@ -71,7 +71,7 @@ public class PlayerController {
         );
 
         game.addEntity(shot);
-        SoundManager.get().playSfx(SoundManager.Sfx.SHOOT);
+        SoundManager.getSound().playSfx(SoundManager.Sfx.SHOOT);
     }
 
 }

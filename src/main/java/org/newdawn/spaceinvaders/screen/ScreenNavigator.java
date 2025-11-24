@@ -62,7 +62,7 @@ public class ScreenNavigator {
 
 
     private void updateBGMForContext() {
-        SoundManager sm = SoundManager.get();
+        SoundManager sm = SoundManager.getSound();
 
         if (currentScreen instanceof MenuScreen) {
             sm.play(SoundManager.Bgm.MENU);

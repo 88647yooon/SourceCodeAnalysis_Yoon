@@ -10,6 +10,7 @@ import java.awt.event.KeyEvent;
 
 
 public class AuthScreen implements Screen {
+    private final Game game;
     private final LoginFlowCoordinator loginFlowCoordinator;
     private final AuthFormState form;
     private final AuthScreenImageRenderer renderer;
@@ -19,6 +20,7 @@ public class AuthScreen implements Screen {
         form = new AuthFormState();
         loginFlowCoordinator = new LoginFlowCoordinator(game, form);
         renderer = new AuthScreenImageRenderer(form);
+        this.game = game;
 
     }
 
@@ -48,7 +50,7 @@ public class AuthScreen implements Screen {
             return;
         }
         if (keyCode == KeyEvent.VK_ESCAPE) {
-            System.exit(0);
+            game.requestExit();
             return;
         }
         if (keyCode == KeyEvent.VK_UP) {
