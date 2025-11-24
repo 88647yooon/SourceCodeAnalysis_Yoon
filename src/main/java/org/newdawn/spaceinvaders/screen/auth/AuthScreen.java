@@ -8,57 +8,34 @@ import org.newdawn.spaceinvaders.screen.Screen;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 
+
 public class AuthScreen implements Screen {
-    private final Game game;
     private final LoginFlowCoordinator loginFlowCoordinator;
     private final AuthFormState form;
-
+    private final AuthScreenImageRenderer renderer;
 
 
     public AuthScreen(Game game) {
-        this.game = game;
         form = new AuthFormState();
         loginFlowCoordinator = new LoginFlowCoordinator(game, form);
+        renderer = new AuthScreenImageRenderer(form);
 
     }
 
     @Override
     public void render(Graphics2D g) {
-        final String dialog = "Dialog";
 
-        g.setColor(Color.black);
-        g.fillRect(0, 0, 800, 600);
+        // 안티앨리어싱
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON);
 
-        g.setColor(Color.white);
-        g.setFont(new Font(dialog , Font.BOLD, 28));
-        String title = form.isSignupMode() ? "회원가입" : "로그인";
-        g.drawString(title, (800 - g.getFontMetrics().stringWidth(title)) / 2, 100);
+        // 1) 배경 먼저
+        renderer.drawBackground(g);
 
-        g.setFont(new Font(dialog, Font.PLAIN, 20));
-        g.drawString("이메일: " + form.getEmail() + (form.getFieldIndex() == 0 ? "_" : ""), 200, 200);
-        g.drawString("비밀번호: " + mask(form.getPassword()) + (form.getFieldIndex() == 1 ? "_" : ""), 200, 240);
-
-        if (form.isSignupMode()) {
-            g.drawString("비밀번호 확인: " + mask(form.getPassword()) + (form.getFieldIndex() == 2 ? "_" : ""), 200, 280);
-        }
-
-        g.setFont(new Font(dialog, Font.PLAIN, 16));
-        g.drawString("[Enter] 확인 | [Tab] 로그인/회원가입 전환 | ↑↓ 이동 | [ESC] 종료", 120, 360);
-
-        if (!form.getEmail().isEmpty()) {
-            g.setColor(Color.yellow);
-            g.drawString(form.getMessage(), 200, 420);
-        }
+        // 2) 로그인 카드 그리기
+        renderer.drawAuthCard(g);
     }
 
-    private String mask(String pw) {
-        if (pw == null) return "";
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < pw.length(); i++) {
-            sb.append('*');
-        }
-        return sb.toString();
-    }
 
     @Override
     public void handleKeyPress(int keyCode) {
@@ -85,10 +62,14 @@ public class AuthScreen implements Screen {
 
 
     @Override
-    public void handleKeyRelease(int keyCode) {}
+    public void handleKeyRelease(int keyCode) {
+        //여기서는 필요 없음
+    }
 
     @Override
-    public void update(long delta) {}
+    public void update(long delta) {
+        //여기서는 필요 없음
+    }
 
 
     public void handleCharTyped(char c) {
