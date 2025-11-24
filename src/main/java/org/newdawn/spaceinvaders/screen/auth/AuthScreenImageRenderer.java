@@ -1,5 +1,4 @@
 package org.newdawn.spaceinvaders.screen.auth;
-import org.newdawn.spaceinvaders.screen.auth.AuthScreen;
 
 import java.awt.*;
 import java.util.logging.Logger;

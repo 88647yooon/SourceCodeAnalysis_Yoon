@@ -43,10 +43,6 @@ public class ScreenNavigator {
         setScreen(new GameOverScreen(game));
     }
 
-    public void showAuth() {
-        setScreen(new AuthScreen(game));
-    }
-
 
     public void update(long delta) {
         if (currentScreen != null) {

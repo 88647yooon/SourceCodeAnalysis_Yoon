@@ -568,13 +568,6 @@ public class Game extends Canvas {
     }
 
 
-    private static java.awt.GridBagConstraints gbc(int x, int y) {
-        java.awt.GridBagConstraints c = new java.awt.GridBagConstraints();
-        c.gridx = x; c.gridy = y; c.insets = new java.awt.Insets(5, 5, 5, 5);
-        c.anchor = java.awt.GridBagConstraints.WEST; c.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        return c;
-    }
-
 
     public static String now() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
