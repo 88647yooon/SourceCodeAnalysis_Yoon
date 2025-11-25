@@ -3,7 +3,6 @@ package org.newdawn.spaceinvaders.screen;
 import org.newdawn.spaceinvaders.graphics.BackgroundRenderer;
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.graphics.HUDRenderer;
-import org.newdawn.spaceinvaders.entity.player.PlayerSkills;
 import org.newdawn.spaceinvaders.entity.base.Entity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 
@@ -51,8 +50,6 @@ public class GamePlayScreen implements Screen {
 
     @Override
     public void render(Graphics2D g){
-        Font uiFont;
-        uiFont = new Font("맑은 고딕", Font.BOLD, 20);
         // 웨이브별 배경 (10 웨이브마다 교체)
         backgroundRenderer.render(g, game.getWaveCount(), 800, 600);
 
@@ -64,21 +61,6 @@ public class GamePlayScreen implements Screen {
         //HUD는 플레이 화면에서만 표시
         hudRenderer.render(g);
 
-        // "Press any key" 상태 표시
-        if (game.isWaitingForKeyPress()) {
-            g.setColor(Color.white);
-            g.setFont(uiFont);
-
-            String winMsg = game.getMessage();
-            String msg = "아무 키나 누르세요";
-
-            int cx = 800;
-            if(winMsg != null && !winMsg.isEmpty()){
-                int winX = (cx - g.getFontMetrics().stringWidth(winMsg)) / 2;
-                g.drawString(winMsg, winX, 260);
-            }
-            g.drawString(msg, (800 - g.getFontMetrics().stringWidth(msg)) / 2, 300);
-        }
         if (levelUpActive) {
             levelUpOverlayScreen.drawLevelUpOverlay(g, ship);   // ← 오버레이 호출
         }
@@ -129,34 +111,6 @@ public class GamePlayScreen implements Screen {
         }
     }
 
-    public void finishOrStay(ShipEntity ship) {
-        if (ship.getStats().hasUnspentLevelUp()) {
-            levelUpIndex = 0;
-        } else {
-            levelUpOverlayScreen.closeLevelUpOverlay();
-        }
-
-    }
-
-    public void applyLevelUpChoice(ShipEntity ship, int index) {
-        PlayerSkills s = ship.getStats().getSkills();
-
-        switch (index) {
-            case 0: // 공격력
-                s.atkLv = Math.min(5, s.atkLv + 1);
-                break;
-            case 1: // 연사속도(간격 감소)
-                s.rofLv = Math.min(5, s.rofLv + 1);
-                break;
-            case 2: // 대시 쿨타임 감소
-                s.dashLv = Math.min(5, s.dashLv + 1);
-                break;
-            default:
-                break;
-        }
-        ship.getPersistence().saveSkills(s);
-
-    }
 
     @Override
     public void handleKeyRelease(int keyCode) {

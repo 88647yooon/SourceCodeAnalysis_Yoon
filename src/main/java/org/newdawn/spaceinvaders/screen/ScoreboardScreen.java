@@ -10,7 +10,7 @@ public class ScoreboardScreen implements Screen {
     private List<ScoreEntry> scores;
     private boolean showGlobal = true;//  글로벌/내 점수 전환 플래그
     private boolean scoresLoaded = false;
-    private ScoreBoardScreenImageRenderer renderer = new ScoreBoardScreenImageRenderer(this);
+    private final ScoreBoardScreenImageRenderer renderer = new ScoreBoardScreenImageRenderer();
 
     public ScoreboardScreen(Game game) {
         this.game = game;

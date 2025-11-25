@@ -3,11 +3,9 @@ package org.newdawn.spaceinvaders.screen;
 import java.awt.*;
 
 public class ScoreBoardScreenImageRenderer {
-    private ScoreboardScreen scoreboard;
-    private Image backgroundImage;
-    public ScoreBoardScreenImageRenderer(ScoreboardScreen scoreboard) {
+    private final Image backgroundImage;
+    public ScoreBoardScreenImageRenderer() {
 
-        this.scoreboard= scoreboard;
         this.backgroundImage = loadImage();
     }
 

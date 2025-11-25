@@ -149,8 +149,13 @@ public class BossEntity extends EnemyEntity {
         } else{
             phaseHoldUntil = System.currentTimeMillis() + phaseIntroMs;
         }
+        updatePhaseStrategy();
 
-        //페이즈에 따른 전략 객체 생성및 할당
+        }
+
+    //페이즈에 따른 전략 객체 생성및 할당
+    private void updatePhaseStrategy(){
+
         switch(phase) {
             case 0:
                 //페이즈1 폭탄 낙하
@@ -178,6 +183,7 @@ public class BossEntity extends EnemyEntity {
                 this.currentStrategy = null;
         }
     }
+
     @Override
     public void draw(Graphics g) {
         // 1. 보스 본체

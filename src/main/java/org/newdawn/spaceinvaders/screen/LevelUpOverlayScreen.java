@@ -1,6 +1,9 @@
 package org.newdawn.spaceinvaders.screen;
 
+import org.newdawn.spaceinvaders.entity.player.PlayerSkills;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
+
+import java.awt.Graphics2D;
 
 public class LevelUpOverlayScreen {
     private static final String DIALOG = "dialog";
@@ -15,8 +18,7 @@ public class LevelUpOverlayScreen {
         this.gamePlayScreen = gamePlayScreen;
     }
 
-
-    public void drawLevelUpOverlay(java.awt.Graphics2D g2, ShipEntity ship) {
+    public void drawLevelUpOverlay(Graphics2D g2, ShipEntity ship) {
         // 반투명 배경
         g2.setColor(new java.awt.Color(0,0,0,160));
         g2.fillRect(0, 0, 800, 600); // 해상도에 맞게
@@ -75,18 +77,15 @@ public class LevelUpOverlayScreen {
 
     public void handleKeyPress(int keyCode) {
 
-
         if (!gamePlayScreen.getLevelUpActive()) {
             return;
         }
-
 
         ShipEntity ship = gamePlayScreen.getShip();
         if (ship == null) {
             closeLevelUpOverlay();
             return;
         }
-
 
         if (keyCode == java.awt.event.KeyEvent.VK_UP) {
             int idx = gamePlayScreen.getLevelUpIndex();
@@ -102,13 +101,12 @@ public class LevelUpOverlayScreen {
             return;
         }
 
-
         if (keyCode == java.awt.event.KeyEvent.VK_ENTER
                 || keyCode == java.awt.event.KeyEvent.VK_Z) {
 
-            gamePlayScreen.applyLevelUpChoice(ship, gamePlayScreen.getLevelUpIndex());
+            applyLevelUpChoice(ship, gamePlayScreen.getLevelUpIndex());
             ship.getStats().spendLevelUpPoint();
-            gamePlayScreen.finishOrStay(ship);
+            finishOrStay(ship);
             return;
         }
 
@@ -135,7 +133,37 @@ public class LevelUpOverlayScreen {
 
         gamePlayScreen.setLevelUpIndex(chosen);
         s.getStats().spendLevelUpPoint();
-        gamePlayScreen.finishOrStay(s);
+        finishOrStay(s);
+
+    }
+
+
+    public void finishOrStay(ShipEntity ship) {
+        if (ship.getStats().hasUnspentLevelUp()) {
+            gamePlayScreen.setLevelUpIndex(0);
+        } else {
+            closeLevelUpOverlay();
+        }
+
+    }
+
+    private void applyLevelUpChoice(ShipEntity ship, int index) {
+        PlayerSkills s = ship.getStats().getSkills();
+
+        switch (index) {
+            case 0: // 공격력
+                s.atkLv = Math.min(5, s.atkLv + 1);
+                break;
+            case 1: // 연사속도(간격 감소)
+                s.rofLv = Math.min(5, s.rofLv + 1);
+                break;
+            case 2: // 대시 쿨타임 감소
+                s.dashLv = Math.min(5, s.dashLv + 1);
+                break;
+            default:
+                break;
+        }
+        ship.getPersistence().saveSkills(s);
 
     }
 }
