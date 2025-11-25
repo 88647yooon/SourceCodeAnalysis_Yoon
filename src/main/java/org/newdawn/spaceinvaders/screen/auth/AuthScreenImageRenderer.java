@@ -14,7 +14,8 @@ public class AuthScreenImageRenderer {
     public void drawBackground(Graphics2D g) {
         int w = 800;
         int h = 600;
-        Image backgroundImage;backgroundImage = loadImage();
+        Image backgroundImage;
+        backgroundImage = loadImage();
         g.drawImage(backgroundImage, 0, 0, w, h, null);
     }
 
@@ -62,8 +63,8 @@ public class AuthScreenImageRenderer {
         // 도움말
         g.setFont(new Font(DIALOG, Font.PLAIN, 14));
         g.setColor(new Color(80, 80, 80));
-        g.drawString("[Enter] 확인 | [Tab] 로그인/회원가입 전환 | ↑↓ 이동 | [ESC] 종료",
-                cardX + 16, cardY + cardH - 40);
+        g.drawString("[Enter] 확인 | [Tab] 로그인/회원가입 전환 ", cardX + 16, cardY + cardH - 40);
+        g.drawString("↑↓ 이동 | [ESC] 종료", cardX + 16, cardY + cardH -25);
 
         // 메시지
         if (!form.getMessage().isEmpty()) {

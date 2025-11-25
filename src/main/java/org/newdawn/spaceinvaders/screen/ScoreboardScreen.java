@@ -1,7 +1,7 @@
 package org.newdawn.spaceinvaders.screen;
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.database.ScoreEntry;
-
+import org.newdawn.spaceinvaders.screen.ScoreBoardScreenImageRenderer;
 import java.awt.*;
 import java.util.List;
 
@@ -10,6 +10,7 @@ public class ScoreboardScreen implements Screen {
     private List<ScoreEntry> scores;
     private boolean showGlobal = true;//  글로벌/내 점수 전환 플래그
     private boolean scoresLoaded = false;
+    private ScoreBoardScreenImageRenderer renderer = new ScoreBoardScreenImageRenderer(this);
 
     public ScoreboardScreen(Game game) {
         this.game = game;
@@ -25,8 +26,8 @@ public class ScoreboardScreen implements Screen {
 
     @Override
     public void render(Graphics2D g) {
-        g.setColor(Color.black);
-        g.fillRect(0, 0, 800, 600);
+
+        renderer.renderBackground(g);
 
         g.setColor(Color.white);
         g.setFont(new Font("Dialog", Font.BOLD, 28));
