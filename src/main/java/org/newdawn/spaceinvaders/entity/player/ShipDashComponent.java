@@ -10,8 +10,8 @@ public class ShipDashComponent {
     //대시 관련 필드
     private boolean dashing = false;
     private long dashStartAt =0L;
-    private long dashDurationMs = 140;
-    private long dashDistancePx = 1200;
+    private long dashDurationMs = 80;
+    private long dashDistancePx = 90;
     private long lastTrailAt = 0l;
 
     //쿨다운/무적 관련

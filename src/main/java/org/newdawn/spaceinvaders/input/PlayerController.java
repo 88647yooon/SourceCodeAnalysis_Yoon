@@ -30,6 +30,10 @@ public class PlayerController {
         if (ship == null) {
             return;
         }
+        //대시 중일때는 컨트롤러가 움직임을 방해하지 않도록 리턴
+        if(ship.getDash().isDashing()){
+            return;
+        }
 
         ship.setHorizontalMovement(0);
         ship.setVerticalMovement(0);
