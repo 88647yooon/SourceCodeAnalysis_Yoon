@@ -102,7 +102,7 @@ public class CombatManager {
             spawnManager.spawnBoss();
 
         } else {
-            spawnManager.spawnAliens();
+            spawnManager.spawnAliensForInfiniteMode();
         }
     }
 

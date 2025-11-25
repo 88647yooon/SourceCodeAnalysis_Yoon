@@ -2,10 +2,12 @@ package org.newdawn.spaceinvaders.manager;
 
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.entity.base.Entity;
+import org.newdawn.spaceinvaders.entity.boss.BossEntity;
 import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 import org.newdawn.spaceinvaders.entity.enemy.DiagonalShooterAlienEntity;
 import org.newdawn.spaceinvaders.entity.enemy.HostageEntity;
 import org.newdawn.spaceinvaders.entity.enemy.RangedAlienEntity;
+import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 
 import java.util.HashSet;
 import java.util.List;
@@ -17,108 +19,151 @@ public class EntitySpawnManager {
     private final EntityManager entityManager;
     private final Random random = new Random();
 
-    private static final double RANGED_ALIEN_RATIO = 0.25;
-
     public EntitySpawnManager(Game game, EntityManager entityManager) {
         this.game = game;
         this.entityManager = entityManager;
     }
 
-    public void spawnAliens(){
-        clearHostagesForInfiniteMode();
-
-        Difficulty diff = computeDifficultyForWave(game.getWaveCount());
-
-        int rows = 3 + (game.getWaveCount() % 3);   // 3~5
-        int cols = 6 + (game.getWaveCount() % 6);   // 6~11
+    /**
+     * [핵심] 통합 그리드 소환 메서드
+     * 스테이지 모드와 무한 모드 모두 이 메서드 하나를 사용합니다.
+     */
+    public int spawnUniversalGrid(int rows, int cols, double chanceDiagonal, double chanceRanged) {
         int startX = 100;
         int startY = 50;
         int gapX = 50;
         int gapY = 30;
 
-        int alienCount = spawnAlienGrid(diff, rows, cols, startX, startY, gapX, gapY);
+        int count = 0;
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                int x = startX + c * gapX;
+                int y = startY + r * gapY;
 
-        // Game 쪽 alienCount/waveCount 갱신
-        game.setAlienCount(alienCount);
+                // 1. 확률에 따라 적 종류 결정
+                Entity alien = createRandomAlien(x, y, chanceDiagonal, chanceRanged);
 
+                // 2. 난이도 적용 (무한모드용)
+                if (game.isInfiniteMode()) {
+                    applyDifficulty(alien);
+                }
+
+                // 3. 안전 소환 (자리 겹침 확인)
+                if (trySafeSpawn(alien)) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    // 확률 기반 적 생성 공장
+    private Entity createRandomAlien(int x, int y, double chanceDiag, double chanceRanged) {
+        double roll = random.nextDouble(); // 0.0 ~ 1.0
+
+        if (roll < chanceDiag) {
+            return new DiagonalShooterAlienEntity(game, x, y);
+        } else if (roll < chanceDiag + chanceRanged) {
+            return new RangedAlienEntity(game, x, y, game.getPlayerShip());
+        } else {
+            return new AlienEntity(game, x, y);
+        }
+    }
+
+    // =========================================================
+    // 모드별 진입점 (Entry Points)
+    // =========================================================
+
+    /** 무한 모드: 웨이브에 따라 확률을 자동 계산해서 통합 메서드 호출 */
+    public void spawnAliensForInfiniteMode() {
+        clearHostagesForInfiniteMode();
+
+        int wave = game.getWaveCount();
+        int rows = 3 + (wave % 3);
+        int cols = 6 + (wave % 6);
+
+        // 무한 모드 난이도 공식
+        double diagProb = Math.min(0.05 + (wave - 1) * 0.02, 0.25);
+        double rangedProb = 0.25;
+
+        // 통합 메서드 호출
+        int count = spawnUniversalGrid(rows, cols, diagProb, rangedProb);
+        game.setAlienCount(count);
+
+        // 인질 소환 (통합 메서드 설정값인 startX=100, startY=50, gapX=50을 전달)
         if (game.isInfiniteMode()) {
-            spawnHostages(cols, startX, startY, gapX);
+            spawnHostages(cols, 100, 50, 50);
         }
 
         game.incrementWaveCount();
     }
 
+    // 보스 소환 (스테이지 5 전용)
     public void spawnBoss() {
         List<Entity> entities = entityManager.getMutableEntities();
         entities.removeIf(HostageEntity.class::isInstance);
 
-        Entity boss = new org.newdawn.spaceinvaders.entity.boss.BossEntity(
-                game,
-                360,
-                60,
-                game.getPlayerShip()
-        );
+        BossEntity boss = new BossEntity(game, 360, 60, game.getPlayerShip());
         entityManager.addEntity(boss);
         game.setBossActive(true);
     }
+
+    // =========================================================
+    // 유틸리티 / 헬퍼 (안전 소환 & 인질)
+    // =========================================================
+
+    public boolean trySafeSpawn(Entity entity) {
+        if (isTooClose(entity.getX(), entity.getY())) return false;
+        entityManager.addEntity(entity);
+        return true;
+    }
+
+    private boolean isTooClose(int tx, int ty) {
+        for (Entity e : entityManager.getEntities()) {
+            // 구체적인 검사 로직은 아래 메서드로 위임 (Delegation)
+            if (isBlockingPosition(e, tx, ty)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 단일 엔티티와의 충돌 여부만 판단하는 메서드
+    private boolean isBlockingPosition(Entity e, int tx, int ty) {
+        // 1) 플레이어와 인질은 장애물로 치지 않음 (무시)
+        if (e instanceof ShipEntity || e instanceof HostageEntity) {
+            return false;
+        }
+
+        // 2) 거리 체크 (30px 이내면 겹침)
+        int diffX = Math.abs(e.getX() - tx);
+        int diffY = Math.abs(e.getY() - ty);
+
+        return diffX < 30 && diffY < 30;
+    }
+
     private void clearHostagesForInfiniteMode() {
         if (!game.isInfiniteMode()) return;
-
         List<Entity> entities = entityManager.getMutableEntities();
         entities.removeIf(HostageEntity.class::isInstance);
     }
 
-    private int spawnAlienGrid(Difficulty diff,
-                                      int rows, int cols,
-                                      int startX, int startY,
-                                      int gapX, int gapY) {
-
-        int alienCount = 0;
-
-        for (int row = 0; row < rows; row++) {
-            for (int c = 0; c < cols; c++) {
-                int x = startX + (c * gapX);
-                int y = startY + (row * gapY);
-
-                Entity alien = createAlienForPosition(x, y);
-                applyDifficultyToAlien(alien, diff);
-
-                entityManager.addEntity(alien);
-                alienCount++;
-            }
-        }
-        return alienCount;
-    }
-
-    private Entity createAlienForPosition(int x, int y) {
-        int waveCount = game.getWaveCount();
-
-        double diagonalProb = Math.min(0.05 + (waveCount - 1) * 0.02, 0.25);
-
-        double r = Math.random();
-
-        if (r < diagonalProb) {
-            return new DiagonalShooterAlienEntity(game, x, y);
-        }
-        if (r < diagonalProb + RANGED_ALIEN_RATIO) {
-            return new RangedAlienEntity(game, x, y, game.getPlayerShip());
-        }
-        return new AlienEntity(game, x, y);
-    }
-
+    // [수정됨] startX, startY, gapX를 정확히 전달받도록 수정
     private void spawnHostages(int cols, int startX, int startY, int gapX) {
         int hostageNum = 1 + random.nextInt(2);
-
         Set<Integer> usedCols = new HashSet<>();
+
+        // 인질은 적들보다 위쪽(Y값 작게)에 배치
+        int hostageY = startY - 40;
 
         for (int i = 0; i < hostageNum; i++) {
             int c = chooseHostageColumn(cols, usedCols);
             usedCols.add(c);
 
             int x = startX + (c * gapX);
-            int y = startY - 40;
-            Entity hostage = new HostageEntity(game, x, y);
-            entityManager.addEntity(hostage);
+
+            // 인질은 강제 소환 (그래야 안전 소환 로직에 의해 잘리는 일이 없음)
+            entityManager.addEntity(new HostageEntity(game, x, hostageY));
         }
     }
 
@@ -131,12 +176,25 @@ public class EntitySpawnManager {
         return c;
     }
 
-    // 난이도 관련
-    private static class Difficulty {
-        int alienHP;
-        double alienSpeedMul;
-        double fireRateMul;
-        double bulletSpeedMul;
+    // =========================================================
+    // 난이도 (Difficulty) 로직 복원
+    // =========================================================
+
+    private void applyDifficulty(Entity e) {
+        if (!game.isInfiniteMode()) return;
+
+        Difficulty d = computeDifficultyForWave(game.getWaveCount());
+
+        if (e instanceof AlienEntity) {
+            ((AlienEntity) e).setMaxHP(d.alienHP);
+            ((AlienEntity) e).applySpeedMultiplier(d.alienSpeedMul);
+        } else if (e instanceof RangedAlienEntity) {
+            ((RangedAlienEntity) e).setFireRateMultiplier(d.fireRateMul);
+            ((RangedAlienEntity) e).setBulletSpeedMultiplier(d.bulletSpeedMul);
+        } else if (e instanceof DiagonalShooterAlienEntity) {
+            ((DiagonalShooterAlienEntity) e).setFireRateMultiplier(d.fireRateMul);
+            ((DiagonalShooterAlienEntity) e).setBulletSpeedMultiplier(d.bulletSpeedMul);
+        }
     }
 
     private Difficulty computeDifficultyForWave(int wave) {
@@ -148,21 +206,10 @@ public class EntitySpawnManager {
         return d;
     }
 
-    private void applyDifficultyToAlien(Entity e, Difficulty d) {
-        if (e instanceof AlienEntity) {
-            AlienEntity a = (AlienEntity) e;
-            a.setMaxHP(d.alienHP);
-            a.applySpeedMultiplier(d.alienSpeedMul);
-        }
-        if (e instanceof RangedAlienEntity) {
-            RangedAlienEntity r = (RangedAlienEntity) e;
-            r.setFireRateMultiplier(d.fireRateMul);
-            r.setBulletSpeedMultiplier(d.bulletSpeedMul);
-        }
-        if (e instanceof DiagonalShooterAlienEntity) {
-            DiagonalShooterAlienEntity ds = (DiagonalShooterAlienEntity) e;
-            ds.setFireRateMultiplier(d.fireRateMul);
-            ds.setBulletSpeedMultiplier(d.bulletSpeedMul);
-        }
+    private static class Difficulty {
+        int alienHP;
+        double alienSpeedMul;
+        double fireRateMul;
+        double bulletSpeedMul;
     }
 }

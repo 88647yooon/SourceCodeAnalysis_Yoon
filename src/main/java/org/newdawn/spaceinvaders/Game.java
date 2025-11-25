@@ -98,6 +98,8 @@ public class Game extends Canvas {
     //entityManager에서 읽어갈 getter
     public boolean isLogicRequiredThisLoop() { return logicRequiredThisLoop; }
 
+    public EntitySpawnManager getSpawnManager() { return spawnManager; }
+
     //EntityManager에서 한 프레임 처리 후 flag를 꺼주는 setter
     public void resetLogicFlag() { logicRequiredThisLoop = false; }
 
@@ -197,7 +199,7 @@ public class Game extends Canvas {
 
         alienCount = 0;
         if (infiniteMode) {
-            spawnManager.spawnAliens();
+            spawnManager.spawnAliensForInfiniteMode();
         }
 
     }
@@ -219,7 +221,7 @@ public class Game extends Canvas {
     public void onBossKilled() {
         bossActive = false;
         if (infiniteMode) {
-            spawnManager.spawnAliens();
+            spawnManager.spawnAliensForInfiniteMode();
         } else {
             notifyWin();
         }
