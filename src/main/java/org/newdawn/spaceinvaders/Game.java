@@ -93,7 +93,7 @@ public class Game extends Canvas {
     /** 배경 렌더러 */
     private final transient BackgroundRenderer backgroundRenderer;
     /** 활성 화면 */
-    private final ScreenNavigator screenNavigator = new ScreenNavigator(this);
+    private final transient ScreenNavigator screenNavigator = new ScreenNavigator(this);
 
     //entityManager에서 읽어갈 getter
     public boolean isLogicRequiredThisLoop() { return logicRequiredThisLoop; }
@@ -114,7 +114,7 @@ public class Game extends Canvas {
     private int stageStartHP = 0;
     private static final int STAGE_TIME_LIMIT_MS = 120_000;
 
-    private enum GameState { MENU, PLAYING, GAMEOVER, SCOREBOARD, EXIT }
+    private enum GameState { MENU, PLAYING, GAME_OVER, SCOREBOARD, EXIT }
     private GameState state = GameState.MENU;
 
     // 무한 모드/웨이브/보스
@@ -276,22 +276,22 @@ public class Game extends Canvas {
     }
 
     /** 스테이지 모드 시작 */
-    public void startStageMode(int StageNum) {
+    public void startStageMode(int stageNum) {
         currentMode = Mode.STAGE;
         score = 0;
         runStartedAtMs = System.currentTimeMillis();
         infiniteMode = false;
-        waveCount = StageNum;
-        currentStageId = StageNum;
+        waveCount = stageNum;
+        currentStageId = stageNum;
         normalsClearedInCycle = 0;
 
         startGame();
 
         stageStartHP = getPlayerShip().getStats().getCurrentHP();
 
-        StageManager.applyStage(StageNum, this);
+        StageManager.applyStage(stageNum, this);
 
-        if (StageNum == 5) {
+        if (stageNum == 5) {
             bossActive = true;
             if (alienCount < 0) alienCount = 0;
         }
@@ -320,7 +320,7 @@ public class Game extends Canvas {
 
     /** 플레이어 사망 처리 */
     public void notifyDeath() {
-        state = GameState.GAMEOVER;
+        state = GameState.GAME_OVER;
         waitingForKeyPress = false;
         message = "";
 
@@ -415,10 +415,6 @@ public class Game extends Canvas {
 
     public void setFirePressed(boolean value) {
         playerController.getInputState().setFire(value);
-    }
-    /** 플레이어 피격 이벤트(로그 출력) */
-    public void onPlayerHit() {
-        System.out.println("Player hit!");
     }
 
     /**
@@ -586,4 +582,6 @@ public class Game extends Canvas {
     public void requestExit(){
         System.exit(0);
     }
+
+
 }

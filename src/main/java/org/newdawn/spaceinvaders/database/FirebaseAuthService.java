@@ -3,6 +3,7 @@ package org.newdawn.spaceinvaders.database;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import java.io.IOException;
 import java.net.HttpURLConnection;
 
 import java.net.URL;
@@ -50,14 +51,14 @@ public class FirebaseAuthService {
         return parseAuthResponse(res, actionName);
     }
 
-    private AuthResult parseAuthResponse(String res, String actionName) {
+    private AuthResult parseAuthResponse(String res, String actionName) throws IOException {
         String idToken = jget(res, "idToken");
         String refreshToken = jget(res, "refreshToken");
         String localId = jget(res, "localId");
         String emailOut = jget(res, "email");
 
         if (idToken == null || localId == null) {
-            throw new RuntimeException(actionName + " parse failed: " + res);
+            throw new IOException(actionName + " parse failed: " + res);
         }
         return new AuthResult(idToken, refreshToken, localId, emailOut);
     }

@@ -2,7 +2,6 @@ package org.newdawn.spaceinvaders.screen;
 
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.manager.SoundManager;
-import org.newdawn.spaceinvaders.screen.auth.AuthScreen;
 
 import java.awt.*;
 

@@ -82,7 +82,6 @@ public class ShotEntity extends Entity {
             //XP,점수, 외계인 제거 로직은 AlienEntity와 Game의 책임으로 이동
             ((EnemyEntity) other).wasHitBy(this);
 
-            return;
         }
     }
     // 데미지 getter setter 추가

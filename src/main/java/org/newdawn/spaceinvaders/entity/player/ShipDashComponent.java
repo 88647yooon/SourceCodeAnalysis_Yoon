@@ -24,13 +24,13 @@ public class ShipDashComponent {
     private static final int TOP_MARGIN = 10;
 
     // 잔상 파라미터
-    private static final int TRAIL_INTERVAL_MS = 22;   // 스냅샷 간격
     private static final int TRAIL_LIFETIME_MS = 240;  // 잔상 유지시간
     private static final int TRAIL_MAX = 10;           // 최대 스냅샷 개수
 
     //잔상 데이터
     private static final class Trail {
-        final int x, y;
+        final int x;
+        final int y;
         final long t;
         Trail(int x,int y,long t){this.x=x; this.y=y; this.t=t;}
     }
@@ -43,7 +43,7 @@ public class ShipDashComponent {
     //대시 시도
     public void tryDash() {
         long now = System.currentTimeMillis();
-        long cooldown = (long)Math.round(baseDashCooldownMs*ship.getStats().getSkills().dashCdMul());
+        long cooldown = Math.round(baseDashCooldownMs*ship.getStats().getSkills().dashCdMul());
         if (now - lastDashAt < cooldown) return;
 
         lastDashAt = now;
@@ -67,7 +67,7 @@ public class ShipDashComponent {
 
 
     //매 프레임 업데이트
-    public void update(long delta, long now){
+    public void update(long now){
         // 1. 대시 중일 때의 처리
         if (dashing) {
             processDashing(now);
@@ -92,18 +92,18 @@ public class ShipDashComponent {
 
         // 대시 종료 체크
         if (now - dashStartAt >= dashDurationMs) {
-            StopDash(now);
+            manageStopDash(now);
         }
     }
     // 경계 처리 분리
     private void enforceBoundaries(long now) {
         if(ship.getY() < TOP_MARGIN && ship.getVerticalMovement() < 0){
             ship.setY(TOP_MARGIN);
-            if(dashing) StopDash(now);
+            if(dashing) manageStopDash(now);
         }
         if(ship.getY() > 568 && ship.getVerticalMovement() > 0){
             ship.setY(568);
-            if(dashing) StopDash(now);
+            if(dashing) manageStopDash(now);
         }
     }
 
@@ -114,13 +114,13 @@ public class ShipDashComponent {
         }
     }
 
-    public void StopDash(long now){
+    private void manageStopDash(long now){
         dashing = false;
         ship.setVerticalMovement(0);
         spawnArrivalEchoes(now);
     }
-    public void StopDash(){
-        StopDash(System.currentTimeMillis());
+    public void stopDash(){
+        manageStopDash(System.currentTimeMillis());
     }
 
     private void spawnArrivalEchoes(long now){

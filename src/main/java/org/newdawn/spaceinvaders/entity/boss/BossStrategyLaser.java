@@ -1,7 +1,6 @@
 package org.newdawn.spaceinvaders.entity.boss;
 
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
-import org.newdawn.spaceinvaders.entity.boss.BossEntity;
 import org.newdawn.spaceinvaders.util.GeometryUtils;
 
 import java.awt.*;
@@ -52,11 +51,10 @@ public class BossStrategyLaser implements BossAttackStrategy{
 
     //충전 완료 체크
     private void checkChargeComplete(long now){
-        if (chargeStart > 0 && !active) {
-            if(now - chargeStart >= chargeDuration){
+            if((chargeStart > 0 && !active) &&(now - chargeStart >= chargeDuration)){
                 active = true;
             }
-        }
+
     }
 
     //발사 중 동작

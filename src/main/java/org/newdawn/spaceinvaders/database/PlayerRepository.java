@@ -24,7 +24,6 @@ public class PlayerRepository {
         try {
             String json = GSON.toJson(s);
             dbClient.put("users/" + uid + "/skills", idToken, json);
-            logger.info("스킬 저장: " + json);
         } catch (Exception e) {
             logger.warning("스킬 저장 실패: " + e.getMessage());
         }
@@ -80,7 +79,6 @@ public class PlayerRepository {
                     xp = Integer.parseInt(xpStr);
                 }
 
-                logger.info("불러온 레벨: " + level + ", 경험치: " + xp);
                 return new int[]{level, xp};
             }
         } catch (Exception e) {
@@ -102,7 +100,6 @@ public class PlayerRepository {
                     + "\"xpIntoLevel\":" + xpIntoLevel
                     + "}";
             dbClient.put("users/" + uid + "/lastLevel", idToken, json);
-            logger.info("마지막 레벨 저장 완료 →" + json);
         } catch (Exception e) {
             logger.warning("레벨 저장 실패: " + e.getMessage());
         }

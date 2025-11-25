@@ -50,6 +50,9 @@ public class GamePlayScreen implements Screen {
 
     @Override
     public void render(Graphics2D g){
+        Font uiFont;
+        uiFont = new Font("맑은 고딕", Font.BOLD, 20);
+
         // 웨이브별 배경 (10 웨이브마다 교체)
         backgroundRenderer.render(g, game.getWaveCount(), 800, 600);
 
@@ -60,12 +63,27 @@ public class GamePlayScreen implements Screen {
 
         //HUD는 플레이 화면에서만 표시
         hudRenderer.render(g);
+        if (game.isWaitingForKeyPress()) {
+            g.setColor(Color.white);
+            g.setFont(uiFont);
+
+            String winMsg = game.getMessage();
+            String msg = "아무 키나 누르세요";
+
+            int cx = 800;
+            if(winMsg != null && !winMsg.isEmpty()){
+                int winX = (cx - g.getFontMetrics().stringWidth(winMsg)) / 2;
+                g.drawString(winMsg, winX, 260);
+            }
+            g.drawString(msg, (800 - g.getFontMetrics().stringWidth(msg)) / 2, 300);
+        }
 
         if (levelUpActive) {
             levelUpOverlayScreen.drawLevelUpOverlay(g, ship);   // ← 오버레이 호출
         }
 
     }
+
 
     @Override
     public void update(long delta) {

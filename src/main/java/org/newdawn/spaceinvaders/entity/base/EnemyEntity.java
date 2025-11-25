@@ -6,7 +6,7 @@ public abstract class EnemyEntity extends Entity {
     protected int maxHP = 1;
     protected int currentHP = 1;
 
-    public EnemyEntity(String ref, int x, int y) {
+    protected EnemyEntity(String ref, int x, int y) {
         super(ref, x, y);
     }
 

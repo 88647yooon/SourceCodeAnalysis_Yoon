@@ -76,6 +76,6 @@ public class AuthScreen implements Screen {
 
     public void handleCharTyped(char c) {
         LoginCharTypedHandler l = new LoginCharTypedHandler(form);
-        l.CharTypedHandler(c);
+        l.charTypedHandler(c);
     }
 }

@@ -1,8 +1,6 @@
 package org.newdawn.spaceinvaders.screen;
 
 import org.newdawn.spaceinvaders.Game;
-import org.newdawn.spaceinvaders.screen.MenuScreen;
-import org.newdawn.spaceinvaders.screen.Screen;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -33,31 +31,8 @@ public class GameOverScreen implements Screen {
         }
         String help = "↑/↓ 이동  Enter 선택  Esc 타이틀";
         g.drawString(help, (800 - g.getFontMetrics().stringWidth(help)) / 2, 360);
-        drawPressAnyKeyMessage(g);
 
-    }
 
-    private void drawPressAnyKeyMessage(Graphics2D g) {
-        if (!game.isWaitingForKeyPress()) {
-            return;
-        }
-
-        Font uiFont = g.getFont(); // 이미 설정된 폰트 재사용하거나, 새로 만들어도 됨
-        g.setColor(Color.white);
-        g.setFont(uiFont);
-
-        String winMsg = game.getMessage();    // 게임에서 세팅해 둔 메인 메시지 (예: "Well done! You Win!")
-        String msg    = "아무 키나 누르세요";
-
-        int screenWidth = 800;
-
-        if (winMsg != null && !winMsg.isEmpty()) {
-            int winX = (screenWidth - g.getFontMetrics().stringWidth(winMsg)) / 2;
-            g.drawString(winMsg, winX, 260);
-        }
-
-        int msgX = (screenWidth - g.getFontMetrics().stringWidth(msg)) / 2;
-        g.drawString(msg, msgX, 300);
     }
 
     @Override
@@ -83,6 +58,11 @@ public class GameOverScreen implements Screen {
 
     @Override
     public void handleKeyRelease(int keyCode) {
-        // 필요 없으면 비워두기
+        game.setLeftPressed(false);
+        game.setRightPressed(false);
+        game.setUpPressed(false);
+        game.setDownPressed(false);
+        game.setFirePressed(false);
+
     }
 }
