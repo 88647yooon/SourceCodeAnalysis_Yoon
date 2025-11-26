@@ -79,22 +79,27 @@ public class EntitySpawnManager {
         clearHostagesForInfiniteMode();
 
         int wave = game.getWaveCount();
-        int rows = 3 + (wave % 3);
-        int cols = 6 + (wave % 6);
-
-        // 무한 모드 난이도 공식
-        double diagProb = Math.min(0.05 + (wave - 1) * 0.02, 0.25);
-        double rangedProb = 0.25;
-
-        // 통합 메서드 호출
-        int count = spawnUniversalGrid(rows, cols, diagProb, rangedProb);
-        game.setAlienCount(count);
-
-        // 인질 소환 (통합 메서드 설정값인 startX=100, startY=50, gapX=50을 전달)
-        if (game.isInfiniteMode()) {
-            spawnHostages(cols, 100, 50, 50);
+        if (wave % 4 == 0) {
+            spawnBoss();
+            game.setAlienCount(1); // 보스는 1마리 취급
         }
+        else {
+            int rows = 3 + (wave % 3);
+            int cols = 6 + (wave % 6);
 
+            // 무한 모드 난이도 공식
+            double diagProb = Math.min(0.05 + (wave - 1) * 0.02, 0.25);
+            double rangedProb = 0.25;
+
+            // 통합 메서드 호출
+            int count = spawnUniversalGrid(rows, cols, diagProb, rangedProb);
+            game.setAlienCount(count);
+
+            // 인질 소환 (통합 메서드 설정값인 startX=100, startY=50, gapX=50을 전달)
+            if (game.isInfiniteMode()) {
+                spawnHostages(cols, 100, 50, 50);
+            }
+        }
         game.incrementWaveCount();
     }
 
@@ -120,27 +125,17 @@ public class EntitySpawnManager {
 
     private boolean isTooClose(int tx, int ty) {
         for (Entity e : entityManager.getEntities()) {
-            // 구체적인 검사 로직은 아래 메서드로 위임 (Delegation)
-            if (isBlockingPosition(e, tx, ty)) {
+            if (e instanceof ShipEntity || e instanceof HostageEntity) continue;
+
+            if (e.getClass().getSimpleName().contains("Shot")) continue;
+
+            if (Math.abs(e.getX() - tx) < 30 && Math.abs(e.getY() - ty) < 30) {
                 return true;
             }
         }
         return false;
     }
 
-    // 단일 엔티티와의 충돌 여부만 판단하는 메서드
-    private boolean isBlockingPosition(Entity e, int tx, int ty) {
-        // 1) 플레이어와 인질은 장애물로 치지 않음 (무시)
-        if (e instanceof ShipEntity || e instanceof HostageEntity) {
-            return false;
-        }
-
-        // 2) 거리 체크 (30px 이내면 겹침)
-        int diffX = Math.abs(e.getX() - tx);
-        int diffY = Math.abs(e.getY() - ty);
-
-        return diffX < 30 && diffY < 30;
-    }
 
     private void clearHostagesForInfiniteMode() {
         if (!game.isInfiniteMode()) return;
@@ -148,21 +143,15 @@ public class EntitySpawnManager {
         entities.removeIf(HostageEntity.class::isInstance);
     }
 
-    // [수정됨] startX, startY, gapX를 정확히 전달받도록 수정
     private void spawnHostages(int cols, int startX, int startY, int gapX) {
         int hostageNum = 1 + random.nextInt(2);
         Set<Integer> usedCols = new HashSet<>();
-
-        // 인질은 적들보다 위쪽(Y값 작게)에 배치
         int hostageY = startY - 40;
 
         for (int i = 0; i < hostageNum; i++) {
             int c = chooseHostageColumn(cols, usedCols);
             usedCols.add(c);
-
             int x = startX + (c * gapX);
-
-            // 인질은 강제 소환 (그래야 안전 소환 로직에 의해 잘리는 일이 없음)
             entityManager.addEntity(new HostageEntity(game, x, hostageY));
         }
     }

@@ -63,13 +63,12 @@ public class RangedAlienEntity extends AlienEntity {
         double vx = 0.0;
         double vy = speed;
 
-        // [수정] 'game'은 부모의 protected 필드를 사용
+
         game.addEntity(new EnemyShotEntity(
                 game,
                 "sprites/enemy_bullet.png",
                 sx, sy,
-                vx, vy,                 // 절대속도(px/s) — 항상 아래로
-                speed
+                vx, vy
         ));
     }
 

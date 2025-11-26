@@ -180,7 +180,8 @@ public class Game extends Canvas {
         entityManager.addEntity(ship);
         playerController.setShip((ShipEntity) ship);
 
-        ((ShipEntity) ship).getStats().setInvulnerable(false);
+        //무적모드
+        ((ShipEntity) ship).getStats().setInvulnerable(true);
         if (hasSession()) {
             ShipEntity s = getPlayerShip();
             AuthSession current = getSession();
@@ -221,6 +222,7 @@ public class Game extends Canvas {
     public void onBossKilled() {
         bossActive = false;
         if (infiniteMode) {
+            setAlienCount(0);
             spawnManager.spawnAliensForInfiniteMode();
         } else {
             notifyWin();

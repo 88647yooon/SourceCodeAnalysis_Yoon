@@ -33,12 +33,17 @@ public class EntityManager {
                 entity.move(delta);
             }
         }
-        //엔티티 충돌
-        int size = entities.size();
+        List<Entity> currentEntities = new ArrayList<>(entities);
+        int size = currentEntities.size();
+
         for (int p = 0; p < size; p++) {
             for (int s = p + 1; s < size; s++) {
-                Entity a = entities.get(p);
-                Entity b = entities.get(s);
+                Entity a = currentEntities.get(p);
+                Entity b = currentEntities.get(s);
+
+                // 이미 제거 예약된 엔티티끼리는 충돌 검사 생략 (선택 사항)
+                if (removeList.contains(a) || removeList.contains(b)) continue;
+
                 if (a.collidesWith(b)) {
                     a.collidedWith(b);
                     b.collidedWith(a);
@@ -53,7 +58,7 @@ public class EntityManager {
 
         //doLogic
         if(game.isLogicRequiredThisLoop()){
-            for(Entity e : entities){
+            for(Entity e : new ArrayList<>(entities)){
                 e.doLogic();
             }
             game.resetLogicFlag();
