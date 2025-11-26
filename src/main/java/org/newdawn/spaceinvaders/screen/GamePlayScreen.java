@@ -108,18 +108,12 @@ public class GamePlayScreen implements Screen {
         if (isPaused) {
             return;
         }
+
         ShipEntity s = game.getPlayerShip();
-
-
-        if (s.getStats().hasUnspentLevelUp() && !levelUpActive) {
+        if (s != null && s.getStats().hasUnspentLevelUp() && !levelUpActive) {
             levelUpOverlayScreen.openLevelUpOverlay();
             // (선택) game.setPaused(true); 가 있다면 호출
         }
-
-        if (levelUpActive) {
-            return;
-        }
-        game.updateEntities(delta);
     }
 
 

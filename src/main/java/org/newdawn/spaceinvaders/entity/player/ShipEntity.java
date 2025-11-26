@@ -90,11 +90,10 @@ public class ShipEntity extends Entity {
 
         boolean hit = stats.takeDamage(d, now);
 
-
-            if(hit && stats.isDead()){
+        if(hit && stats.isDead()){
                 game.notifyDeath();
+            }
 
-        }
 
     }
 
