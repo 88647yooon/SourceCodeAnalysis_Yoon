@@ -3,10 +3,10 @@ package org.newdawn.spaceinvaders.entity.boss;
 import java.awt.Graphics2D;
 public class BossStrategySwirl implements BossAttackStrategy {
     private double swirlAngle = 0.0;
-    private double swirlRotationSpeed = 60;
-    private int bulletsPerWave =12;
-    private double bulletSpeed = 120;
-    private long intervalMs =900;
+    private double swirlRotationSpeed = 90; // 기존 60 (회전 속도 증가)
+    private int bulletsPerWave = 18;        // 기존 12 (한 번에 뿌리는 양 1.5배)
+    private double bulletSpeed = 160;       // 기존 120 (탄속 증가)
+    private long intervalMs = 600;
     private long lastFireAt = 0;
 
     @Override

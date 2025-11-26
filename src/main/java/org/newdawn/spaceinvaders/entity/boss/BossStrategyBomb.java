@@ -1,6 +1,7 @@
 package org.newdawn.spaceinvaders.entity.boss;
 
 import org.newdawn.spaceinvaders.entity.base.Entity;
+import org.newdawn.spaceinvaders.entity.projectile.EnemyShotEntity;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -60,8 +61,16 @@ public class BossStrategyBomb implements BossAttackStrategy{
 
             long explodeDelay = (long)(timeSec*1000.0);
 
-            //폭탄 생성
-            Entity bomb = boss.spawnShotEntity(boss.getX() + boss.getWidth()/2.0,startY,dx,fallSpeed,0);
+            EnemyShotEntity bomb = new EnemyShotEntity(
+                    boss.getGame(),
+                    "sprites/bomb.png",
+                    boss.getX() + boss.getWidth()/2.0,
+                    startY,
+                    dx,
+                    fallSpeed
+            );
+
+            boss.getGame().addEntity(bomb);
 
             //그림자 등록
             shadows.add(new Shadow(tx,explodeY,now,now+explodeDelay));

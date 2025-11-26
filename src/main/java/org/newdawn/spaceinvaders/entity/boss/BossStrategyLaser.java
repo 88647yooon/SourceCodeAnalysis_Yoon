@@ -14,7 +14,7 @@ public class BossStrategyLaser implements BossAttackStrategy{
     private long cycleMs = 2800;
     private long phaseStartAt;
 
-    private final int laserWidthPx = 14;
+    private final int laserWidthPx = 40;
     private final int laserLengthPx = 900;
 
     public BossStrategyLaser(){
