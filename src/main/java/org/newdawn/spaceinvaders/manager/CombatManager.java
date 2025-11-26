@@ -96,14 +96,7 @@ public class CombatManager {
             return; //보스전에는 해당 없음
         }
 
-        game.incrementNormalsClearedInCycle();
-        if(game.getNormalsClearedInCycle() >= 3){
-            game.resetNormalsClearedInCycle();
-            spawnManager.spawnBoss();
-
-        } else {
-            spawnManager.spawnAliensForInfiniteMode();
-        }
+        spawnManager.spawnAliensForInfiniteMode();
     }
 
     private void aliensClearedInStageMode() {

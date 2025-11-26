@@ -19,6 +19,10 @@ public abstract class EnemyEntity extends Entity {
         return currentHP;
     }
 
+    public int getMaxHP() {
+        return maxHP;
+    }
+
     public boolean takeDamage(int dmg) {
         currentHP -= Math.max(1, dmg);
         return currentHP <= 0;

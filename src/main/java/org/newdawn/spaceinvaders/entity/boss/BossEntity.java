@@ -60,7 +60,10 @@ public class BossEntity extends EnemyEntity {
             this.game = game;
             this.player = player;
 
-            setMaxHP(BOSS_MAX_HP);
+            int atkLv = player.getStats().getSkills().atkLv;
+            int scaledHP = 150 + (atkLv * 50);
+
+            setMaxHP(scaledHP);
 
             frames[0] = SpriteStore.get().getSprite("sprites/boss1.png");
             frames[1] = SpriteStore.get().getSprite("sprites/boss2.png");
@@ -120,9 +123,9 @@ public class BossEntity extends EnemyEntity {
     }
 
     private void checkPhaseTransition() {
-        if (phase == 0 && getCurrentHP() <= (BOSS_MAX_HP * 2) / 3) {
+        if (phase == 0 && getCurrentHP() <= (getMaxHP() * 2) / 3) {
             enterPhase(1);
-        } else if (phase == 1 && getCurrentHP() <= BOSS_MAX_HP / 3) {
+        } else if (phase == 1 && getCurrentHP() <= getMaxHP() / 3) {
             enterPhase(2);
         }
     }
@@ -205,7 +208,7 @@ public class BossEntity extends EnemyEntity {
     private void drawHealthBar(Graphics g) {
         int w = BOSS_W;
         int h = 6;
-        int bw = (int)Math.max(0, Math.round((getCurrentHP() / (double)BOSS_MAX_HP) * w));
+        int bw = (int)Math.max(0, Math.round((getCurrentHP() / (double)getMaxHP()) * w));
         g.setColor(Color.RED);
         g.fillRect((int)x, (int)y - 10, bw, h);
         g.setColor(Color.DARK_GRAY);

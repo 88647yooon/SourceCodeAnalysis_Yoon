@@ -79,9 +79,9 @@ public class EntitySpawnManager {
         clearHostagesForInfiniteMode();
 
         int wave = game.getWaveCount();
-        if (wave % 4 == 0) {
+        if (wave % 5 == 0) {
             spawnBoss();
-            game.setAlienCount(1); // 보스는 1마리 취급
+            game.setAlienCount(1);
         }
         else {
             int rows = 3 + (wave % 3);
@@ -188,7 +188,8 @@ public class EntitySpawnManager {
 
     private Difficulty computeDifficultyForWave(int wave) {
         Difficulty d = new Difficulty();
-        d.alienHP = 1 + Math.max(0, (wave - 1) / 2);
+        d.alienHP = wave;
+
         d.alienSpeedMul = Math.min(2.5, 1.0 + 0.08 * (wave - 1));
         d.fireRateMul = Math.min(3.0, 1.0 + 0.10 * (wave - 1));
         d.bulletSpeedMul = Math.min(2.0, 1.0 + 0.05 * (wave - 1));

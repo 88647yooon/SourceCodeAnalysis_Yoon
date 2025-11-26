@@ -222,7 +222,9 @@ public class Game extends Canvas {
     /** 보스 처치 */
     public void onBossKilled() {
         bossActive = false;
-        entityManager.removeEntitiesByClass(EnemyShotEntity.class);
+        entityManager.removeEntitiesByClass(EnemyShotEntity.class); // 총알 제거
+        entityManager.removeEntitiesByClass(AlienEntity.class);
+
         if (infiniteMode) {
             setAlienCount(0);
             spawnManager.spawnAliensForInfiniteMode();
