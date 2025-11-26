@@ -235,7 +235,7 @@ public class BossEntity extends EnemyEntity {
 
         //사망 처리
         if(isDead){
-            game.removeEntity(this);
+            game.getEntityManager().removeEntity(this);
             game.onBossKilled(); //보스 전용 사망 처리 호출
         }
     }
@@ -247,13 +247,13 @@ public class BossEntity extends EnemyEntity {
 
     //전략 클래스가 사용할 수 있도록 탄환 생성로직을 public으로 공개
     public void spawnShot(double x, double y, double vx, double vy,double speed){
-        game.addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", x, y, vx, vy));
+        game.getEntityManager().addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", x, y, vx, vy));
     }
 
     // 폭탄 전략이 Entity를 반환받아 제거할 때 사용 (BombStrategy에서 필요)
     public Entity spawnShotEntity(double x, double y, double vx, double vy, double speed) {
         EnemyShotEntity shot = new EnemyShotEntity(game, "sprites/enemy_bullet.png", x, y, vx, vy);
-        game.addEntity(shot);
+        game.getEntityManager().addEntity(shot);
         return shot;
     }
 

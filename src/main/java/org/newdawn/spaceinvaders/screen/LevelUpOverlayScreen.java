@@ -2,6 +2,7 @@ package org.newdawn.spaceinvaders.screen;
 
 import org.newdawn.spaceinvaders.entity.player.PlayerSkills;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
+import org.newdawn.spaceinvaders.input.InputState;
 
 import java.awt.Graphics2D;
 
@@ -61,14 +62,17 @@ public class LevelUpOverlayScreen {
         g2.drawString("↑/↓ 이동, Enter(또는 숫자 1~3)로 확정", px + 24, py + panelH - 18);
     }
 
+
     public void openLevelUpOverlay() {
         gamePlayScreen.setLevelUpActive(true);
         // 눌림 상태 초기화(선택)
-        gamePlayScreen.getGame().setLeftPressed(false);
-        gamePlayScreen.getGame().setRightPressed(false);
-        gamePlayScreen.getGame().setUpPressed(false);
-        gamePlayScreen.getGame().setDownPressed(false);
-        gamePlayScreen.getGame().setFirePressed(false);
+        InputState input = gamePlayScreen.getGame().getPlayerController().getInputState();
+
+        input.setLeft(false);
+        input.setRight(false);
+        input.setUp(false);
+        input.setDown(false);
+        input.setFire(false);
     }
 
     public  void closeLevelUpOverlay() {

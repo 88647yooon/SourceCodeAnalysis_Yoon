@@ -84,7 +84,7 @@ public class Game extends Canvas {
     private final transient EntityManager entityManager = new EntityManager(this);
     private final transient EntitySpawnManager spawnManager = new EntitySpawnManager(this, entityManager);
     private final transient CombatManager combatManager = new CombatManager(this, entityManager, spawnManager);
-
+    private final GameProgressContext context = new GameProgressContext();
     private final transient PlayerController playerController = new PlayerController(this);
     /** 플레이어(Ship) 엔티티 */
     private transient Entity ship;
@@ -93,10 +93,7 @@ public class Game extends Canvas {
      *   게임 플래그 / 상태
      * --------------------
      */
-    /** 화면에 남은 외계인 수 */
-    private int alienCount;
-    /** HP가 낮은 등 위험 상태 표시 */
-    private boolean dangerMode = false;
+
     /** 아무 키 대기 중인지 여부 */
     private boolean waitingForKeyPress = true;
     /** 이번 루프에서 별도의 게임 로직(doLogic)을 적용해야 하는지 */
@@ -105,9 +102,6 @@ public class Game extends Canvas {
     private String message = "";
     //ScreenNavigator getter
     public ScreenNavigator getScreenNavigator() { return screenNavigator; }
-
-
-
 
     //entityManager에서 읽어갈 getter
     public boolean isLogicRequiredThisLoop() { return logicRequiredThisLoop; }
@@ -122,22 +116,9 @@ public class Game extends Canvas {
 
 
 
-
-    // 모드/점수/스테이지
-    private enum Mode { STAGE, INFINITE }
-    private Mode currentMode = Mode.STAGE;
-    private int score = 0;
-    private long runStartedAtMs = 0L;
-    private int currentStageId = 1;
-    private int stageStartHP = 0;
     private static final int STAGE_TIME_LIMIT_MS = 120_000;
     private transient GameState state;
 
-    // 무한 모드/웨이브/보스
-    private boolean infiniteMode = false;
-    private int waveCount = 1;
-    private int normalsClearedInCycle = 0;
-    private boolean bossActive = false;
     
     public Game() {
         // 프레임에 띄울 게임 명
@@ -180,7 +161,7 @@ public class Game extends Canvas {
 
     private void startGame() {
         entityManager.clearEntity();
-        alienCount = 0;
+        context.getAlienCount();
 
         initEntities();
         
@@ -217,8 +198,7 @@ public class Game extends Canvas {
             s.getPersistence().loadSkills(ps);
         }
 
-        alienCount = 0;
-        if (infiniteMode) {
+        if (context.isInfiniteMode()) {
             spawnManager.spawnAliensForInfiniteMode();
         }
 
@@ -230,30 +210,55 @@ public class Game extends Canvas {
     }
 
     //wave
-    public int getWaveCount() { return waveCount; }
-    public void incrementWaveCount() { waveCount++; }
+    public int getWaveCount() { return context.getWaveCount(); }
+    public void incrementWaveCount() { context.incrementWaveCount(); }
 
     //boss state
-    public void setBossActive(boolean bossActive) { this.bossActive = bossActive; }
-    public boolean isBossActive() { return bossActive; }
+    public void setBossActive(boolean bossActive) { context.setBossActive(bossActive); }
+    public boolean isBossActive() { return context.isBossActive(); }
 
     //alien count
-    public void setAlienCount(int count) { this.alienCount = count; }
-    public int getAlienCount() { return alienCount; }
+    public void setAlienCount(int count) { context.setAlienCount(count); }
+    public int getAlienCount() { return context.getAlienCount(); }
 
-    //--점수 / 카운트 / DangerMode 관련 헬퍼 --
-    public void addScore(int delta){ this.score += delta; }
+    // 점수 관련
+    public void addScore(int delta){ context.addScore(delta); }
+    public int getScore(){ return context.getScore(); }
+
+    //Alien  감소 로직
+    public void decrementAlienCount(){ context.decrementAlienCount(); }
+    //Danger Mode
+    public void setDangerMode(boolean dangerMode){ context.setDangerMode(dangerMode); }
+    public boolean isDangerMode() { return context.isDangerMode(); }
+
+    //모드 확인
+    public int getCurrentStageId() { return context.getCurrentStageId(); }
+    public boolean isInfiniteMode() { return context.isInfiniteMode(); }
+    public boolean isStageMode() { return context.isStageMode(); }
+
 
     public void updateEntities(long delta) { entityManager.update(delta, waitingForKeyPress);}
+    public PlayerController getPlayerController() { return playerController; }
+    public EntityManager getEntityManager() { return entityManager; }
+
+    /** 남은 스테이지 시간(ms). 스테이지 모드가 아니면 0 */
+    public int getStageTimeLimitMs() {
+        if (!context.isStageMode()) return 0;
+        if (context.getRunStartedAtMs() == 0) return STAGE_TIME_LIMIT_MS;
+
+        long elapsed = System.currentTimeMillis() - context.getRunStartedAtMs();
+        int timeLeft = (int) (STAGE_TIME_LIMIT_MS - elapsed);
+        return Math.max(0, timeLeft);
+    }
 
 
     /** 보스 처치 */
     public void onBossKilled() {
-        bossActive = false;
+        context.setBossActive(false);
         entityManager.removeEntitiesByClass(EnemyShotEntity.class); // 총알 제거
         entityManager.removeEntitiesByClass(AlienEntity.class);
 
-        if (infiniteMode) {
+        if (context.isInfiniteMode()) {
             setAlienCount(0);
             spawnManager.spawnAliensForInfiniteMode();
         } else {
@@ -261,27 +266,6 @@ public class Game extends Canvas {
         }
     }
 
-
-
-    public void decrementAlienCount(){
-        this.alienCount--;
-        if(this.alienCount < 0){
-            this.alienCount = 0;
-        }
-    }
-
-
-    public void setDangerMode(boolean dangerMode){ this.dangerMode = dangerMode; }
-    public boolean isDangerMode() { return dangerMode; }
-
-    //-- 스테이지 / 웨이브 관련 헬퍼 --
-    public int getCurrentStageId() { return currentStageId; }
-    public boolean isInfiniteMode() { return infiniteMode; }
-
-    //-- 무한모드 웨이브 사이클 --
-    public int getNormalsClearedInCycle(){ return normalsClearedInCycle; }
-    public void incrementNormalsClearedInCycle(){ normalsClearedInCycle++; }
-    public void resetNormalsClearedInCycle(){ normalsClearedInCycle = 0; }
 
     public void onAlienKilled(AlienEntity alien) { combatManager.onAlienKilled(alien); }
 
@@ -297,40 +281,26 @@ public class Game extends Canvas {
     // [추가] 당장 다음 스테이지(= 현재 stageId의 다음 인덱스)를 오픈
     private void unlockNextStageIfEligible(int currentStageId) { stageProgressManager.unlockNextStageIfEligible(currentStageId); }
 
-    public boolean isStageMode() { return currentMode == Mode.STAGE; }
+
 
     /** 스테이지 모드 시작 */
     public void startStageMode(int stageNum) {
-        currentMode = Mode.STAGE;
-        score = 0;
-        runStartedAtMs = System.currentTimeMillis();
-        infiniteMode = false;
-        waveCount = stageNum;
-        currentStageId = stageNum;
-        normalsClearedInCycle = 0;
+
+        int currentHP = (getPlayerShip() != null) ? getPlayerShip().getStats().getCurrentHP() : 3;
+        context.initStageMode(stageNum, currentHP);
 
         initEntities();
         playerController.getInputState().reset();
 
-        stageStartHP = getPlayerShip().getStats().getCurrentHP();
         StageManager.applyStage(stageNum, this);
-
-        if (stageNum == 5) {
-            bossActive = true;
-            if (alienCount < 0) alienCount = 0;
-        }
 
         changeState(new PlayingState(this));
     }
 
     /** 무한 모드 시작 */
     public void startInfiniteMode() {
-        currentMode = Mode.INFINITE;
-        score = 0;
-        runStartedAtMs = System.currentTimeMillis();
-        infiniteMode = true;
-        waveCount = 0;
-        normalsClearedInCycle = 0;
+
+        context.initInfiniteMode();
         //엔티티 초기화 로직
         startGame();
         //state 위임
@@ -365,13 +335,14 @@ public class Game extends Canvas {
         gameDb.savePlayerLevel(getSession(), p.getStats().getLevel(), p.getStats().getXpIntoLevel());
 
         // 2. 점수 저장
-        long durationMs = (runStartedAtMs > 0) ? (System.currentTimeMillis() - runStartedAtMs) : 0L;
-        String modeStr = (currentMode == Mode.STAGE) ? "STAGE" : "INFINITE";
+        long startedAt = context.getRunStartedAtMs();
+        long durationMs = (startedAt > 0) ? (System.currentTimeMillis() - startedAt) : 0L;
+        String modeStr = context.isStageMode() ? "STAGE" : "INFINITE";
 
         gameDb.saveGameResult(
                 getSession(),
-                score,
-                waveCount,
+                context.getScore(),
+                context.getWaveCount(),
                 p.getStats().getLevel(),
                 modeStr,
                 durationMs
@@ -384,18 +355,19 @@ public class Game extends Canvas {
         message = "Player Win!";
         waitingForKeyPress = true;
 
-        if (currentMode == Mode.STAGE) {
-            long elapsed = (runStartedAtMs > 0) ? (System.currentTimeMillis() - runStartedAtMs) : 0L;
+        if (context.isStageMode()) {
+            long startedAt = context.getRunStartedAtMs();
+            long elapsed = (startedAt > 0) ? (System.currentTimeMillis() - startedAt) : 0L;
             int timeLeft = Math.max(0, STAGE_TIME_LIMIT_MS - (int) elapsed);
 
             int damageTaken = 0;
             ShipEntity p = getPlayerShip();
             if (p != null) {
-                damageTaken = Math.max(0, stageStartHP - p.getStats().getCurrentHP());
+                damageTaken = Math.max(0, context.getStageStartHP() - p.getStats().getCurrentHP());
             }
-            evaluateStageResult(currentStageId, timeLeft, damageTaken, score);
+            evaluateStageResult(context.getCurrentStageId(), timeLeft, damageTaken, context.getScore());
             //조건 충족시 다음 스테이지 해제
-            unlockNextStageIfEligible(currentStageId);
+            unlockNextStageIfEligible(context.getCurrentStageId());
 
         }
 
@@ -410,36 +382,13 @@ public class Game extends Canvas {
         uploadScoreIfLoggedIn();
     }
 
-    /** 남은 스테이지 시간(ms). 스테이지 모드가 아니면 0 */
-    public int getStageTimeLimitMs() {
-        if (currentMode != Mode.STAGE) return 0;
-        if (runStartedAtMs == 0) return STAGE_TIME_LIMIT_MS;
 
-        long elapsed = System.currentTimeMillis() - runStartedAtMs;
-        int timeLeft = (int) (STAGE_TIME_LIMIT_MS - elapsed);
-        return Math.max(0, timeLeft);
-    }
 
     /**
      * 엔티티 접근자
      */
 
-    public List<Entity> getEntities() { return entityManager.getEntities(); }
-    public List<Entity> getMutableEntities() { return entityManager.getMutableEntities(); }
     public ShipEntity getPlayerShip() { return (ShipEntity) ship; }
-    public void addEntity(Entity e) { entityManager.addEntity(e);}
-    /** 엔티티 제거 요청(프레임 말미에 일괄 처리) */
-    public void removeEntity   (Entity entity) { entityManager.removeEntity(entity); }
-    public EntityManager getEntityManager() { return entityManager; }
-    public PlayerController getPlayerController() { return playerController; }
-    /**
-     * 입력 플래그
-     */
-    public void setLeftPressed (boolean value) { playerController.getInputState().setLeft(value); }
-    public void setRightPressed(boolean value) { playerController.getInputState().setRight(value); }
-    public void setUpPressed   (boolean value) { playerController.getInputState().setUp(value); }
-    public void setDownPressed (boolean value) { playerController.getInputState().setDown(value); }
-    public void setFirePressed (boolean value) { playerController.getInputState().setFire(value); }
 
     /**
      * 메인 루프:
@@ -546,8 +495,6 @@ public class Game extends Canvas {
     //아무 키나 누르기
     public boolean isWaitingForKeyPress() { return waitingForKeyPress; }
     public void setWaitingForKeyPress(boolean value) { this.waitingForKeyPress = value; }
-    //점수 조회(ESC 업로드용)
-    public int getScore(){ return score; }
     //스테이지 선택 화면으로 이동
     public void goToStageSelectScreen(){ changeState(new StageSelectState(this)); }
     //메뉴 화면으로 돌아가기(ESC 눌렀을때)
@@ -562,8 +509,8 @@ public class Game extends Canvas {
     private void updateBGMForContext(){
         SoundManager.getSound().updateBGMForContext(
                 getCurrentScreen(),         // screenNavigator에서 가져온 현재 Screen
-                currentMode == Mode.STAGE,  //스테이지 모드인지 여부
-                currentStageId              //현재 스테이지 번호
+                context.isStageMode(),      //스테이지 모드인지 여부
+                context.getCurrentStageId() //현재 스테이지 번호
         );
     }
 
@@ -578,7 +525,7 @@ public class Game extends Canvas {
 
 
     public void restartLastMode() {
-        if (currentMode == Mode.INFINITE) {
+        if (context.isInfiniteMode()) {
             startInfiniteMode();
         } else {
             startStageMode(1);

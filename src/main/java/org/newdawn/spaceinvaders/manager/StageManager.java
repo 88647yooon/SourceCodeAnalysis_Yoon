@@ -13,7 +13,7 @@ public final class StageManager {
     public static void applyStage(int stageNum, Game game) {
         // 1. 초기화 (플레이어만 남기기)
         ShipEntity ship = game.getPlayerShip();
-        List<Entity> list = game.getMutableEntities();
+        List<Entity> list = game.getEntityManager().getMutableEntities();
         list.removeIf(e -> e != ship);
 
         ship.teleportTo(370, 550);

@@ -64,7 +64,7 @@ public class RangedAlienEntity extends AlienEntity {
         double vy = speed;
 
 
-        game.addEntity(new EnemyShotEntity(
+        game.getEntityManager().addEntity(new EnemyShotEntity(
                 game,
                 "sprites/enemy_bullet.png",
                 sx, sy,

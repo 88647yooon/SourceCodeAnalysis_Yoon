@@ -38,7 +38,7 @@ public class ShotEntity extends Entity {
     public void move(long delta) {
         super.move(delta);
         if (y < -100) {
-            game.removeEntity(this);
+            game.getEntityManager().removeEntity(this);
         }
     }
 
@@ -77,7 +77,7 @@ public class ShotEntity extends Entity {
         if (other instanceof EnemyEntity) {
             // 탄은 소모
             used = true;
-            game.removeEntity(this);
+            game.getEntityManager().removeEntity(this);
 
             //XP,점수, 외계인 제거 로직은 AlienEntity와 Game의 책임으로 이동
             ((EnemyEntity) other).wasHitBy(this);

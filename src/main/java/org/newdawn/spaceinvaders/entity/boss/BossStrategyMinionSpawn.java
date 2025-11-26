@@ -29,9 +29,9 @@ public class BossStrategyMinionSpawn implements BossAttackStrategy {
 
             // 1. 미니언 소환
             // RangedAlienEntity (원거리) 소환
-            game.addEntity(new RangedAlienEntity(game, (int)(boss.getX() - 30), (int)(boss.getY() + 120), player));
+            game.getEntityManager().addEntity(new RangedAlienEntity(game, (int)(boss.getX() - 30), (int)(boss.getY() + 120), player));
             // DiagonalShooterAlienEntity (대각) 소환
-            game.addEntity(new DiagonalShooterAlienEntity(game, (int)(boss.getX() + 60), (int)(boss.getY() + 120)));
+            game.getEntityManager().addEntity(new DiagonalShooterAlienEntity(game, (int)(boss.getX() + 60), (int)(boss.getY() + 120)));
 
             // 2. 미니언 카운트 갱신 (Game 클래스에 알림)
             game.setAlienCount(game.getAlienCount() + 2);

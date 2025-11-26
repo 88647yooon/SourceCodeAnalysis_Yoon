@@ -70,14 +70,14 @@ public class BossStrategyBomb implements BossAttackStrategy{
                     fallSpeed
             );
 
-            boss.getGame().addEntity(bomb);
+            boss.getGame().getEntityManager().addEntity(bomb);
 
             //그림자 등록
             shadows.add(new Shadow(tx,explodeY,now,now+explodeDelay));
 
             //폭발 스케줄링
             boss.schedule(explodeDelay,()->{
-                boss.getGame().removeEntity(bomb); //폭탄제거
+                boss.getGame().getEntityManager().removeEntity(bomb); //폭탄제거
                 //파편 생성
                 for(int k=0;k<8;k++){
                     boss.spawnAngleShot(tx,explodeY,k*45,220);

@@ -39,7 +39,7 @@ public class HostageEntity extends Entity {
     public void collidedWith(Entity other) {
         if (other instanceof ShotEntity) {
             //플레이어 탄 제거
-            game.removeEntity(other);
+            game.getEntityManager().removeEntity(other);
 
             // 페널티: 플레이어 HP 1 감소
             ShipEntity player = game.getPlayerShip();
@@ -47,7 +47,7 @@ public class HostageEntity extends Entity {
                 player.damage(1); // BossEntity에서 쓰던 동일 API
             }
             //인질은 제거
-            game.removeEntity(this);
+            game.getEntityManager().removeEntity(this);
 
         }
     }

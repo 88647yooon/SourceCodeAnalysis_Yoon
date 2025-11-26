@@ -41,8 +41,8 @@ public class DiagonalShooterAlienEntity extends AlienEntity{
         double vx2 = drx * speed, vy2 = dry * speed;
 
         // [수정] 'game'은 부모의 protected 필드를 사용
-        game.addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, vx1, vy1));
-        game.addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, vx2, vy2));
+        game.getEntityManager().addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, vx1, vy1));
+        game.getEntityManager().addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, vx2, vy2));
 
     }
 

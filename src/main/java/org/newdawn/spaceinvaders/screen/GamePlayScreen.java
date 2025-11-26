@@ -66,7 +66,7 @@ public class GamePlayScreen implements Screen {
         backgroundRenderer.render(g, game.getWaveCount(), 800, 600);
 
         // 엔티티 그리기
-        for (Entity e : game.getEntities()) {
+        for (Entity e : game.getEntityManager().getEntities()) {
             e.draw(g);
         }
 
@@ -146,19 +146,19 @@ public class GamePlayScreen implements Screen {
             s.getDash().tryDash();
         }
         if (keyCode == KeyEvent.VK_LEFT) {
-            game.setLeftPressed(true);
+            game.getPlayerController().getInputState().setLeft(true);
         }
         if (keyCode == KeyEvent.VK_RIGHT) {
-            game.setRightPressed(true);
+            game.getPlayerController().getInputState().setRight(true);
         }
         if (keyCode == KeyEvent.VK_UP) {
-            game.setUpPressed(true);
+            game.getPlayerController().getInputState().setUp(true);
         }
         if (keyCode == KeyEvent.VK_DOWN) {
-            game.setDownPressed(true);
+            game.getPlayerController().getInputState().setDown(true);
         }
         if (keyCode == KeyEvent.VK_SPACE) {
-            game.setFirePressed(true);
+            game.getPlayerController().getInputState().setFire(true);
         }
     }
 
@@ -166,19 +166,19 @@ public class GamePlayScreen implements Screen {
     @Override
     public void handleKeyRelease(int keyCode) {
         if (keyCode == KeyEvent.VK_LEFT) {
-            game.setLeftPressed(false);
+            game.getPlayerController().getInputState().setLeft(false);
         }
         if (keyCode == KeyEvent.VK_RIGHT) {
-            game.setRightPressed(false);
+            game.getPlayerController().getInputState().setRight(false);
         }
         if(keyCode == KeyEvent.VK_UP) {
-            game.setUpPressed(false);
+            game.getPlayerController().getInputState().setUp(false);
         }
         if (keyCode == KeyEvent.VK_DOWN) {
-            game.setDownPressed(false);
+            game.getPlayerController().getInputState().setDown(false);
         }
         if (keyCode == KeyEvent.VK_SPACE) {
-            game.setFirePressed(false);
+            game.getPlayerController().getInputState().setFire(false);
         }
     }
 

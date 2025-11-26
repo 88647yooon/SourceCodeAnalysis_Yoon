@@ -63,7 +63,7 @@ public class EnemyShotEntity extends Entity {
         boolean outOfBounds = y < -64 || y > game.getHeight() + 64 || x < -64 || x > game.getWidth() + 64;
 
         if (expired || outOfBounds) {
-            game.removeEntity(this);
+            game.getEntityManager().removeEntity(this);
             return true;
         }
         return false;
@@ -75,11 +75,11 @@ public class EnemyShotEntity extends Entity {
         if (other instanceof ShipEntity) {
             ShipEntity ship = (ShipEntity) other;
             if (ship.isInvulnerable()) {
-                game.removeEntity(this);
+                game.getEntityManager().removeEntity(this);
                 return;
             }
             ship.damage(1);
-            game.removeEntity(this);
+            game.getEntityManager().removeEntity(this);
         }
     }
 }

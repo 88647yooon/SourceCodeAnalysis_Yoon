@@ -1,6 +1,7 @@
 package org.newdawn.spaceinvaders.screen;
 
 import org.newdawn.spaceinvaders.Game;
+import org.newdawn.spaceinvaders.input.InputState;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -58,11 +59,13 @@ public class GameOverScreen implements Screen {
 
     @Override
     public void handleKeyRelease(int keyCode) {
-        game.setLeftPressed(false);
-        game.setRightPressed(false);
-        game.setUpPressed(false);
-        game.setDownPressed(false);
-        game.setFirePressed(false);
+        InputState input = game.getPlayerController().getInputState();
+
+        input.setLeft(false);
+        input.setRight(false);
+        input.setUp(false);
+        input.setDown(false);
+        input.setFire(false);
 
     }
 }

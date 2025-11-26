@@ -77,7 +77,7 @@ public class ShipEntity extends Entity {
             damage(1);//즉사였는데 HP -1 로 바꿈
 
             if(other instanceof EnemyShotEntity){
-                game.removeEntity(other);
+                game.getEntityManager().removeEntity(other);
             }
         }
     }
