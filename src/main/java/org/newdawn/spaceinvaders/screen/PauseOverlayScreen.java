@@ -12,6 +12,8 @@ public class PauseOverlayScreen {
     private final GamePlayScreen gamePlayScreen;
     private final Game game;
 
+    private static final String FONT_NAME = "Dialog";
+
     private final String[] OPTIONS = {"게임 재개", "재시작", "메인 화면"};
     private int selectionIndex = 0;
 
@@ -49,7 +51,7 @@ public class PauseOverlayScreen {
 
     private void drawTopSection(Graphics2D g, int x, int y, int w) {
         // 타이틀
-        g.setFont(new Font("Dialog", Font.BOLD, 32));
+        g.setFont(new Font(FONT_NAME, Font.BOLD, 32));
         g.setColor(Color.WHITE);
         drawCenteredString(g, "PAUSED", x, w, y + 50);
 
@@ -61,12 +63,12 @@ public class PauseOverlayScreen {
             int savedStars = game.getStageStars(stageId);
 
             // 스테이지 제목
-            g.setFont(new Font("Dialog", Font.BOLD, 22));
+            g.setFont(new Font(FONT_NAME, Font.BOLD, 22));
             g.setColor(new Color(255, 220, 100)); // 금색 느낌
             drawCenteredString(g, "Stage " + stageId + " 기록", x, w, y + 90);
 
             // 별 그리기
-            g.setFont(new Font("Dialog", Font.PLAIN, 24));
+            g.setFont(new Font(FONT_NAME, Font.PLAIN, 24));
             g.setColor(Color.YELLOW);
             StringBuilder starStr = new StringBuilder();
             for (int i = 0; i < 3; i++) {
@@ -75,13 +77,13 @@ public class PauseOverlayScreen {
             drawCenteredString(g, starStr.toString(), x, w, y + 120);
 
             // 간단 설명 (폰트 작게)
-            g.setFont(new Font("Dialog", Font.PLAIN, 12));
+            g.setFont(new Font(FONT_NAME, Font.PLAIN, 12));
             g.setColor(new Color(180, 180, 180));
             drawCenteredString(g, "1★:클리어  2★:타임어택  3★:완벽승리", x, w, y + 140);
 
         } else {
             // 무한 모드 점수
-            g.setFont(new Font("Dialog", Font.BOLD, 24));
+            g.setFont(new Font(FONT_NAME, Font.BOLD, 24));
             g.setColor(Color.WHITE);
             drawCenteredString(g, "현재 점수: " + game.getScore(), x, w, y + 110);
         }
@@ -102,7 +104,7 @@ public class PauseOverlayScreen {
     }
 
     private void drawMenuOptions(Graphics2D g, int areaX, int startY, int areaW) {
-        g.setFont(new Font("Dialog", Font.BOLD, 20));
+        g.setFont(new Font(FONT_NAME, Font.BOLD, 20));
 
         for (int i = 0; i < OPTIONS.length; i++) {
             String label = OPTIONS[i];
@@ -123,7 +125,7 @@ public class PauseOverlayScreen {
         }
 
         // 조작 도움말
-        g.setFont(new Font("Dialog", Font.PLAIN, 12));
+        g.setFont(new Font(FONT_NAME, Font.PLAIN, 12));
         g.setColor(Color.GRAY);
         drawCenteredString(g, "↑/↓ 이동, Enter 선택", areaX, areaW, startY + 210);
     }
@@ -136,7 +138,7 @@ public class PauseOverlayScreen {
         int indent = 30; // 우측 영역 내부 들여쓰기
 
         // 제목
-        g.setFont(new Font("Dialog", Font.BOLD, 18));
+        g.setFont(new Font(FONT_NAME, Font.BOLD, 18));
         g.setColor(new Color(100, 200, 255)); // 하늘색
         g.drawString("[ 스탯 정보 ]", startX + indent, startY + 30);
 
@@ -191,6 +193,10 @@ public class PauseOverlayScreen {
                     game.uploadScoreIfLoggedIn();
                 }
                 game.goToMenuScreen();
+                break;
+
+            default:
+                //예상치 못한 인덱스가 들어왔을 때 안전하게 무시
                 break;
         }
     }

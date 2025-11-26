@@ -15,6 +15,10 @@ public class GameDatabaseService {
         this.db = db;
     }
 
+    //중복되는 문자열을 상수로 정의
+    private static final String KEY_USERS = "users/";
+    private static final String KEY_STAGE_PREFIX = "stage";
+
     public void saveGameResult(AuthSession session, int score, int wave, int level, String mode, long durationMs) {
         if (session == null || !session.isLoggedIn()) return;
 
@@ -44,12 +48,12 @@ public class GameDatabaseService {
         try {
             Map<String, Integer> stringKeyMap = new HashMap<>();
             for (Map.Entry<Integer, Integer> e : stageStars.entrySet()) {
-                stringKeyMap.put("stage" + e.getKey(), e.getValue());
+                stringKeyMap.put(KEY_STAGE_PREFIX + e.getKey(), e.getValue());
             }
 
             String json = new Gson().toJson(stringKeyMap);
 
-            db.put("users/"+ session.getUid() + "/stageStars", session.getIdToken(), json);
+            db.put(KEY_USERS+ session.getUid() + "/stageStars", session.getIdToken(), json);
 
         } catch (Exception e) {
             logger.warning("별 기록 업로드 실패 " + e.getMessage());
@@ -57,46 +61,56 @@ public class GameDatabaseService {
     }
 
     /** 로그인 시 스테이지 별(★) 기록 로드 */
-    // [수정] 로그인 시 별 로드 후 재계산 호출
+    //  로그인 시 별 로드 후 재계산 호출
     public Map<Integer, Integer> loadStageStars(AuthSession session) {
         Map<Integer, Integer> result = new HashMap<>();
         if (session == null || !session.isLoggedIn()) return result;
 
         try {
-            String path = "users/" + session.getUid() + "/stageStars";
+            // 상수 사용
+            String path = KEY_USERS + session.getUid() + "/stageStars";
             String res  = db.get(path, session.getIdToken());
 
-            // 데이터 자체가 없을 때 (신규 유저 등)
-            if (res == null || res.isEmpty() || "null".equals(res.trim())) {
-                return result;
+            if (isValidResponse(res)) {
+                java.lang.reflect.Type mapType =
+                        new com.google.gson.reflect.TypeToken<Map<String, Integer>>() {}.getType();
+                Map<String, Integer> loaded = new com.google.gson.Gson().fromJson(res, mapType);
+
+                // 복잡한 로직을 분리한 메서드 호출
+                return parseStageData(loaded);
             }
 
-            // 권한 문제는 그래도 한 번은 경고 남겨두는 게 좋음
-            if (res.contains("Permission denied")) {
-                logger.warning("loadStageStars: Permission denied");
-                return result;
-            }
-
-            // 최소한의 파싱만
-            java.lang.reflect.Type mapType =
-                    new com.google.gson.reflect.TypeToken<Map<String, Integer>>() {}.getType();
-            Map<String, Integer> loaded =
-                    new com.google.gson.Gson().fromJson(res, mapType);
-
-            if (loaded != null){
-                for (Map.Entry<String, Integer> e : loaded.entrySet()) {
-                    String key = e.getKey();
-                    if (key.startsWith("stage")) {
-                        String numPart = key.substring("stage".length());
-                        if (numPart.matches("\\d+")) {
-                            result.put(Integer.parseInt(numPart), e.getValue());
-                        }
-                    }
-                }
-            }
         } catch (Exception e) {
             // 진짜 문제 있을 때만 한 줄
             logger.warning("loadStageStars 실패: " + e.getMessage());
+        }
+        return result;
+    }
+    //유효성 검사 로직 분리
+    private boolean isValidResponse(String res) {
+        if (res == null || res.isEmpty() || "null".equals(res.trim())) {
+            return false;
+        }
+        if (res.contains("Permission denied")) {
+            logger.warning("loadStageStars: Permission denied");
+            return false;
+        }
+        return true;
+    }
+    //실제 데이터 파싱 로직 분리
+    private Map<Integer, Integer> parseStageData(Map<String, Integer> loaded) {
+        Map<Integer, Integer> result = new HashMap<>();
+        if (loaded == null) return result;
+
+        for (Map.Entry<String, Integer> e : loaded.entrySet()) {
+            String key = e.getKey();
+            // 상수 사용 ("stage")
+            if (key.startsWith(KEY_STAGE_PREFIX)) {
+                String numPart = key.substring(KEY_STAGE_PREFIX.length());
+                if (numPart.matches("\\d+")) {
+                    result.put(Integer.parseInt(numPart), e.getValue());
+                }
+            }
         }
         return result;
     }
@@ -104,18 +118,10 @@ public class GameDatabaseService {
     public void uploadScore(AuthSession session, ScoreEntry entry) {
         if (session == null || !session.isLoggedIn()) return;
         try{
-            String json = "{"
-                    + "\"uid\":" + FirebaseDatabaseClient.quote(session.getUid()) + ","
-                    + "\"email\":" + FirebaseDatabaseClient.quote(session.getEmail()) + ","
-                    + "\"level\":" + entry.getLevel() + ","
-                    + "\"mode\":" + FirebaseDatabaseClient.quote(entry.getMode()) + ","
-                    + "\"score\":" + entry.getScore() + ","
-                    + "\"wave\":" + entry.getWave() + ","
-                    + "\"durationMs\":" + entry.getDurationMs() + ","
-                    + "\"timestamp\":" + FirebaseDatabaseClient.quote(entry.getTimestamp())
-                    + "}";
+            String json = new Gson().toJson(entry);
 
-            db.post("users/" + session.getUid() + "/scores", session.getIdToken(), json);
+            // 상수 사용
+            db.post(KEY_USERS + session.getUid() + "/scores", session.getIdToken(), json);
             db.post("globalScores", session.getIdToken(), json);
 
             logger.info("점수 업로드 완료:");
@@ -132,7 +138,7 @@ public class GameDatabaseService {
         try {
             String query = "&orderBy=%22score%22&limitToLast=" + limit;
 
-            String res = db.getWithQuery("users/" + session.getUid() + "/scores", session.getIdToken() , query);
+            String res = db.getWithQuery(KEY_USERS + session.getUid() + "/scores", session.getIdToken() , query);
 
             java.lang.reflect.Type mapType = new TypeToken<java.util.Map<String, ScoreEntry>>() {}.getType();
             Map<String, ScoreEntry> map = new Gson().fromJson(res, mapType);
@@ -181,7 +187,7 @@ public class GameDatabaseService {
                 + "\"timestamp\":" + FirebaseDatabaseClient.quote(timestamp)
                 + "}";
         try {
-            db.post("users/" + session.getUid() + "/logs", session.getIdToken(), json);
+            db.post(KEY_USERS + session.getUid() + "/logs", session.getIdToken(), json);
         } catch (Exception e) {
             logger.warning("로그 저장 실패: " + e.getMessage());
         }
