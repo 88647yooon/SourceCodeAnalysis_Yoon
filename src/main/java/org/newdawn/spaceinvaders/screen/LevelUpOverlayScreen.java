@@ -9,9 +9,9 @@ public class LevelUpOverlayScreen {
     private static final String DIALOG = "dialog";
     private GamePlayScreen gamePlayScreen;
     protected static final String[] LEVELUP_OPTIONS = {
-            "공격력 +8%",
-            "연사속도 +7%",
-            "대시 쿨타임 -12%"
+            "공격력 +1",
+            "연사속도 +15%",
+            "대시 쿨타임 -15% & 무적↑"
     };
 
     public LevelUpOverlayScreen(GamePlayScreen gamePlayScreen) {

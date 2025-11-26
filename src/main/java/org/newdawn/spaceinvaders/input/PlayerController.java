@@ -61,7 +61,9 @@ public class PlayerController {
 
     private void tryToFire() {
         long now = System.currentTimeMillis();
-        long firingInterval = 500;
+        long baseInterval = 500;
+        long firingInterval = (long) (baseInterval * ship.getStats().getSkills().fireCooldownMul());
+
         if (now - lastFire < firingInterval || ship == null) {
             return;
         }
@@ -73,6 +75,8 @@ public class PlayerController {
                 ship.getX() + 10,
                 ship.getY() - 30
         );
+        int currentAtkLv = ship.getStats().getSkills().atkLv;
+        shot.setDamage(1 + currentAtkLv);
 
         game.addEntity(shot);
         SoundManager.getSound().playSfx(SoundManager.Sfx.SHOOT);

@@ -8,7 +8,15 @@ public class PlayerSkills {
     public int dashLv = 0;
 
     // 대시: 쿨감 배수(작을수록 짧음), 0.5 하한 / 무적 보너스
-    public double dashCdMul() { return Math.max(0.50, 1.0 - 0.12 * dashLv); }
-    public int dashIframesBonusMs() { return 20 * dashLv; }
+    public double dashCdMul() {
+        return Math.max(0.25, 1.0 - 0.15 * dashLv);
+    }
+    public int dashIframesBonusMs() {
+        return 50 * dashLv;
+    }
+
+    public double fireCooldownMul() {
+        return Math.max(0.25, 1.0 - 0.15 * rofLv);
+    }
 
 }
