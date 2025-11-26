@@ -76,6 +76,7 @@ public class EntitySpawnManager {
 
     /** 무한 모드: 웨이브에 따라 확률을 자동 계산해서 통합 메서드 호출 */
     public void spawnAliensForInfiniteMode() {
+        game.incrementWaveCount();
         clearHostagesForInfiniteMode();
 
         int wave = game.getWaveCount();
@@ -100,7 +101,6 @@ public class EntitySpawnManager {
                 spawnHostages(cols, 100, 50, 50);
             }
         }
-        game.incrementWaveCount();
     }
 
     // 보스 소환 (스테이지 5 전용)

@@ -342,7 +342,7 @@ public class Game extends Canvas {
         score = 0;
         runStartedAtMs = System.currentTimeMillis();
         infiniteMode = true;
-        waveCount = 1;
+        waveCount = 0;
         normalsClearedInCycle = 0;
         //엔티티 초기화 로직
         startGame();

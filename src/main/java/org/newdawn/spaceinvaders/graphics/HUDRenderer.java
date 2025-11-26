@@ -16,6 +16,9 @@ public class HUDRenderer {
         ShipEntity player = game.getPlayerShip();
         if (player == null) return;
 
+        int screenW = (game.getWidth() > 0) ? game.getWidth() : 800;
+        int screenH = (game.getHeight() > 0) ? game.getHeight() : 600;
+
         // ===== 하트(HP) — 좌상단 유지 =====
         int x = 20, y = 20;
         int heartSize = 20;
@@ -29,24 +32,34 @@ public class HUDRenderer {
             g.drawImage(img, x + i * (heartSize + heartGap), y, heartSize, heartSize, null);
         }
 
-        //남은 시간(스테이지 모드일때만 표시)
-        int timeLeftMs = game.getStageTimeLimitMs();
-        if(timeLeftMs > 0 || game.isStageMode()){
+        g.setFont(new Font("Arial", Font.BOLD, 20));
+        g.setColor(Color.WHITE);
+
+        int rightMargin = 30; // 우측 여백
+
+        if (game.isStageMode()) {
+            // 1. 스테이지 모드: 타이머 표시 (기존 위치 y=40)
+            int timeLeftMs = game.getStageTimeLimitMs();
             int seconds = timeLeftMs / 1000;
             int min = seconds / 60;
             int sec = seconds % 60;
-
             String timeText = String.format("%02d:%02d", min, sec);
-            g.setFont(new Font("Arial", Font.BOLD, 20));
-            g.setColor(Color.WHITE);
-            g.drawString(timeText, game.getWidth() - 100 ,40);
+
+            // 텍스트 너비에 맞춰 우측 정렬
+            int timeW = g.getFontMetrics().stringWidth(timeText);
+            g.drawString(timeText, screenW - timeW - rightMargin, 40);
+
+            // 2. 스테이지 모드: 스테이지 명 표시 (타이머 아래 y=70)
+            String stageText = "Stage " + game.getCurrentStageId();
+            int stageW = g.getFontMetrics().stringWidth(stageText);
+            g.drawString(stageText, screenW - stageW - rightMargin, 70);
+
+        } else {
+            // 3. 무한 모드: Wave 수 표시 (타이머 위치인 y=40 활용)
+            String waveText = "Wave " + game.getWaveCount();
+            int waveW = g.getFontMetrics().stringWidth(waveText);
+            g.drawString(waveText, screenW - waveW - rightMargin, 40);
         }
-
-
-        // ===== XP 세그먼트 바 — 화면 하단 전체 폭으로 =====
-        int screenW = (game.getWidth()  > 0) ? game.getWidth()  : 800;
-        int screenH = (game.getHeight() > 0) ? game.getHeight() : 600;
-
         int marginX = 24;
         int marginY = 20;
         int barW = screenW - marginX * 2;
@@ -56,7 +69,7 @@ public class HUDRenderer {
 
         drawXpBarSegmented(g, player, barX, barY, barW, barH, 10);
 
-        // 레벨 텍스트(바 위에 살짝)
+        // 레벨 텍스트
         g.setColor(Color.WHITE);
         g.drawString("Lv." + player.getStats().getLevel(), barX, barY - 6);
 

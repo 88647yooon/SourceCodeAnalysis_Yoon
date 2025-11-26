@@ -34,11 +34,27 @@ public class EntityManager {
     }
 
     public void update(long delta, boolean waitingForKeyPress){
+        // 1. 엔티티 이동
         if(!waitingForKeyPress){
-            for(Entity entity : new ArrayList<>(entities)){
-                entity.move(delta);
-            }
+            moveAllEntities(delta);
         }
+
+        // 2. 충돌 체크
+        checkCollisions();
+
+        // 3. 엔티티 제거
+        processRemovals();
+
+        // 4. 추가 로직 (doLogic)
+        processGameLogic();
+    }
+    private void moveAllEntities(long delta) {
+
+        for(Entity entity : new ArrayList<>(entities)){
+            entity.move(delta);
+        }
+    }
+    private void checkCollisions() {
         List<Entity> currentEntities = new ArrayList<>(entities);
         int size = currentEntities.size();
 
@@ -47,23 +63,27 @@ public class EntityManager {
                 Entity a = currentEntities.get(p);
                 Entity b = currentEntities.get(s);
 
-                // 이미 제거 예약된 엔티티끼리는 충돌 검사 생략 (선택 사항)
-                if (removeList.contains(a) || removeList.contains(b)) continue;
-
-                if (a.collidesWith(b)) {
-                    a.collidedWith(b);
-                    b.collidedWith(a);
-                }
+                resolveCollisionPair(a, b);
             }
         }
+    }
+    private void resolveCollisionPair(Entity a, Entity b) {
+        if (removeList.contains(a) || removeList.contains(b)) return;
 
-        //엔티티 제거
+        if (a.collidesWith(b)) {
+            a.collidedWith(b);
+            b.collidedWith(a);
+        }
+    }
+
+    private void processRemovals() {
         if (!removeList.isEmpty()){
             entities.removeAll(removeList);
             removeList.clear();
         }
+    }
 
-        //doLogic
+    private void processGameLogic() {
         if(game.isLogicRequiredThisLoop()){
             for(Entity e : new ArrayList<>(entities)){
                 e.doLogic();
