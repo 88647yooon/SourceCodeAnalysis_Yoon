@@ -12,9 +12,13 @@ public class PlayerRepository {
     private static final String MESSAGE1 = "UID 또는 TOKEN이 null";
     private static final String MESSAGE2 = "UID, TOKEN, SKILLS가 null";
 
-    private PlayerRepository(){
-
+    private static class LevelData{
+        int level = 1;
+        int xpIntoLevel = 0;
     }
+
+    private PlayerRepository(){ }
+
 
     public static void saveSkills(DatabaseClient dbClient,String uid, String idToken, PlayerSkills s) {
         if (uid == null || idToken == null || s == null) {
@@ -66,39 +70,35 @@ public class PlayerRepository {
         try {
             String endpoint = dbUrl + "/users/" + uid + "/lastLevel.json?auth=" + FirebaseDatabaseClient.urlEnc(idToken);
             String res = FirebaseDatabaseClient.httpGet(endpoint);
-            if (res != null && !res.equals("null")) {
-                int level = 1;
-                int xp = 0;
-
-                if (res.contains("\"level\"")) {
-                    String lvStr = res.replaceAll(".*\"level\"\\s*:\\s*\"?(\\d+)\"?.*", "$1");
-                    level = Integer.parseInt(lvStr);
+            if (res != null && !res.equals("null") && !res.isEmpty()) {
+                //기존 Regex 방식 제거 -> Gson 사용
+                LevelData data = GSON.fromJson(res, LevelData.class);
+                if (data != null) {
+                    // level이 0이하로 오는 경우 방지
+                    int safeLevel = Math.max(1, data.level);
+                    return new int[]{ safeLevel, data.xpIntoLevel };
                 }
-                if (res.contains("\"xpIntoLevel\"")) {
-                    String xpStr = res.replaceAll(".*\"xpIntoLevel\"\\s*:\\s*\"?(\\d+)\"?.*", "$1");
-                    xp = Integer.parseInt(xpStr);
-                }
-
-                return new int[]{level, xp};
             }
         } catch (Exception e) {
-            logger.warning("레벨 불러오기 실패: " + e.getMessage());
+            logger.warning("레벨 불러오기 실패 (초기화됨) " + e.getMessage());
         }
 
         return new int[]{1, 0};
     }
 
-    // 🔹 마지막 레벨 저장
+    //  마지막 레벨 저장 (Gson 사용으로 변경하였음)
     public static void saveLastLevel(DatabaseClient dbClient,String uid, String idToken, int level, int xpIntoLevel) {
         if (uid == null || idToken == null) {
             logger.warning(MESSAGE1);
             return;
         }
         try {
-            String json = "{"
-                    + "\"level\":" + level + ","
-                    + "\"xpIntoLevel\":" + xpIntoLevel
-                    + "}";
+            // 수동 문자열 결합 제거 -> 객체 생성 후 Gson 변환
+            LevelData data = new LevelData();
+            data.level = level;
+            data.xpIntoLevel = xpIntoLevel;
+
+            String json = GSON.toJson(data);
             dbClient.put("users/" + uid + "/lastLevel", idToken, json);
         } catch (Exception e) {
             logger.warning("레벨 저장 실패: " + e.getMessage());

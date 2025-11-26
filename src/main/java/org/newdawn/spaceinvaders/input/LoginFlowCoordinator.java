@@ -3,6 +3,7 @@ import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.database.AuthSession;
 import org.newdawn.spaceinvaders.database.FirebaseAuthService;
 import org.newdawn.spaceinvaders.database.FirebaseDatabaseClient;
+import org.newdawn.spaceinvaders.database.GameDatabaseService;
 import org.newdawn.spaceinvaders.screen.MenuScreen;
 import org.newdawn.spaceinvaders.screen.auth.AuthFormState;
 
@@ -29,7 +30,7 @@ public class LoginFlowCoordinator {
                 // 기본 프로필 저장
                 String profileJson = "{"
                         + "\"email\":" + FirebaseDatabaseClient.quote(ar.email) + ","
-                        + "\"createdAt\":" + FirebaseDatabaseClient.quote(Game.now())
+                        + "\"createdAt\":" + FirebaseDatabaseClient.quote(GameDatabaseService.now())
                         + "}";
                 game.getDbClient().put("users/" + ar.localId + "/profile", ar.idToken, profileJson);
             } else {

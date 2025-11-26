@@ -5,8 +5,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferStrategy;
 
-import java.util.*;
-import java.text.SimpleDateFormat;
 import java.util.List;
 import javax.swing.*;
 
@@ -54,7 +52,8 @@ public class Game extends Canvas {
     private final transient StageProgressManager stageProgressManager = new StageProgressManager(gameDb);
     private final transient SessionManager sessionManager = new SessionManager();
     private final transient FirebaseAuthService authService = new FirebaseAuthService(API_KEY);
-
+    
+    public GameDatabaseService getGameDb() { return gameDb;}
     public FirebaseAuthService getAuthService() { return authService; }
     public DatabaseClient getDbClient(){ return dbClient; }
 
@@ -64,16 +63,11 @@ public class Game extends Canvas {
     public String getMessage(){ return message; }
 
 
-    /*
-     * 렌더링 / 윈도우 / 루프
-     */
-
+    //렌더링 / 윈도우 / 루프
 	private final transient BufferStrategy strategy;
 	private final transient boolean gameRunning = true;
-
     private final JFrame container;
     private final String windowTitle = "Space Invaders 102";
-
     /** 배경 렌더러 */
     private final transient BackgroundRenderer backgroundRenderer;
     /** 스크린 라우터 */
@@ -136,9 +130,7 @@ public class Game extends Canvas {
     private long runStartedAtMs = 0L;
     private int currentStageId = 1;
     private int stageStartHP = 0;
-
     private static final int STAGE_TIME_LIMIT_MS = 120_000;
-
     private transient GameState state;
 
     // 무한 모드/웨이브/보스
@@ -146,11 +138,7 @@ public class Game extends Canvas {
     private int waveCount = 1;
     private int normalsClearedInCycle = 0;
     private boolean bossActive = false;
-
-    /* ---------------
-     *     생 성 자
-     * ---------------
-     */
+    
     public Game() {
         // 프레임에 띄울 게임 명
         container = new JFrame(windowTitle);
@@ -195,11 +183,10 @@ public class Game extends Canvas {
         alienCount = 0;
 
         initEntities();
+        
         playerController.getInputState().reset();
-
-
         waitingForKeyPress = false;
-
+        
         changeState(new PlayingState(this));
         waveCount = 1;
     }
@@ -323,6 +310,7 @@ public class Game extends Canvas {
         currentStageId = stageNum;
         normalsClearedInCycle = 0;
 
+        initEntities();
         playerController.getInputState().reset();
 
         stageStartHP = getPlayerShip().getStats().getCurrentHP();
@@ -364,22 +352,31 @@ public class Game extends Canvas {
         changeState(new GameOverState(this)); //상태 전환
         waitingForKeyPress = false;
         message = "";
+        
+        handleGameEndDbOps();
+    }
 
-        if (hasSession()) {
-            ShipEntity playerShip = getPlayerShip();
-            AuthSession current = getSession();
+    private void handleGameEndDbOps() {
+        if (!hasSession()) return;
 
-            if (playerShip != null) {
-                PlayerRepository.saveLastLevel(
-                        getDbClient(),
-                        current.getUid(),
-                        current.getIdToken(),
-                        getPlayerShip().getStats().getLevel(),
-                        getPlayerShip().getStats().getXpIntoLevel());
-            }
-        }
+        ShipEntity p = getPlayerShip();
+        if (p == null) return;
 
-        uploadScoreIfLoggedIn();
+        // 1. 레벨 저장
+        gameDb.savePlayerLevel(getSession(), p.getStats().getLevel(), p.getStats().getXpIntoLevel());
+
+        // 2. 점수 저장
+        long durationMs = (runStartedAtMs > 0) ? (System.currentTimeMillis() - runStartedAtMs) : 0L;
+        String modeStr = (currentMode == Mode.STAGE) ? "STAGE" : "INFINITE";
+
+        gameDb.saveGameResult(
+                getSession(),
+                score,
+                waveCount,
+                p.getStats().getLevel(),
+                modeStr,
+                durationMs
+        );
     }
 
 
@@ -431,11 +428,11 @@ public class Game extends Canvas {
     public List<Entity> getEntities() { return entityManager.getEntities(); }
     public List<Entity> getMutableEntities() { return entityManager.getMutableEntities(); }
     public ShipEntity getPlayerShip() { return (ShipEntity) ship; }
-
     public void addEntity(Entity e) { entityManager.addEntity(e);}
     /** 엔티티 제거 요청(프레임 말미에 일괄 처리) */
     public void removeEntity   (Entity entity) { entityManager.removeEntity(entity); }
-
+    public EntityManager getEntityManager() { return entityManager; }
+    public PlayerController getPlayerController() { return playerController; }
     /**
      * 입력 플래그
      */
@@ -577,43 +574,9 @@ public class Game extends Canvas {
      */
 
     public void uploadScoreIfLoggedIn() {
-        if (!hasSession()) return;
-        AuthSession current = getSession();
-        long durationMs = (runStartedAtMs > 0) ? (System.currentTimeMillis() - runStartedAtMs) : 0L;
-        String modeStr = (currentMode == Mode.STAGE) ? "STAGE" : "INFINITE";
-
-        ScoreEntry entry = new ScoreEntry();
-        entry.setMode(modeStr);
-        entry.setEmail(current.getEmail());
-        entry.setScore(score);
-        entry.setWave(waveCount);
-        entry.setDurationMs(durationMs);
-        entry.setTimestamp(now());
-        entry.setLevel(((ShipEntity) ship).getStats().getLevel());
-
-        gameDb.uploadScore(current, entry);
+        handleGameEndDbOps();
     }
 
-    public List<ScoreEntry> fetchMyTopScores(int limit) {
-        if (!hasSession()) {
-            return Collections.emptyList();
-        }
-        return gameDb.fetchMyTopScores(getSession(), limit);
-    }
-
-
-    public List<ScoreEntry> fetchGlobalTopScores(int limit) {
-        if (!hasSession()) {
-            return Collections.emptyList();
-        }
-        return gameDb.fetchGlobalTopScores(getSession(), limit);
-    }
-
-
-
-    public static String now() {
-        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-    }
 
     public void restartLastMode() {
         if (currentMode == Mode.INFINITE) {
