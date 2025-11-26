@@ -41,9 +41,11 @@ public class BossStrategyBomb implements BossAttackStrategy{
         lastBombAt = now;
 
         //폭탄 투하 로직
-        int minY = 300, maxY = 520;
+        int minY = 300;
+        int maxY = 520;
         int explodeY = minY + (int)(Math.random() * (maxY - minY));
-        int left = 20, right = 760;//화면 범위 설정
+        int left = 20;
+        int right = 760;//화면 범위 설정
 
         for(int i=0;i<bombsPerVolley;i++){
             double tx = left + Math.random() * (right - left);
@@ -88,12 +90,13 @@ public class BossStrategyBomb implements BossAttackStrategy{
             g.fillOval((int)s.x - 12,s.y-12,24,24);
 
             //폭발 직전 깜빡임
-            if(s.explodeAt - now <900){
-                if((now/100)%2==0){
+            if(s.explodeAt - now <900) {
+                if ((now / 100) % 2 == 0) {
                     g.setColor(Color.RED);
-                    g.drawOval((int)s.x - 15,s.y-15,30,30);
+                    g.drawOval((int) s.x - 15, s.y - 15, 30, 30);
                 }
             }
+
         }
     }
 }

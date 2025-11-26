@@ -41,7 +41,7 @@ public class ShipEntity extends Entity {
         long now = System.currentTimeMillis();
 
         //대시 처리위임
-        dash.update(delta,now);
+        dash.update(now);
 
         //이동 경계 처리
         clampPosition();
@@ -65,10 +65,10 @@ public class ShipEntity extends Entity {
     }
 
     private void stopVerticalIfDashing() {
-        if (dash.isDashing()) { dash.StopDash(); setVerticalMovement(0); }
+        if (dash.isDashing()) { dash.stopDash(); setVerticalMovement(0); }
     }
     private void stopHorizontalIfDashing() {
-        if (dash.isDashing()) { dash.StopDash(); setHorizontalMovement(0); }
+        if (dash.isDashing()) { dash.stopDash(); setHorizontalMovement(0); }
     }
 
     @Override
@@ -90,11 +90,10 @@ public class ShipEntity extends Entity {
 
         boolean hit = stats.takeDamage(d, now);
 
-        if(hit){
-            game.onPlayerHit();
-            if(stats.isDead()){
+
+            if(hit && stats.isDead()){
                 game.notifyDeath();
-            }
+
         }
 
     }

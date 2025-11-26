@@ -11,10 +11,8 @@ public class BossStrategyMinionSpawn implements BossAttackStrategy {
     private final long spawnCooldown = 6500;
     private long lastSpawnAt = 0;
 
-    private final BossEntity boss;
 
-    public BossStrategyMinionSpawn(BossEntity boss){
-        this.boss = boss;
+    public BossStrategyMinionSpawn(){
 
         this.lastSpawnAt = System.currentTimeMillis() - spawnCooldown;
     }

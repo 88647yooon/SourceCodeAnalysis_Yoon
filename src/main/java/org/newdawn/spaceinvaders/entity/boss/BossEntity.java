@@ -149,11 +149,11 @@ public class BossEntity extends EnemyEntity {
         } else{
             phaseHoldUntil = System.currentTimeMillis() + phaseIntroMs;
         }
-        updatePhaseStrategy();
+       updatePhaseStrategy();
 
-        }
 
-    //페이즈에 따른 전략 객체 생성및 할당
+    }
+
     private void updatePhaseStrategy(){
 
         switch(phase) {
@@ -169,7 +169,7 @@ public class BossEntity extends EnemyEntity {
                 //페이즈2 텔레포트 + 미니언 소환
                 this.currentStrategy = new BossStrategyComposite(
                         new BossStrategyTeleport(),
-                        new BossStrategyMinionSpawn(this)
+                        new BossStrategyMinionSpawn()
                 );
                 break;
             case 2:
@@ -183,7 +183,6 @@ public class BossEntity extends EnemyEntity {
                 this.currentStrategy = null;
         }
     }
-
     @Override
     public void draw(Graphics g) {
         // 1. 보스 본체

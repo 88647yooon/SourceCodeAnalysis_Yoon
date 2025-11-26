@@ -9,7 +9,7 @@ public class LoginCharTypedHandler {
         this.form = form;
     }
 
-    public void CharTypedHandler(char c) {
+    public void charTypedHandler(char c) {
         if (c == '\b') {
             handleBackspace();
             return;
