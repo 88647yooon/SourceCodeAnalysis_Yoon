@@ -48,7 +48,7 @@ public final class StageManager {
             case 5:
                 // 보스전 (보스만 소환)
                 spawner.spawnBoss();
-                count = 0; // 보스는 alienCount에 포함 안 하거나 1로 하거나 게임 규칙에 따름
+                 // 보스는 alienCount에 포함 안 하거나 1로 하거나 게임 규칙에 따름
                 break;
 
             default:
