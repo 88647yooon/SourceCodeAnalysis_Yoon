@@ -44,32 +44,34 @@ public class ScoreboardScreen implements Screen {
 
         g.setFont(new Font("Monospaced", Font.PLAIN, 16));
         int y = startY + 30;
-        for (int i = 0; i < scores.size(); i++) {
-            ScoreEntry s = scores.get(i);
-
-            // 이메일에서 @앞부분 추출
-            String user = "-";
-            if (s.getEmail() != null && s.getEmail().contains("@")) {
-                user = s.getEmail().substring(0, s.getEmail().indexOf("@"));
-            }
-
-            int scoreVal = (s.getScore() == null) ? 0 : s.getScore();  // 한 번만 언박싱
-
-            String line = String.format("%-6d %-12s %-8d %-10s %-20s",
-                    (i + 1),
-                    user,
-                    scoreVal,
-                    (s.getMode() == null ? "-" : s.getMode()),
-                    ((s.getDurationMs() == null ? 0 : s.getDurationMs()) + " / "
-                            + (s.getTimestamp() == null ? "-" : s.getTimestamp()))
-            );
-            g.drawString(line, 80, y);
-            y += 28;
-        }
 
         if (scores.isEmpty()) {
             g.drawString("기록이 없습니다!", 200, startY + 40);
+        } else {
+            for (int i = 0; i < scores.size(); i++) {
+                drawScoreRow(g, scores.get(i), i + 1, y);
+                y += 28;
+            }
         }
+    }
+    private void drawScoreRow(Graphics2D g, ScoreEntry s, int rank, int y) {
+        // 이메일 파싱
+        String user = "-";
+        if (s.getEmail() != null && s.getEmail().contains("@")) {
+            user = s.getEmail().substring(0, s.getEmail().indexOf("@"));
+        }
+
+        // 값 안전하게 가져오기
+        int scoreVal = (s.getScore() == null) ? 0 : s.getScore();
+        String mode = (s.getMode() == null ? "-" : s.getMode());
+        long duration = (s.getDurationMs() == null ? 0 : s.getDurationMs());
+        String timestamp = (s.getTimestamp() == null ? "-" : s.getTimestamp());
+
+        // 포맷팅 및 출력
+        String line = String.format("%-6d %-12s %-8d %-10s %-20s",
+                rank, user, scoreVal, mode, duration + " / " + timestamp);
+
+        g.drawString(line, 80, y);
     }
 
     @Override
@@ -85,6 +87,9 @@ public class ScoreboardScreen implements Screen {
         if (keyCode == java.awt.event.KeyEvent.VK_TAB) {
             showGlobal = !showGlobal;
             reloadScores();
+        }
+        if (keyCode == java.awt.event.KeyEvent.VK_ESCAPE) {
+            game.goToMenuScreen();
         }
     }
 

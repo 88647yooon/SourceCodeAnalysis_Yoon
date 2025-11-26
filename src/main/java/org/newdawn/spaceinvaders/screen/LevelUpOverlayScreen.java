@@ -115,25 +115,16 @@ public class LevelUpOverlayScreen {
     }
 
     private void handleNumericSelection(int keyCode, ShipEntity s) {
-        int chosen;
+        int chosenIndex = keyCode - java.awt.event.KeyEvent.VK_1;
 
-        if (keyCode == java.awt.event.KeyEvent.VK_1) {
-            chosen = 0;
-        } else if (keyCode == java.awt.event.KeyEvent.VK_2) {
-            chosen = 1;
-        } else if (keyCode == java.awt.event.KeyEvent.VK_3) {
-            chosen = 2;
-        } else {
-            return; // 숫자 1~3 외에는 무시
+        if (chosenIndex >= 0 && chosenIndex < LEVELUP_OPTIONS.length) {
+            if (s != null) {
+                gamePlayScreen.setLevelUpIndex(chosenIndex);
+                s.getStats().spendLevelUpPoint();
+                applyLevelUpChoice(s, chosenIndex);
+                finishOrStay(s);
+            }
         }
-
-        if (s == null) {
-            return;
-        }
-
-        gamePlayScreen.setLevelUpIndex(chosen);
-        s.getStats().spendLevelUpPoint();
-        finishOrStay(s);
 
     }
 

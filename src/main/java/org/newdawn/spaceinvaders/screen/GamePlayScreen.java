@@ -18,12 +18,18 @@ public class GamePlayScreen implements Screen {
     //스탯 상승 관련 오버레이
     private boolean levelUpActive = false; // 오버레이 열렸는지
     private int levelUpIndex = 0;          // 0:공격력, 1:연사속도, 2:대시쿨
+    private boolean isPaused = false;
+
+    private PauseOverlayScreen pauseOverlayScreen;
 
     public GamePlayScreen(Game game) {
         this.game = game;
         this.backgroundRenderer = new BackgroundRenderer();
         this.hudRenderer = new HUDRenderer(game);
         this.ship = game.getPlayerShip();
+
+        this.levelUpOverlayScreen = new LevelUpOverlayScreen(this);
+        this.pauseOverlayScreen = new PauseOverlayScreen(this);
     }
 
     public Game getGame(){
@@ -48,6 +54,9 @@ public class GamePlayScreen implements Screen {
         return levelUpActive;
     }
 
+    public void setPaused(boolean paused) { this.isPaused = paused; }
+    public boolean isPaused() { return isPaused; }
+
     @Override
     public void render(Graphics2D g){
         Font uiFont;
@@ -63,6 +72,15 @@ public class GamePlayScreen implements Screen {
 
         //HUD는 플레이 화면에서만 표시
         hudRenderer.render(g);
+
+        if (isPaused) {
+            if (pauseOverlayScreen != null) {
+                pauseOverlayScreen.draw(g); // 일시정지 화면 그리기
+            }
+        } else if (levelUpActive) {
+            levelUpOverlayScreen.drawLevelUpOverlay(g, ship);
+        }
+
         if (game.isWaitingForKeyPress()) {
             g.setColor(Color.white);
             g.setFont(uiFont);
@@ -87,6 +105,9 @@ public class GamePlayScreen implements Screen {
 
     @Override
     public void update(long delta) {
+        if (isPaused) {
+            return;
+        }
         ShipEntity s = game.getPlayerShip();
 
 
@@ -106,11 +127,29 @@ public class GamePlayScreen implements Screen {
     @Override
     public void handleKeyPress(int keyCode){
         ShipEntity s = game.getPlayerShip();
-        //레벨업시 키조작
-        levelUpOverlayScreen.handleKeyPress(keyCode);
+        if (isPaused) {
+            pauseOverlayScreen.handleKeyPress(keyCode);
+            return;
+        }
+        if (levelUpActive) {
+            levelUpOverlayScreen.handleKeyPress(keyCode);
+            return;
+        }
+        handleGameInput(keyCode);
+    }
+
+    private void handleGameInput(int keyCode) {
+        // ESC: 일시정지 진입
+        if (keyCode == KeyEvent.VK_ESCAPE) {
+            isPaused = true;
+            return;
+        }
+
+        ShipEntity s = game.getPlayerShip();
+        if (s == null) return;
 
         if (keyCode == KeyEvent.VK_SHIFT) {
-            s.getDash().tryDash();   // ← 방금 만든 대시 호출
+            s.getDash().tryDash();
         }
         if (keyCode == KeyEvent.VK_LEFT) {
             game.setLeftPressed(true);
@@ -118,10 +157,10 @@ public class GamePlayScreen implements Screen {
         if (keyCode == KeyEvent.VK_RIGHT) {
             game.setRightPressed(true);
         }
-        if(keyCode == KeyEvent.VK_UP) {
+        if (keyCode == KeyEvent.VK_UP) {
             game.setUpPressed(true);
         }
-        if(keyCode == KeyEvent.VK_DOWN) {
+        if (keyCode == KeyEvent.VK_DOWN) {
             game.setDownPressed(true);
         }
         if (keyCode == KeyEvent.VK_SPACE) {

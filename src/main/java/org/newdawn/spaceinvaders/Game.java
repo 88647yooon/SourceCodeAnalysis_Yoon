@@ -262,6 +262,12 @@ public class Game extends Canvas {
         stageProgressManager.updateStageStars(getSession(), stageId, stars);
     }
 
+    // stageStartHP에 Getter 추가 (별 3성 조건 계산용)
+    public int getStageStartHP() { return stageStartHP; }
+
+    //StageProgressManager에 접근할 수 있도록 Getter 추가
+    public StageProgressManager getStageProgressManager() { return stageProgressManager; }
+
     public int getStageStars(int stageId) {
        return stageProgressManager.getStageStars(stageId);
     }

@@ -45,13 +45,5 @@ public class GameKeyInputHandler extends KeyAdapter {
             ((AuthScreen) game.getCurrentScreen()).handleCharTyped(e.getKeyChar());
             return;
         }
-
-        if (e.getKeyChar() == 27) { // ESC
-            if (game.getScore() > 0 && game.hasSession()) {
-                logger.info("[ESC] 중간 점수 업로드: score=" + game.getScore());
-                game.uploadScoreIfLoggedIn();
-            }
-            game.goToMenuScreen();
-        }
     }
 }

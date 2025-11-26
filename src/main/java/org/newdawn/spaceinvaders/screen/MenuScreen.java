@@ -81,6 +81,9 @@ public class MenuScreen implements Screen {
                     logger.warning("Unkonwn state");
             }
         }
+        else if (keyCode == KeyEvent.VK_ESCAPE) {
+            game.requestExit();
+        }
     }
 
     @Override

@@ -107,6 +107,10 @@ public class StageSelectScreen implements Screen {
         if (keyCode == KeyEvent.VK_RIGHT && selectIndex < MAX_STAGE - 1) {
                 selectIndex++;
         }
+        if (keyCode == KeyEvent.VK_ESCAPE) {
+            game.goToMenuScreen();
+            return;
+        }
         enterPressed(keyCode);
 
     }
