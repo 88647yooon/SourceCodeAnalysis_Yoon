@@ -188,7 +188,11 @@ public class EntitySpawnManager {
 
     private Difficulty computeDifficultyForWave(int wave) {
         Difficulty d = new Difficulty();
-        d.alienHP = wave;
+
+        int effectiveWave = wave - (wave / 5);
+        d.alienHP = (effectiveWave + 1) / 2;
+
+        if (d.alienHP < 1) d.alienHP = 1;
 
         d.alienSpeedMul = Math.min(2.5, 1.0 + 0.08 * (wave - 1));
         d.fireRateMul = Math.min(3.0, 1.0 + 0.10 * (wave - 1));
