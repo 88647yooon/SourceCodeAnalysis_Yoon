@@ -1,8 +1,6 @@
 package org.newdawn.spaceinvaders.screen;
 
 import org.newdawn.spaceinvaders.Game;
-import org.newdawn.spaceinvaders.screen.Screen;
-import org.newdawn.spaceinvaders.screen.StageSelectScreen;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -73,12 +71,12 @@ public class MenuScreen implements Screen {
             menuIndex = (menuIndex + 1) % menuItems.length;
         } else if (keyCode == KeyEvent.VK_ENTER) {
             switch (menuIndex) {
-                case 0: game.setScreen(new StageSelectScreen(game)); break;
+                case 0: game.goToStageSelectScreen(); break;
                 case 1: game.startInfiniteMode(); break;
                 case 2: game.showScoreboard(); break;
                 case 3: game.requestExit(); break;
                 default:
-                    logger.warning("Unkonwn state");
+                    logger.warning("Unknown state");
             }
         }
         else if (keyCode == KeyEvent.VK_ESCAPE) {

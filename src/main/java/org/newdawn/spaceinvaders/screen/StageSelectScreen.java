@@ -101,6 +101,10 @@ public class StageSelectScreen implements Screen {
 
     @Override
     public void handleKeyPress(int keyCode) {
+        if(keyCode == KeyEvent.VK_ESCAPE) {
+            game.goToMenuScreen();
+            return;
+        }
         if (keyCode == KeyEvent.VK_LEFT && selectIndex > 0) {
                 selectIndex--;
         }
