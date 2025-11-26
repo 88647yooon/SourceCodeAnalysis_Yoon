@@ -78,7 +78,7 @@ public class PlayerController {
         int currentAtkLv = ship.getStats().getSkills().atkLv;
         shot.setDamage(1 + currentAtkLv);
 
-        game.getEntityManager().removeEntity(shot);
+        game.getEntityManager().addEntity(shot);
         SoundManager.getSound().playSfx(SoundManager.Sfx.SHOOT);
     }
 
