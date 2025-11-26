@@ -3,10 +3,8 @@ package org.newdawn.spaceinvaders.database;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class GameDatabaseService {
@@ -15,6 +13,27 @@ public class GameDatabaseService {
 
     public GameDatabaseService(DatabaseClient db) {
         this.db = db;
+    }
+
+    public void saveGameResult(AuthSession session, int score, int wave, int level, String mode, long durationMs) {
+        if (session == null || !session.isLoggedIn()) return;
+
+        ScoreEntry entry = new ScoreEntry();
+        entry.setMode(mode);
+        entry.setEmail(session.getEmail());
+        entry.setScore(score);
+        entry.setWave(wave);
+        entry.setDurationMs(durationMs);
+        entry.setTimestamp(now());
+        entry.setLevel(level);
+
+        uploadScore(session, entry);
+    }
+    //추가 -> 레벨 저장 로직 래퍼 (Game.java에서 PlayerRepository 의존성 제거 용도
+    public void savePlayerLevel(AuthSession session, int level, int xp) {
+        if (session == null || !session.isLoggedIn()) return;
+        // PlayerRepository의 정적 메서드 활용
+        PlayerRepository.saveLastLevel(db, session.getUid(), session.getIdToken(), level, xp);
     }
 
     //스테이지 별 저장
@@ -30,7 +49,7 @@ public class GameDatabaseService {
 
             String json = new Gson().toJson(stringKeyMap);
 
-            db.put("user/"+ session.getUid() + "/stageStars", session.getIdToken(), json);
+            db.put("users/"+ session.getUid() + "/stageStars", session.getIdToken(), json);
 
         } catch (Exception e) {
             logger.warning("별 기록 업로드 실패 " + e.getMessage());
@@ -41,10 +60,7 @@ public class GameDatabaseService {
     // [수정] 로그인 시 별 로드 후 재계산 호출
     public Map<Integer, Integer> loadStageStars(AuthSession session) {
         Map<Integer, Integer> result = new HashMap<>();
-        if (session == null || !session.isLoggedIn()) {
-            // 세션도 없는데 굳이 로그까지 남길 필요는 없음
-            return result;
-        }
+        if (session == null || !session.isLoggedIn()) return result;
 
         try {
             String path = "users/" + session.getUid() + "/stageStars";
@@ -67,30 +83,21 @@ public class GameDatabaseService {
             Map<String, Integer> loaded =
                     new com.google.gson.Gson().fromJson(res, mapType);
 
-            if (loaded == null) {
-                return result;
-            }
-
-            for (Map.Entry<String, Integer> e : loaded.entrySet()) {
-                String key = e.getKey();
-                if (!key.startsWith("stage")) {
-                    continue;
-                }
-                String numPart = key.substring("stage".length());
-                if (!numPart.matches("\\d+")) {
-                    continue;
-                }
-                int stageId = Integer.parseInt(numPart);
-                Integer stars = e.getValue();
-                if (stars != null) {
-                    result.put(stageId, stars);
+            if (loaded != null){
+                for (Map.Entry<String, Integer> e : loaded.entrySet()) {
+                    String key = e.getKey();
+                    if (key.startsWith("stage")) {
+                        String numPart = key.substring("stage".length());
+                        if (numPart.matches("\\d+")) {
+                            result.put(Integer.parseInt(numPart), e.getValue());
+                        }
+                    }
                 }
             }
         } catch (Exception e) {
             // 진짜 문제 있을 때만 한 줄
             logger.warning("loadStageStars 실패: " + e.getMessage());
         }
-
         return result;
     }
 
@@ -108,7 +115,7 @@ public class GameDatabaseService {
                     + "\"timestamp\":" + FirebaseDatabaseClient.quote(entry.getTimestamp())
                     + "}";
 
-            db.post("user/" + session.getUid() + "/scores", session.getIdToken(), json);
+            db.post("users/" + session.getUid() + "/scores", session.getIdToken(), json);
             db.post("globalScores", session.getIdToken(), json);
 
             logger.info("점수 업로드 완료:");
@@ -165,6 +172,7 @@ public class GameDatabaseService {
         return list;
     }
 
+
     //REST 기반 간단 로그
     public void logUserEvent(AuthSession session, String type, String timestamp) {
         if (session == null || !session.isLoggedIn()) return;
@@ -179,5 +187,8 @@ public class GameDatabaseService {
         }
     }
 
+    public static String now() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+    }
 
 }

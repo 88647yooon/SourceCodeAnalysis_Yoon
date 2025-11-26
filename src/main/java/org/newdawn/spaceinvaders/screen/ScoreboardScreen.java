@@ -18,9 +18,9 @@ public class ScoreboardScreen implements Screen {
 
     public void reloadScores() {
         if (showGlobal) {
-            this.scores = game.fetchGlobalTopScores(20);
+            this.scores = game.getGameDb().fetchGlobalTopScores(game.getSession(),20);
         } else {
-            this.scores = game.fetchMyTopScores(20);
+            this.scores = game.getGameDb().fetchMyTopScores(game.getSession(), 20);
         }
     }
 
