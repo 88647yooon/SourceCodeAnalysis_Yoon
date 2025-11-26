@@ -310,6 +310,7 @@ public class Game extends Canvas {
         currentStageId = stageNum;
         normalsClearedInCycle = 0;
 
+        initEntities();
         playerController.getInputState().reset();
 
         stageStartHP = getPlayerShip().getStats().getCurrentHP();
