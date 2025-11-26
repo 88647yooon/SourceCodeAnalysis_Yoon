@@ -42,13 +42,13 @@ public class AlienEntity extends EnemyEntity {
 	 * @param y The intial y location of this alient
 	 */
 	public AlienEntity(Game game,int x,int y) {
-		super("sprites/alien.gif",x,y);
+		super("sprites/NormalAlien1.png",x,y);
 		
 		// setup the animatin frames
 		frames[0] = sprite;
-		frames[1] = SpriteStore.get().getSprite("sprites/alien2.gif");
+		frames[1] = SpriteStore.get().getSprite("sprites/NormalAlien2.png");
 		frames[2] = sprite;
-		frames[3] = SpriteStore.get().getSprite("sprites/alien3.gif");
+		frames[3] = SpriteStore.get().getSprite("sprites/NormalAlien3.png");
 		
 		this.game = game;
 		dx = -moveSpeed;
@@ -59,11 +59,11 @@ public class AlienEntity extends EnemyEntity {
         dx = -moveSpeed;
 
         // ref가 기본 외계인일 때만 애니메이션 사용
-        if ("sprites/alien.gif".equals(ref)) {
+        if ("sprites/NormalAlien1.png".equals(ref)) {
             frames[0] = sprite;
-            frames[1] = SpriteStore.get().getSprite("sprites/alien2.gif");
+            frames[1] = SpriteStore.get().getSprite("sprites/NormalAlien2.png");
             frames[2] = sprite;
-            frames[3] = SpriteStore.get().getSprite("sprites/alien3.gif");
+            frames[3] = SpriteStore.get().getSprite("sprites/NormalAlien3.png");
         } else {
             // 커스텀 스프라이트는 단일 프레임(프레임 전환 시 모양 안 바뀌게)
             frames[0] = sprite;

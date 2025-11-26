@@ -188,7 +188,6 @@ public class Game extends Canvas {
         waitingForKeyPress = false;
         
         changeState(new PlayingState(this));
-        waveCount = 1;
     }
 
 
