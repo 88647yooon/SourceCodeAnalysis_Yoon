@@ -25,7 +25,13 @@ public class EntityManager {
     public List<Entity> getEntities() { return Collections.unmodifiableList(entities); }
     public List<Entity> getMutableEntities(){ return entities; }
 
-
+    public void removeEntitiesByClass(Class<? extends Entity> clazz) {
+        for (Entity e : entities) {
+            if (clazz.isInstance(e)) {
+                removeEntity(e); // 제거 리스트에 등록 (다음 프레임에 안전하게 삭제됨)
+            }
+        }
+    }
 
     public void update(long delta, boolean waitingForKeyPress){
         if(!waitingForKeyPress){
@@ -50,6 +56,7 @@ public class EntityManager {
                 }
             }
         }
+
         //엔티티 제거
         if (!removeList.isEmpty()){
             entities.removeAll(removeList);

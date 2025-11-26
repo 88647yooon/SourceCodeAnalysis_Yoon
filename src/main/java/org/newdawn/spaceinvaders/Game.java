@@ -23,6 +23,7 @@ import org.newdawn.spaceinvaders.entity.enemy.AlienEntity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
 import org.newdawn.spaceinvaders.util.SystemTimer;
 import org.newdawn.spaceinvaders.manager.SessionManager;
+import org.newdawn.spaceinvaders.entity.projectile.EnemyShotEntity;
 /**
  * Game — Space Invaders 메인 오케스트레이션.
  * 역할
@@ -221,6 +222,7 @@ public class Game extends Canvas {
     /** 보스 처치 */
     public void onBossKilled() {
         bossActive = false;
+        entityManager.removeEntitiesByClass(EnemyShotEntity.class);
         if (infiniteMode) {
             setAlienCount(0);
             spawnManager.spawnAliensForInfiniteMode();
