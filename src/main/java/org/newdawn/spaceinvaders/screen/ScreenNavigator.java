@@ -1,7 +1,6 @@
 package org.newdawn.spaceinvaders.screen;
 
 import org.newdawn.spaceinvaders.Game;
-import org.newdawn.spaceinvaders.state.PlayingState;
 
 import java.awt.*;
 //ScreenNavigator는 화면 라우터만 하는거로 변경
@@ -25,7 +24,6 @@ public class ScreenNavigator {
     public void showStageSelect() {
         setScreen(new StageSelectScreen(game));
     }
-    public void transitionToStage(int stageNum){ game.changeState(new PlayingState(game));}
 
     public void showGamePlay() {
         setScreen(new GamePlayScreen(game));

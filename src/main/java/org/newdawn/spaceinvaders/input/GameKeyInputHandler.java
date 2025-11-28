@@ -7,14 +7,11 @@ import org.newdawn.spaceinvaders.screen.auth.AuthScreen;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
-import java.util.logging.Logger;
 /*
     게임에서 키 입력 처리를 담당하는 클래스
  */
 public class GameKeyInputHandler extends KeyAdapter {
     private final Game game;
-    private final Logger logger = Logger.getLogger(GameKeyInputHandler.class.getName());
-
     public GameKeyInputHandler(Game game) {
         this.game = game;
     }
@@ -43,7 +40,6 @@ public class GameKeyInputHandler extends KeyAdapter {
     public void keyTyped(KeyEvent e) {
         if (game.getCurrentScreen() instanceof AuthScreen) {
             ((AuthScreen) game.getCurrentScreen()).handleCharTyped(e.getKeyChar());
-            return;
         }
     }
 }
