@@ -1,8 +1,6 @@
 package org.newdawn.spaceinvaders.entity.boss;
 
 import org.newdawn.spaceinvaders.Game;
-import org.newdawn.spaceinvaders.graphics.Sprite;
-import org.newdawn.spaceinvaders.graphics.SpriteStore;
 import org.newdawn.spaceinvaders.entity.base.EnemyEntity;
 import org.newdawn.spaceinvaders.entity.base.Entity;
 import org.newdawn.spaceinvaders.entity.player.ShipEntity;
@@ -26,24 +24,13 @@ public class BossEntity extends EnemyEntity {
         //현재 공격 전략
         private BossAttackStrategy currentStrategy;
 
-        // 스프라이트/렌더
-        private Sprite[] frames = new Sprite[3];
-        private long lastFrameChange = 0;
-        private int frameNumber = 0;
+        private final BossVisualComponent visualComponent;
 
-        // 체력/페이즈
-        private static final int BOSS_MAX_HP = 50;
-        private int phase = -1; // 0,1,2
-
-        // 화면 경계
+        private int phase = -1;
         private static final int BOSS_W = 120;
         private static final int BOSS_H = 120;
-         //화면폭 - 보스폭 - 여유
-
-        //페이즈 전환 공통인프라
-        private long phaseIntroMs = 1500;    // 전환 후 쉬는시간
-        private long phaseHoldUntil = 0;     // 이 시각 전까지는 어떤 공격 패턴도 실행하지 않음
-
+        private long phaseIntroMs = 1500;
+        private long phaseHoldUntil = 0;
         private long now;
 
         //  내부 지연 실행용 태스크 큐
@@ -65,43 +52,29 @@ public class BossEntity extends EnemyEntity {
 
             setMaxHP(scaledHP);
 
-            frames[0] = SpriteStore.get().getSprite("sprites/boss1.png");
-            frames[1] = SpriteStore.get().getSprite("sprites/boss2.png");
-            frames[2] = SpriteStore.get().getSprite("sprites/boss3.png");
-            sprite = frames[0];
+            this.visualComponent = new BossVisualComponent(this);
 
-            // 초기 이동
             setHorizontalMovement(50);
             setVerticalMovement(10);
-
-            //초기 페이즈 설정
             enterPhase(0);
         }
     @Override
     public void move(long delta) {
         this.now = System.currentTimeMillis(); // 공유 시간 업데이트
 
-        processTasks();                 // 1. 예약된 태스크 실행
-        updateAnimation();              // 2. 애니메이션 프레임 업데이트
-        handleMovementAndBoundaries();  // 3. 이동 및 화면 경계 처리
-        checkPhaseTransition();         // 4. HP 기반 페이즈 전환 체크
-        executeStrategy(delta);         // 5. 현재 공격 패턴 실행
+        processTasks();
+        this.sprite = visualComponent.updateAnimation(now);
 
-        super.move(delta);              // 6. 물리 이동 적용 (AlienEntity)
+        handleMovementAndBoundaries();
+        checkPhaseTransition();
+        executeStrategy(delta);
+
+        super.move(delta);
     }
 
     private void processTasks() {
         while (!tasks.isEmpty() && tasks.peek().executeAt <= now) {
             tasks.poll().r.run();
-        }
-    }
-
-    private void updateAnimation() {
-        long frameDuration = 120;
-        if (now - lastFrameChange > frameDuration) {
-            lastFrameChange = now;
-            frameNumber = (frameNumber + 1) % frames.length;
-            sprite = frames[frameNumber];
         }
     }
 
@@ -188,41 +161,15 @@ public class BossEntity extends EnemyEntity {
     }
     @Override
     public void draw(Graphics g) {
-        // 1. 보스 본체
-        g.drawImage(sprite.getImage(), (int)x, (int)y, BOSS_W, BOSS_H, null);
 
-        // 2. HP 바 (헬퍼 메소드 분리)
-        drawHealthBar(g);
-
-        // 3. 패턴 그래픽
         if (currentStrategy != null) {
             currentStrategy.draw((Graphics2D)g, this);
         }
-
-        // 4. 페이즈 전환 깜빡임 (헬퍼 메소드 분리)
-        if (now < phaseHoldUntil) {
-            drawBlinkEffect((Graphics2D)g);
-        }
+        //UI/이펙트 그리기 위임
+        visualComponent.draw((Graphics2D)g,x,y, now, phaseHoldUntil);
     }
 
-    private void drawHealthBar(Graphics g) {
-        int w = BOSS_W;
-        int h = 6;
-        int bw = (int)Math.max(0, Math.round((getCurrentHP() / (double)getMaxHP()) * w));
-        g.setColor(Color.RED);
-        g.fillRect((int)x, (int)y - 10, bw, h);
-        g.setColor(Color.DARK_GRAY);
-        g.drawRect((int)x, (int)y - 10, w, h);
-    }
 
-    private void drawBlinkEffect(Graphics2D g2) {
-        Stroke oldS = g2.getStroke();
-        float a = 0.4f + 0.6f * (float)Math.abs(Math.sin((now % 600) / 600.0 * Math.PI * 2));
-        g2.setColor(new Color(255, 255, 0, (int)(a * 255)));
-        g2.setStroke(new BasicStroke(3f));
-        g2.drawRect((int)x, (int)y, BOSS_W, BOSS_H);
-        g2.setStroke(oldS);
-    }
 
     @Override
     public void wasHitBy(ShotEntity shot){
@@ -250,12 +197,6 @@ public class BossEntity extends EnemyEntity {
         game.getEntityManager().addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", x, y, vx, vy));
     }
 
-    // 폭탄 전략이 Entity를 반환받아 제거할 때 사용 (BombStrategy에서 필요)
-    public Entity spawnShotEntity(double x, double y, double vx, double vy, double speed) {
-        EnemyShotEntity shot = new EnemyShotEntity(game, "sprites/enemy_bullet.png", x, y, vx, vy);
-        game.getEntityManager().addEntity(shot);
-        return shot;
-    }
 
     public void spawnAngleShot(double sx, double sy, double angleDeg, double speed) {
         double rad = Math.toRadians(angleDeg);
