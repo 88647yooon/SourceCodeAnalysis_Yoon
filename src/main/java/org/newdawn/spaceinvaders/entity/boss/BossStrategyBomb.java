@@ -53,7 +53,7 @@ public class BossStrategyBomb implements BossAttackStrategy{
             double startY = boss.getY() + boss.getHeight()/2.0;
 
             double fallSpeed = 120;
-            double distY = Math.max(0.0001,explodeY - startY);
+            double distY = Math.max(0.0001,explodeY - startY); //최소값 보장
 
             double timeSec = distY /fallSpeed;
 

@@ -23,6 +23,7 @@ public class DiagonalShooterAlienEntity extends AlienEntity{
      * 부모 클래스(AlienEntity)의 템플릿 메소드인 checkFire()에 의해 호출되는
      * "실제 발사" 로직 (Hook 메소드 구현)
      */
+    //Hook Method 타이머 로직 없이 '탄환 생성' 에만 집중
     @Override
     protected void performFire() {
         double sx = getX() + getWidth() * 0.5;
@@ -33,14 +34,14 @@ public class DiagonalShooterAlienEntity extends AlienEntity{
         double dlx = -inv, dly = inv; // down-left
         double drx =  inv, dry = inv; // down-right
 
-        // [수정] 부모로부터 난이도 배수를 가져옴
+        //  부모로부터 난이도 배수를 가져옴
         double speed = bulletSpeed * getBulletSpeedMultiplier();
 
         //  절대속도(px/s)로 변환해서 넘긴다
         double vx1 = dlx * speed, vy1 = dly * speed;
         double vx2 = drx * speed, vy2 = dry * speed;
 
-        // [수정] 'game'은 부모의 protected 필드를 사용
+        //  'game'은 부모의 protected 필드를 사용
         game.getEntityManager().addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, vx1, vy1));
         game.getEntityManager().addEntity(new EnemyShotEntity(game, "sprites/enemy_bullet.png", sx, sy, vx2, vy2));
 

@@ -143,10 +143,10 @@ public class AlienEntity extends EnemyEntity {
      * ShotEntity로부터 피격 알림을 받았을 때 호출됨
      */
     public void wasHitBy(ShotEntity shot) {
-        // 1. 부모의 takeDamage 호출(체력 감소)
+        // 1. 체력 감소
         boolean isDead = this.takeDamage(shot.getDamage());
 
-        // 2. 사망 시 Game에 알림
+        // 2. 사망 시 CombatManager에 알림
         if (isDead) {
             game.onAlienKilled(this);
         }
@@ -163,6 +163,7 @@ public class AlienEntity extends EnemyEntity {
      * 템플릿 메소드: 발사 타이머 로직 (공통)
      * 이 메소드는 final이므로 자식 클래스가 오버라이드할 수 없습니다.
      */
+    //템플릿 메소드
     protected final void checkFire() {
         // 쿨다운이 너무 길면 (기본값) 발사 기능이 없는 것으로 간주
         if (baseCooldownMs > 900000) {

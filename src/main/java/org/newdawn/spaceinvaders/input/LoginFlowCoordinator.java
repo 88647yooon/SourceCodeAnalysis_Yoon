@@ -17,8 +17,8 @@ public class LoginFlowCoordinator {
         this.authFormState = authFormState;
     }
 
+    //인증 절차와 화면 전환 같은 흐름만 관리
     public void tryAuth() {
-
         try {
             FirebaseAuthService.AuthResult ar;
             if (authFormState.isSignupMode()) {

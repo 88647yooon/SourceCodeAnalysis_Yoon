@@ -2,6 +2,7 @@ package org.newdawn.spaceinvaders.screen.auth;
 
     public class AuthFormState {
         private boolean signupMode = false;  // false: 로그인, true: 회원가입
+        //순수하게 데이터만 관리
         private String email = "";
         private String password = "";
         private String password2 = "";

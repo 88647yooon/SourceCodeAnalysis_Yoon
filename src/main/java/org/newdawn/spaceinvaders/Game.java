@@ -523,11 +523,12 @@ public class Game extends Canvas {
         handleGameEndDbOps();
     }
 
-
+    //자신의 상태를 확인하여 스스로 재시작 처리
     public void restartLastMode() {
         if (context.isInfiniteMode()) {
             startInfiniteMode();
         } else {
+            //저장된 스테이지 정보 등을 활용해 재시작
             startStageMode(1);
         }
     }

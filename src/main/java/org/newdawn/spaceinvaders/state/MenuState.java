@@ -21,6 +21,8 @@ public class MenuState implements GameState{
         ScreenNavigator navigator = game.getScreenNavigator();
         navigator.showMenu();
 
+        SoundManager.getSound().play(SoundManager.Bgm.MENU);
+
         game.setWaitingForKeyPress(false);
         game.setMessage("");
     }

@@ -48,7 +48,7 @@ public class EnemyShotEntity extends Entity {
             return;
         }
 
-        // 2. [전략 패턴 적용] 현재 전략에 따라 움직임 계산 위임
+        // 2. 현재 전략에 따라 움직임 계산 위임
         if (movementStrategy != null) {
             movementStrategy.updateMovement(this, delta);
         }

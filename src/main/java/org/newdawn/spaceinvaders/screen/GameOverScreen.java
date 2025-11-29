@@ -49,7 +49,7 @@ public class GameOverScreen implements Screen {
         } else if (keyCode == KeyEvent.VK_DOWN) {
             sel = (sel + 1) % items.length;
         } else if (keyCode == KeyEvent.VK_ENTER) {
-            if (sel == 0) { // 재도전
+            if (sel == 0) { // Game에게 재시작해줘라고 요청만 함
                 game.restartLastMode();
             } else if (sel == 1) {
                 game.setScreen(new MenuScreen(game));

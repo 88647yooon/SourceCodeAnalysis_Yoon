@@ -76,6 +76,7 @@ public class MenuScreen implements Screen {
                 case 2: game.showScoreboard(); break;
                 case 3: game.requestExit(); break;
                 default:
+                    //예외 상황 로깅 추가
                     logger.warning("Unknown state");
             }
         }

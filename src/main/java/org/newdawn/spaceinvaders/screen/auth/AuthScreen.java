@@ -18,6 +18,7 @@ public class AuthScreen implements Screen {
 
     public AuthScreen(Game game) {
         form = new AuthFormState();
+        //로직 처리자에게 제어권 위임
         loginFlowCoordinator = new LoginFlowCoordinator(game, form);
         renderer = new AuthScreenImageRenderer(form);
         this.game = game;
@@ -46,6 +47,7 @@ public class AuthScreen implements Screen {
             return;
         }
         if (keyCode == KeyEvent.VK_ENTER) {
+            //로그인 시도를 요청만 함
             loginFlowCoordinator.tryAuth();
             return;
         }
