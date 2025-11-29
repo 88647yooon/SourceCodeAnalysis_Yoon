@@ -25,7 +25,7 @@ public class CombatManager {
 
     public void onAlienKilled(AlienEntity alien) {
 
-        PayXpForKill(alien); //XP 지급, 계산
+        payXpForKill(alien); //XP 지급, 계산
         removeKilledAlien(alien); // 엔티티 제거
         updateScoreAndCount(); // 점수/카운트, dangerMode 갱신
         aliensCleared(); // 웨이브, 보스, 승리 처리
@@ -34,7 +34,7 @@ public class CombatManager {
     }
 
     //XP 지급
-    private void PayXpForKill(AlienEntity alien) {
+    private void payXpForKill(AlienEntity alien) {
         int xp = calculateXpForAlien(alien);
 
         ShipEntity player = game.getPlayerShip();
